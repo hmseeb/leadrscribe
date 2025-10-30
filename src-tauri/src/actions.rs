@@ -3,7 +3,7 @@ use crate::ghostwriter;
 use crate::managers::audio::AudioRecordingManager;
 use crate::managers::history::HistoryManager;
 use crate::managers::transcription::TranscriptionManager;
-use crate::overlay::{show_recording_overlay, show_transcribing_overlay};
+use crate::overlay::show_recording_overlay;
 use crate::settings::{get_settings, OutputMode};
 use crate::tray::{change_tray_icon, TrayIconState};
 use crate::utils;
@@ -12,8 +12,7 @@ use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
-use tauri::AppHandle;
-use tauri::Manager;
+use tauri::{AppHandle, Emitter, Manager};
 
 // Shortcut Action Trait
 pub trait ShortcutAction: Send + Sync {
@@ -85,7 +84,11 @@ impl ShortcutAction for TranscribeAction {
         let hm = Arc::clone(&app.state::<Arc<HistoryManager>>());
 
         change_tray_icon(app, TrayIconState::Transcribing);
-        show_transcribing_overlay(app);
+        // Always show "Transcribing..." first, we'll update to "Ghostwriting..." if needed
+        crate::overlay::show_recording_overlay(app); // Reset to transcribing state
+        if let Some(overlay_window) = app.get_webview_window("recording_overlay") {
+            let _ = overlay_window.emit("show-overlay", "transcribing");
+        }
 
         // Play audio feedback for recording stop
         play_feedback_sound(app, SoundType::Stop);
@@ -121,6 +124,12 @@ impl ShortcutAction for TranscribeAction {
                             let settings = get_settings(&ah);
                             let (final_text, ghostwritten_text) = if settings.output_mode == OutputMode::Ghostwriter {
                                 debug!("Ghostwriter mode enabled, processing transcription");
+
+                                // Update overlay to show "Ghostwriting..." now that transcription is done
+                                if let Some(overlay_window) = ah.get_webview_window("recording_overlay") {
+                                    let _ = overlay_window.emit("show-overlay", "ghostwriting");
+                                }
+
                                 match ghostwriter::process_text(
                                     &transcription,
                                     &settings.openrouter_api_key,

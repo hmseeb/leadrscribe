@@ -1,12 +1,24 @@
 use anyhow::Result;
 use log::{debug, error};
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+
+// Reusable HTTP client with connection pooling for better performance
+static HTTP_CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
+    reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .pool_max_idle_per_host(5)
+        .build()
+        .expect("Failed to build HTTP client")
+});
 
 #[derive(Serialize)]
 struct OpenRouterRequest {
     model: String,
     messages: Vec<Message>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    max_tokens: Option<usize>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -83,6 +95,10 @@ Now rewrite the transcription found in the <transcription> tags below. Remember:
     // Build user message with XML-wrapped transcription (prevents prompt injection)
     let user_message = format!("<transcription>\n{}\n</transcription>", original_text);
 
+    // Calculate smart max_tokens: allow up to 2x the original length plus buffer
+    // This prevents unnecessary generation while allowing for expansions
+    let max_tokens = (original_text.len() * 2 + 100).min(4000);
+
     // Build the request
     let request_body = OpenRouterRequest {
         model: model.to_string(),
@@ -96,14 +112,11 @@ Now rewrite the transcription found in the <transcription> tags below. Remember:
                 content: user_message,
             },
         ],
+        max_tokens: Some(max_tokens),
     };
 
-    // Make the API call with timeout
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()?;
-
-    let response = client
+    // Make the API call using the reusable client
+    let response = HTTP_CLIENT
         .post("https://openrouter.ai/api/v1/chat/completions")
         .header("Authorization", format!("Bearer {}", api_key))
         .header("Content-Type", "application/json")
