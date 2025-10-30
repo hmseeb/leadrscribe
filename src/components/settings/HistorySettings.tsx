@@ -12,6 +12,7 @@ interface HistoryEntry {
   saved: boolean;
   title: string;
   transcription_text: string;
+  ghostwritten_text?: string | null;
 }
 
 export const HistorySettings: React.FC = () => {
@@ -63,7 +64,7 @@ export const HistorySettings: React.FC = () => {
     }
   };
 
-  const copyToClipboard = async (text: string) => {
+  const copyToClipboard = async (text: string, isGhostwritten: boolean) => {
     try {
       await navigator.clipboard.writeText(text);
     } catch (error) {
@@ -125,7 +126,7 @@ export const HistorySettings: React.FC = () => {
             key={entry.id}
             entry={entry}
             onToggleSaved={() => toggleSaved(entry.id)}
-            onCopyText={() => copyToClipboard(entry.transcription_text)}
+            onCopyText={copyToClipboard}
             getAudioUrl={getAudioUrl}
             deleteAudio={deleteAudioEntry}
           />
@@ -138,7 +139,7 @@ export const HistorySettings: React.FC = () => {
 interface HistoryEntryProps {
   entry: HistoryEntry;
   onToggleSaved: () => void;
-  onCopyText: () => void;
+  onCopyText: (text: string, isGhostwritten: boolean) => Promise<void>;
   getAudioUrl: (fileName: string) => Promise<string | null>;
   deleteAudio: (id: number) => Promise<void>;
 }
@@ -151,7 +152,8 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   deleteAudio,
 }) => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [showCopied, setShowCopied] = useState(false);
+  const [showCopiedOriginal, setShowCopiedOriginal] = useState(false);
+  const [showCopiedGhostwritten, setShowCopiedGhostwritten] = useState(false);
 
   useEffect(() => {
     const loadAudio = async () => {
@@ -161,10 +163,18 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
     loadAudio();
   }, [entry.file_name, getAudioUrl]);
 
-  const handleCopyText = () => {
-    onCopyText();
-    setShowCopied(true);
-    setTimeout(() => setShowCopied(false), 2000);
+  const handleCopyOriginal = async () => {
+    await onCopyText(entry.transcription_text, false);
+    setShowCopiedOriginal(true);
+    setTimeout(() => setShowCopiedOriginal(false), 2000);
+  };
+
+  const handleCopyGhostwritten = async () => {
+    if (entry.ghostwritten_text) {
+      await onCopyText(entry.ghostwritten_text, true);
+      setShowCopiedGhostwritten(true);
+      setTimeout(() => setShowCopiedGhostwritten(false), 2000);
+    }
   };
 
   const handleDeleteEntry = async () => {
@@ -176,22 +186,13 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
     }
   };
 
+  const hasGhostwritten = entry.ghostwritten_text && entry.ghostwritten_text.trim().length > 0;
+
   return (
     <div className="px-4 py-2 pb-5 flex flex-col gap-3">
       <div className="flex justify-between items-center">
         <p className="text-sm font-medium">{entry.title}</p>
         <div className="flex items-center gap-1">
-          <button
-            onClick={handleCopyText}
-            className="text-text/50 hover:text-logo-primary  hover:border-logo-primary transition-colors cursor-pointer"
-            title="Copy transcription to clipboard"
-          >
-            {showCopied ? (
-              <Check width={16} height={16} />
-            ) : (
-              <Copy width={16} height={16} />
-            )}
-          </button>
           <button
             onClick={onToggleSaved}
             className={`p-2 rounded  transition-colors cursor-pointer ${
@@ -216,9 +217,53 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
           </button>
         </div>
       </div>
-      <p className="italic text-text/90 text-sm pb-2">
-        {entry.transcription_text}
-      </p>
+
+      {/* Original Transcription */}
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-text/60 font-medium">
+            {hasGhostwritten ? "Original Transcription" : "Transcription"}
+          </p>
+          <button
+            onClick={handleCopyOriginal}
+            className="text-text/50 hover:text-logo-primary transition-colors cursor-pointer"
+            title="Copy original transcription to clipboard"
+          >
+            {showCopiedOriginal ? (
+              <Check width={14} height={14} />
+            ) : (
+              <Copy width={14} height={14} />
+            )}
+          </button>
+        </div>
+        <p className="italic text-text/90 text-sm">
+          {entry.transcription_text}
+        </p>
+      </div>
+
+      {/* Ghostwritten Version */}
+      {hasGhostwritten && (
+        <div className="flex flex-col gap-1 pt-2 border-t border-mid-gray/20">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-text/60 font-medium">Ghostwritten</p>
+            <button
+              onClick={handleCopyGhostwritten}
+              className="text-text/50 hover:text-logo-primary transition-colors cursor-pointer"
+              title="Copy ghostwritten version to clipboard"
+            >
+              {showCopiedGhostwritten ? (
+                <Check width={14} height={14} />
+              ) : (
+                <Copy width={14} height={14} />
+              )}
+            </button>
+          </div>
+          <p className="italic text-text/90 text-sm">
+            {entry.ghostwritten_text}
+          </p>
+        </div>
+      )}
+
       {audioUrl && <AudioPlayer src={audioUrl} className="w-full" />}
     </div>
   );

@@ -140,8 +140,13 @@ pub fn show_transcribing_overlay(app_handle: &AppHandle) {
 
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
         let _ = overlay_window.show();
-        // Emit event to switch to transcribing state
-        let _ = overlay_window.emit("show-overlay", "transcribing");
+        // Emit event to switch to transcribing or ghostwriting state based on output mode
+        let state = if settings.output_mode == settings::OutputMode::Ghostwriter {
+            "ghostwriting"
+        } else {
+            "transcribing"
+        };
+        let _ = overlay_window.emit("show-overlay", state);
     }
 }
 

@@ -46,25 +46,34 @@ Handy is a cross-platform desktop speech-to-text application built with Tauri (R
 - `lib.rs` - Main application entry point with Tauri setup, tray menu, and managers
 - `managers/` - Core business logic managers:
   - `audio.rs` - Audio recording and device management
-  - `model.rs` - Whisper model downloading and management  
+  - `model.rs` - Whisper model downloading and management
   - `transcription.rs` - Speech-to-text processing pipeline
+  - `history.rs` - Transcription history management
 - `audio_toolkit/` - Low-level audio processing:
-  - `audio/` - Device enumeration, recording, resampling 
+  - `audio/` - Device enumeration, recording, resampling
   - `vad/` - Voice Activity Detection using Silero VAD
 - `commands/` - Tauri command handlers for frontend communication
 - `shortcut.rs` - Global keyboard shortcut handling
 - `settings.rs` - Application settings management
+- `tray.rs` - System tray icon management
+- `overlay.rs` - Overlay window for transcription feedback
+- `audio_feedback.rs` - Sound effects for recording/transcription events
+- `clipboard.rs` - Clipboard integration for pasting transcribed text
+- `actions.rs` - Action map for keyboard shortcuts
 
 **Frontend (React/TypeScript - src/):**
 - `App.tsx` - Main application component with onboarding flow
 - `components/settings/` - Settings UI components
 - `components/model-selector/` - Model management interface
+- `components/onboarding/` - First-run onboarding flow
 - `hooks/` - React hooks for settings and model management
 - `lib/types.ts` - Shared TypeScript type definitions
+- `overlay/` - Overlay window components
+- `stores/` - Zustand state management stores
 
 ### Key Architecture Patterns
 
-**Manager Pattern:** Core functionality is organized into managers (Audio, Model, Transcription) that are initialized at startup and managed by Tauri's state system.
+**Manager Pattern:** Core functionality is organized into managers (Audio, Model, Transcription, History) that are initialized at startup and managed by Tauri's state system.
 
 **Command-Event Architecture:** Frontend communicates with backend via Tauri commands, backend sends updates via events.
 
@@ -74,7 +83,8 @@ Handy is a cross-platform desktop speech-to-text application built with Tauri (R
 
 **Core Libraries:**
 - `whisper-rs` - Local Whisper inference with GPU acceleration
-- `cpal` - Cross-platform audio I/O  
+- `transcribe-rs` - CPU-optimized speech recognition with Parakeet models
+- `cpal` - Cross-platform audio I/O
 - `vad-rs` - Voice Activity Detection
 - `rdev` - Global keyboard shortcuts
 - `rubato` - Audio resampling
@@ -98,9 +108,21 @@ Handy is a cross-platform desktop speech-to-text application built with Tauri (R
 Settings are stored using Tauri's store plugin with reactive updates:
 - Keyboard shortcuts (configurable, supports push-to-talk)
 - Audio devices (microphone/output selection)
-- Model preferences (Small/Medium/Turbo/Large Whisper variants)
+- Model preferences (Small/Medium/Turbo/Large Whisper variants, Parakeet models)
 - Audio feedback and translation options
+- Model unload timeout configuration
+- Paste method (Ctrl+V or Direct)
+- Clipboard handling behavior
+- Overlay position configuration
 
 ### Single Instance Architecture
 
 The app enforces single instance behavior - launching when already running brings the settings window to front rather than creating a new process.
+
+### Debug Mode
+
+Debug mode can be toggled via keyboard shortcut:
+- **macOS**: `Cmd+Shift+D`
+- **Windows/Linux**: `Ctrl+Shift+D`
+
+Enables additional settings like 5-second model unload timeout for testing.

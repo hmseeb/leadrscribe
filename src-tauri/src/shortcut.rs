@@ -301,6 +301,46 @@ pub fn change_mute_while_recording_setting(app: AppHandle, enabled: bool) -> Res
     Ok(())
 }
 
+#[tauri::command]
+pub fn change_output_mode_setting(app: AppHandle, mode: String) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    let parsed = match mode.as_str() {
+        "transcript" => settings::OutputMode::Transcript,
+        "ghostwriter" => settings::OutputMode::Ghostwriter,
+        other => {
+            eprintln!("Invalid output mode '{}', defaulting to transcript", other);
+            settings::OutputMode::Transcript
+        }
+    };
+    settings.output_mode = parsed;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn change_openrouter_api_key_setting(app: AppHandle, api_key: Option<String>) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.openrouter_api_key = api_key;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn change_openrouter_model_setting(app: AppHandle, model: String) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.openrouter_model = model;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn change_custom_instructions_setting(app: AppHandle, instructions: String) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.custom_instructions = instructions;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
 /// Determine whether a shortcut string contains at least one non-modifier key.
 /// We allow single non-modifier keys (e.g. "f5" or "space") but disallow
 /// modifier-only combos (e.g. "ctrl" or "ctrl+shift").

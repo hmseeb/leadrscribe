@@ -3,6 +3,7 @@ mod audio_feedback;
 pub mod audio_toolkit;
 mod clipboard;
 mod commands;
+mod ghostwriter;
 mod managers;
 mod overlay;
 mod settings;
@@ -238,6 +239,10 @@ pub fn run() {
             shortcut::suspend_binding,
             shortcut::resume_binding,
             shortcut::change_mute_while_recording_setting,
+            shortcut::change_output_mode_setting,
+            shortcut::change_openrouter_api_key_setting,
+            shortcut::change_openrouter_model_setting,
+            shortcut::change_custom_instructions_setting,
             trigger_update_check,
             commands::cancel_operation,
             commands::get_app_dir_path,

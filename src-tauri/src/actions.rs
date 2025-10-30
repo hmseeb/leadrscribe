@@ -1,9 +1,10 @@
 use crate::audio_feedback::{SoundType, play_feedback_sound};
+use crate::ghostwriter;
 use crate::managers::audio::AudioRecordingManager;
 use crate::managers::history::HistoryManager;
 use crate::managers::transcription::TranscriptionManager;
 use crate::overlay::{show_recording_overlay, show_transcribing_overlay};
-use crate::settings::get_settings;
+use crate::settings::{get_settings, OutputMode};
 use crate::tray::{change_tray_icon, TrayIconState};
 use crate::utils;
 use log::{debug, error};
@@ -116,18 +117,44 @@ impl ShortcutAction for TranscribeAction {
                             transcription
                         );
                         if !transcription.is_empty() {
-                            // Save to history
+                            // Apply ghostwriting if enabled
+                            let settings = get_settings(&ah);
+                            let (final_text, ghostwritten_text) = if settings.output_mode == OutputMode::Ghostwriter {
+                                debug!("Ghostwriter mode enabled, processing transcription");
+                                match ghostwriter::process_text(
+                                    &transcription,
+                                    &settings.openrouter_api_key,
+                                    &settings.openrouter_model,
+                                    &settings.custom_instructions,
+                                )
+                                .await
+                                {
+                                    Ok(ghostwritten) => {
+                                        debug!("Ghostwriting successful");
+                                        (ghostwritten.clone(), Some(ghostwritten))
+                                    }
+                                    Err(e) => {
+                                        error!("Ghostwriting failed, using original transcription: {}", e);
+                                        (transcription.clone(), None)
+                                    }
+                                }
+                            } else {
+                                (transcription.clone(), None)
+                            };
+
+                            // Save to history with both original and ghostwritten text
                             let hm_clone = Arc::clone(&hm);
                             let transcription_for_history = transcription.clone();
                             tauri::async_runtime::spawn(async move {
                                 if let Err(e) = hm_clone
-                                    .save_transcription(samples_clone, transcription_for_history)
+                                    .save_transcription(samples_clone, transcription_for_history, ghostwritten_text)
                                     .await
                                 {
                                     error!("Failed to save transcription to history: {}", e);
                                 }
                             });
-                            let transcription_clone = transcription.clone();
+
+                            let transcription_clone = final_text;
                             let ah_clone = ah.clone();
                             let paste_time = Instant::now();
                             ah.run_on_main_thread(move || {

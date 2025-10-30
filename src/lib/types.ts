@@ -40,6 +40,9 @@ export type PasteMethod = z.infer<typeof PasteMethodSchema>;
 export const ClipboardHandlingSchema = z.enum(["dont_modify", "copy_to_clipboard"]);
 export type ClipboardHandling = z.infer<typeof ClipboardHandlingSchema>;
 
+export const OutputModeSchema = z.enum(["transcript", "ghostwriter"]);
+export type OutputMode = z.infer<typeof OutputModeSchema>;
+
 export const SettingsSchema = z.object({
   bindings: ShortcutBindingsMapSchema,
   push_to_talk: z.boolean(),
@@ -66,6 +69,14 @@ export const SettingsSchema = z.object({
   paste_method: PasteMethodSchema.optional().default("ctrl_v"),
   clipboard_handling: ClipboardHandlingSchema.optional().default("dont_modify"),
   mute_while_recording: z.boolean().optional().default(false),
+  output_mode: OutputModeSchema.optional().default("transcript"),
+  openrouter_api_key: z.string().nullable().optional(),
+  openrouter_model: z.string().optional().default("anthropic/claude-3.5-sonnet"),
+  custom_instructions: z
+    .string()
+    .max(10000)
+    .optional()
+    .default("Improve grammar, spelling, clarity, and flow while preserving the original meaning and tone."),
 });
 
 export const BindingResponseSchema = z.object({

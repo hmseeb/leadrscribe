@@ -18,6 +18,7 @@ pub struct HistoryEntry {
     pub saved: bool,
     pub title: String,
     pub transcription_text: String,
+    pub ghostwritten_text: Option<String>,
 }
 
 pub struct HistoryManager {
@@ -52,23 +53,33 @@ impl HistoryManager {
     }
 
     pub fn get_migrations() -> Vec<Migration> {
-        vec![Migration {
-            version: 1,
-            description: "create_transcription_history_table",
-            sql: "CREATE TABLE IF NOT EXISTS transcription_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                file_name TEXT NOT NULL,
-                timestamp INTEGER NOT NULL,
-                saved BOOLEAN NOT NULL DEFAULT 0,
-                title TEXT NOT NULL,
-                transcription_text TEXT NOT NULL
-            );",
-            kind: MigrationKind::Up,
-        }]
+        vec![
+            Migration {
+                version: 1,
+                description: "create_transcription_history_table",
+                sql: "CREATE TABLE IF NOT EXISTS transcription_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    file_name TEXT NOT NULL,
+                    timestamp INTEGER NOT NULL,
+                    saved BOOLEAN NOT NULL DEFAULT 0,
+                    title TEXT NOT NULL,
+                    transcription_text TEXT NOT NULL
+                );",
+                kind: MigrationKind::Up,
+            },
+            Migration {
+                version: 2,
+                description: "add_ghostwritten_text_column",
+                sql: "ALTER TABLE transcription_history ADD COLUMN ghostwritten_text TEXT;",
+                kind: MigrationKind::Up,
+            },
+        ]
     }
 
     fn init_database(&self) -> Result<()> {
         let conn = Connection::open(&self.db_path)?;
+
+        // Create table if it doesn't exist
         conn.execute(
             "CREATE TABLE IF NOT EXISTS transcription_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,10 +87,28 @@ impl HistoryManager {
                 timestamp INTEGER NOT NULL,
                 saved BOOLEAN NOT NULL DEFAULT 0,
                 title TEXT NOT NULL,
-                transcription_text TEXT NOT NULL
+                transcription_text TEXT NOT NULL,
+                ghostwritten_text TEXT
             )",
             [],
         )?;
+
+        // Check if ghostwritten_text column exists, if not add it (for existing databases)
+        let column_exists: Result<String, _> = conn.query_row(
+            "SELECT name FROM pragma_table_info('transcription_history') WHERE name='ghostwritten_text'",
+            [],
+            |row| row.get(0),
+        );
+
+        if column_exists.is_err() {
+            // Column doesn't exist, add it
+            conn.execute(
+                "ALTER TABLE transcription_history ADD COLUMN ghostwritten_text TEXT",
+                [],
+            )?;
+            debug!("Added ghostwritten_text column to existing database");
+        }
+
         debug!("Database initialized at: {:?}", self.db_path);
         Ok(())
     }
@@ -93,6 +122,7 @@ impl HistoryManager {
         &self,
         audio_samples: Vec<f32>,
         transcription_text: String,
+        ghostwritten_text: Option<String>,
     ) -> Result<()> {
         // If history limit is 0, do not save at all.
         if crate::settings::get_history_limit(&self.app_handle) == 0 {
@@ -108,7 +138,7 @@ impl HistoryManager {
         save_wav_file(file_path, &audio_samples).await?;
 
         // Save to database
-        self.save_to_database(file_name, timestamp, title, transcription_text)?;
+        self.save_to_database(file_name, timestamp, title, transcription_text, ghostwritten_text)?;
 
         // Clean up old entries
         self.cleanup_old_entries()?;
@@ -127,11 +157,12 @@ impl HistoryManager {
         timestamp: i64,
         title: String,
         transcription_text: String,
+        ghostwritten_text: Option<String>,
     ) -> Result<()> {
         let conn = self.get_connection()?;
         conn.execute(
-            "INSERT INTO transcription_history (file_name, timestamp, saved, title, transcription_text) VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![file_name, timestamp, false, title, transcription_text],
+            "INSERT INTO transcription_history (file_name, timestamp, saved, title, transcription_text, ghostwritten_text) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![file_name, timestamp, false, title, transcription_text, ghostwritten_text],
         )?;
 
         debug!("Saved transcription to database");
@@ -186,7 +217,7 @@ impl HistoryManager {
     pub async fn get_history_entries(&self) -> Result<Vec<HistoryEntry>> {
         let conn = self.get_connection()?;
         let mut stmt = conn.prepare(
-            "SELECT id, file_name, timestamp, saved, title, transcription_text FROM transcription_history ORDER BY timestamp DESC"
+            "SELECT id, file_name, timestamp, saved, title, transcription_text, ghostwritten_text FROM transcription_history ORDER BY timestamp DESC"
         )?;
 
         let rows = stmt.query_map([], |row| {
@@ -197,6 +228,7 @@ impl HistoryManager {
                 saved: row.get("saved")?,
                 title: row.get("title")?,
                 transcription_text: row.get("transcription_text")?,
+                ghostwritten_text: row.get("ghostwritten_text")?,
             })
         })?;
 
@@ -242,7 +274,7 @@ impl HistoryManager {
     pub async fn get_entry_by_id(&self, id: i64) -> Result<Option<HistoryEntry>> {
         let conn = self.get_connection()?;
         let mut stmt = conn.prepare(
-            "SELECT id, file_name, timestamp, saved, title, transcription_text
+            "SELECT id, file_name, timestamp, saved, title, transcription_text, ghostwritten_text
              FROM transcription_history WHERE id = ?1",
         )?;
 
@@ -255,6 +287,7 @@ impl HistoryManager {
                     saved: row.get("saved")?,
                     title: row.get("title")?,
                     transcription_text: row.get("transcription_text")?,
+                    ghostwritten_text: row.get("ghostwritten_text")?,
                 })
             })
             .optional()?;

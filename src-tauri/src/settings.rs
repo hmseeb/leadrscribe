@@ -101,6 +101,19 @@ pub enum SoundTheme {
     Custom,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum OutputMode {
+    Transcript,
+    Ghostwriter,
+}
+
+impl Default for OutputMode {
+    fn default() -> Self {
+        OutputMode::Transcript
+    }
+}
+
 impl SoundTheme {
     fn as_str(&self) -> &'static str {
         match self {
@@ -163,6 +176,14 @@ pub struct AppSettings {
     pub clipboard_handling: ClipboardHandling,
     #[serde(default)]
     pub mute_while_recording: bool,
+    #[serde(default)]
+    pub output_mode: OutputMode,
+    #[serde(default)]
+    pub openrouter_api_key: Option<String>,
+    #[serde(default = "default_openrouter_model")]
+    pub openrouter_model: String,
+    #[serde(default = "default_custom_instructions")]
+    pub custom_instructions: String,
 }
 
 fn default_model() -> String {
@@ -216,6 +237,14 @@ fn default_sound_theme() -> SoundTheme {
     SoundTheme::Marimba
 }
 
+fn default_openrouter_model() -> String {
+    "anthropic/claude-3.5-sonnet".to_string()
+}
+
+fn default_custom_instructions() -> String {
+    "Improve grammar, spelling, clarity, and flow while preserving the original meaning and tone.".to_string()
+}
+
 pub const SETTINGS_STORE_PATH: &str = "settings_store.json";
 
 pub fn get_default_settings() -> AppSettings {
@@ -263,6 +292,10 @@ pub fn get_default_settings() -> AppSettings {
         paste_method: PasteMethod::default(),
         clipboard_handling: ClipboardHandling::default(),
         mute_while_recording: false,
+        output_mode: OutputMode::default(),
+        openrouter_api_key: None,
+        openrouter_model: default_openrouter_model(),
+        custom_instructions: default_custom_instructions(),
     }
 }
 

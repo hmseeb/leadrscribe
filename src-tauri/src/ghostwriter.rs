@@ -1,0 +1,275 @@
+use anyhow::Result;
+use log::{debug, error};
+use serde::{Deserialize, Serialize};
+use std::time::Duration;
+
+#[derive(Serialize)]
+struct OpenRouterRequest {
+    model: String,
+    messages: Vec<Message>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Message {
+    role: String,
+    content: String,
+}
+
+#[derive(Deserialize)]
+struct OpenRouterResponse {
+    choices: Vec<Choice>,
+}
+
+#[derive(Deserialize)]
+struct Choice {
+    message: Message,
+}
+
+/// Process transcribed text through OpenRouter API for ghostwriting
+///
+/// # Arguments
+/// * `original_text` - The transcribed text from speech-to-text
+/// * `api_key` - OpenRouter API key (if None, returns original text)
+/// * `model` - Model identifier (e.g., "anthropic/claude-3.5-sonnet")
+/// * `custom_instructions` - System prompt for how to rewrite the text
+///
+/// # Returns
+/// * `Ok(String)` - The ghostwritten text
+/// * `Err(anyhow::Error)` - If API call fails (caller should fallback to original)
+pub async fn process_text(
+    original_text: &str,
+    api_key: &Option<String>,
+    model: &str,
+    custom_instructions: &str,
+) -> Result<String> {
+    let start_time = std::time::Instant::now();
+
+    // If no API key, return original text
+    let api_key = match api_key {
+        Some(key) if !key.is_empty() => key,
+        _ => {
+            debug!("No OpenRouter API key configured, skipping ghostwriting");
+            return Ok(original_text.to_string());
+        }
+    };
+
+    debug!(
+        "Starting ghostwriting with model: {} (text length: {} chars)",
+        model,
+        original_text.len()
+    );
+
+    // Build structured system prompt with XML tags to prevent AI hallucinations
+    let system_prompt = format!(
+        r#"You are a transcription rewriter. Your ONLY job is to rewrite the transcribed speech provided to you.
+
+CRITICAL RULES:
+1. Output ONLY the rewritten transcription
+2. DO NOT add any preambles, introductions, or explanations
+3. DO NOT add phrases like "Here's the rewritten version:" or "Here is:"
+4. DO NOT ask questions or seek clarification
+5. If the transcription is unclear, do your best to improve it anyway
+6. Output should START with the first word of the rewritten content
+7. Output should END with the last word of the rewritten content
+
+<rewriting_instructions>
+{}
+</rewriting_instructions>
+
+Now rewrite the transcription found in the <transcription> tags below. Remember: output ONLY the rewritten text, nothing else."#,
+        custom_instructions
+    );
+
+    // Build user message with XML-wrapped transcription (prevents prompt injection)
+    let user_message = format!("<transcription>\n{}\n</transcription>", original_text);
+
+    // Build the request
+    let request_body = OpenRouterRequest {
+        model: model.to_string(),
+        messages: vec![
+            Message {
+                role: "system".to_string(),
+                content: system_prompt,
+            },
+            Message {
+                role: "user".to_string(),
+                content: user_message,
+            },
+        ],
+    };
+
+    // Make the API call with timeout
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()?;
+
+    let response = client
+        .post("https://openrouter.ai/api/v1/chat/completions")
+        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Content-Type", "application/json")
+        .header("HTTP-Referer", "https://handy.computer")
+        .header("X-Title", "Handy")
+        .json(&request_body)
+        .send()
+        .await?;
+
+    // Check response status
+    if !response.status().is_success() {
+        let status = response.status();
+        let error_text = response.text().await.unwrap_or_default();
+        error!(
+            "OpenRouter API returned error status {}: {}",
+            status, error_text
+        );
+        return Err(anyhow::anyhow!(
+            "OpenRouter API error: {} - {}",
+            status,
+            error_text
+        ));
+    }
+
+    // Parse response
+    let response_body: OpenRouterResponse = response.json().await?;
+
+    let mut ghostwritten_text = response_body
+        .choices
+        .first()
+        .ok_or_else(|| anyhow::anyhow!("No choices in OpenRouter response"))?
+        .message
+        .content
+        .trim()
+        .to_string();
+
+    // Strip any preambles that might have slipped through
+    ghostwritten_text = strip_preambles(&ghostwritten_text);
+
+    let elapsed = start_time.elapsed();
+    debug!(
+        "Ghostwriting completed in {}ms (original: {} chars, rewritten: {} chars)",
+        elapsed.as_millis(),
+        original_text.len(),
+        ghostwritten_text.len()
+    );
+
+    Ok(ghostwritten_text)
+}
+
+/// Strip common preambles that AI models might add despite instructions
+///
+/// This is a safety net that removes phrases like "Here's the rewritten version:",
+/// "Here is:", etc. that might slip through even with structured prompting.
+fn strip_preambles(text: &str) -> String {
+    let preambles = [
+        "Here's the rewritten version:",
+        "Here's a rewritten version:",
+        "Here's the polished version:",
+        "Here's a polished version:",
+        "Here's the revised version:",
+        "Here's a revised version:",
+        "Here is the rewritten version:",
+        "Here is a rewritten version:",
+        "Here is the polished version:",
+        "Here is a polished version:",
+        "Here is the revised version:",
+        "Here is a revised version:",
+        "Here is:",
+        "Here's:",
+        "Rewritten version:",
+        "Polished version:",
+        "Revised version:",
+    ];
+
+    let mut result = text.trim().to_string();
+
+    // Try to strip any matching preamble (case-insensitive)
+    for preamble in &preambles {
+        let preamble_lower = preamble.to_lowercase();
+        let result_lower = result.to_lowercase();
+
+        if result_lower.starts_with(&preamble_lower) {
+            // Remove the preamble and any following whitespace/newlines/quotes
+            result = result[preamble.len()..].trim_start().to_string();
+
+            // Remove leading quotes that might be left over
+            if result.starts_with('"') || result.starts_with('\'') {
+                result = result[1..].to_string();
+            }
+
+            // Remove trailing quotes that might have been added
+            if result.ends_with('"') || result.ends_with('\'') {
+                result = result[..result.len() - 1].to_string();
+            }
+
+            break;
+        }
+    }
+
+    result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_no_api_key_returns_original() {
+        let result = process_text(
+            "test text",
+            &None,
+            "anthropic/claude-3.5-sonnet",
+            "Improve this",
+        )
+        .await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "test text");
+    }
+
+    #[tokio::test]
+    async fn test_empty_api_key_returns_original() {
+        let result = process_text(
+            "test text",
+            &Some("".to_string()),
+            "anthropic/claude-3.5-sonnet",
+            "Improve this",
+        )
+        .await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "test text");
+    }
+
+    #[test]
+    fn test_strip_preambles_basic() {
+        let input = "Here's the rewritten version: Hello, I'm testing this feature.";
+        let expected = "Hello, I'm testing this feature.";
+        assert_eq!(strip_preambles(input), expected);
+    }
+
+    #[test]
+    fn test_strip_preambles_polished() {
+        let input = "Here's a polished version: This is the actual content.";
+        let expected = "This is the actual content.";
+        assert_eq!(strip_preambles(input), expected);
+    }
+
+    #[test]
+    fn test_strip_preambles_with_quotes() {
+        let input = "Here is: \"The quoted content here\"";
+        let expected = "The quoted content here";
+        assert_eq!(strip_preambles(input), expected);
+    }
+
+    #[test]
+    fn test_strip_preambles_no_preamble() {
+        let input = "This is just normal text without any preamble.";
+        assert_eq!(strip_preambles(input), input);
+    }
+
+    #[test]
+    fn test_strip_preambles_case_insensitive() {
+        let input = "HERE'S THE REWRITTEN VERSION: Content here.";
+        let expected = "Content here.";
+        assert_eq!(strip_preambles(input), expected);
+    }
+}

@@ -104,6 +104,14 @@ const settingUpdaters: {
   history_limit: (value) => invoke("update_history_limit", { limit: value }),
   mute_while_recording: (value) =>
     invoke("change_mute_while_recording_setting", { enabled: value }),
+  output_mode: (value) =>
+    invoke("change_output_mode_setting", { mode: value }),
+  openrouter_api_key: (value) =>
+    invoke("change_openrouter_api_key_setting", { apiKey: value }),
+  openrouter_model: (value) =>
+    invoke("change_openrouter_model_setting", { model: value }),
+  custom_instructions: (value) =>
+    invoke("change_custom_instructions_setting", { instructions: value }),
 };
 
 export const useSettingsStore = create<SettingsStore>()(

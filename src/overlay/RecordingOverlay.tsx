@@ -8,7 +8,7 @@ import {
 } from "../components/icons";
 import "./RecordingOverlay.css";
 
-type OverlayState = "recording" | "transcribing";
+type OverlayState = "recording" | "transcribing" | "ghostwriting";
 
 const RecordingOverlay: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -85,6 +85,9 @@ const RecordingOverlay: React.FC = () => {
         )}
         {state === "transcribing" && (
           <div className="transcribing-text">Transcribing...</div>
+        )}
+        {state === "ghostwriting" && (
+          <div className="transcribing-text">Ghostwriting...</div>
         )}
       </div>
 
