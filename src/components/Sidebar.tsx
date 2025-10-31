@@ -1,4 +1,5 @@
 import React from "react";
+import { motion } from "framer-motion";
 import { Cog, FlaskConical, History, Info, Settings } from "lucide-react";
 import LeadrScribeLogo from "./icons/LeadrScribeLogo";
 import LeadrScribeIcon from "./icons/LeadrScribeIcon";
@@ -84,26 +85,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
     .map(([id, config]) => ({ id: id as SidebarSection, ...config }));
 
   return (
-    <div className="flex flex-col w-40 h-full border-r border-mid-gray/20 items-center px-2">
-      <LeadrScribeLogo className="m-4" />
-      <div className="flex flex-col w-full items-center gap-1 pt-2 border-t border-mid-gray/20">
+    <div className="flex flex-col w-[220px] h-full border-r border-border dark:border-neutral-800 bg-surface dark:bg-neutral-900/50 items-center px-3 py-4">
+      <LeadrScribeLogo className="mb-6" />
+      <div className="flex flex-col w-full items-center gap-1.5 pt-4 border-t border-border dark:border-neutral-800">
         {availableSections.map((section) => {
           const Icon = section.icon;
           const isActive = activeSection === section.id;
 
           return (
-            <div
+            <motion.div
               key={section.id}
-              className={`flex gap-2 items-center p-2 w-full rounded-lg cursor-pointer transition-colors ${
+              className={`flex gap-3 items-center px-3 py-2.5 w-full rounded-lg cursor-pointer transition-all duration-200 relative ${
                 isActive
-                  ? "bg-logo-primary/80"
-                  : "hover:bg-mid-gray/20 hover:opacity-100 opacity-85"
+                  ? "text-primary-700 dark:text-primary-300 bg-gradient-to-r from-primary-50 to-primary-100/50 dark:from-primary-950/50 dark:to-primary-950/30 shadow-sm"
+                  : "text-text-muted dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-text dark:hover:text-neutral-200"
               }`}
               onClick={() => onSectionChange(section.id)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              <Icon width={24} height={24} />
-              <p className="text-sm font-medium">{section.label}</p>
-            </div>
+              {isActive && (
+                <motion.div
+                  layoutId="activeSection"
+                  className="absolute left-0 w-1 h-full bg-primary-500 rounded-r-full"
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              )}
+              <Icon
+                width={20}
+                height={20}
+                className={isActive ? "text-primary-600 dark:text-primary-400" : ""}
+              />
+              <p className={`text-sm ${isActive ? "font-semibold" : "font-medium"}`}>
+                {section.label}
+              </p>
+            </motion.div>
           );
         })}
       </div>

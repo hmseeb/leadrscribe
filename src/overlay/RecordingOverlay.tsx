@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import React, { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   MicrophoneIcon,
   TranscriptionIcon,
@@ -64,46 +65,76 @@ const RecordingOverlay: React.FC = () => {
   };
 
   return (
-    <div className={`recording-overlay ${isVisible ? "fade-in" : ""}`}>
+    <motion.div
+      className={`recording-overlay ${isVisible ? "fade-in" : ""}`}
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{
+        scale: isVisible ? 1 : 0.8,
+        opacity: isVisible ? 1 : 0,
+      }}
+      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+    >
       <div className="overlay-left">{getIcon()}</div>
 
       <div className="overlay-middle">
         {state === "recording" && (
           <div className="bars-container">
             {levels.map((v, i) => (
-              <div
+              <motion.div
                 key={i}
                 className="bar"
-                style={{
-                  height: `${Math.min(20, 4 + Math.pow(v, 0.7) * 16)}px`, // Cap at 20px max height
-                  transition: "height 60ms ease-out, opacity 120ms ease-out",
-                  opacity: Math.max(0.2, v * 1.7), // Minimum opacity for visibility
+                animate={{
+                  height: `${Math.min(20, 4 + Math.pow(v, 0.7) * 16)}px`,
+                  opacity: Math.max(0.3, v * 1.7),
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 20,
                 }}
               />
             ))}
           </div>
         )}
-        {state === "transcribing" && (
-          <div className="transcribing-text">Transcribing...</div>
-        )}
-        {state === "ghostwriting" && (
-          <div className="transcribing-text">Ghostwriting...</div>
-        )}
+        <AnimatePresence>
+          {state === "transcribing" && (
+            <motion.div
+              className="transcribing-text"
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 5 }}
+            >
+              Transcribing...
+            </motion.div>
+          )}
+          {state === "ghostwriting" && (
+            <motion.div
+              className="transcribing-text"
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 5 }}
+            >
+              Ghostwriting...
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="overlay-right">
         {state === "recording" && (
-          <div
+          <motion.div
             className="cancel-button"
             onClick={() => {
               invoke("cancel_operation");
             }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
           >
             <CancelIcon />
-          </div>
+          </motion.div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 

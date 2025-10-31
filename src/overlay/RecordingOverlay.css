@@ -1,15 +1,19 @@
 .recording-overlay {
-    height: 36px;
-    width: 172px;
+    height: 42px;
+    width: 200px;
     display: grid;
     grid-template-columns: auto 1fr auto;
     align-items: center;
-    padding: 6px;
-    background: #000000cc;
-    border-radius: 18px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 21px;
     opacity: 0;
     transition: opacity 300ms ease-out;
     box-sizing: border-box;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
 }
 
 .overlay-left {
@@ -33,19 +37,19 @@
     display: flex;
     align-items: end;
     justify-content: center;
-    gap: 3px;
+    gap: 3.5px;
     padding-bottom: 0px;
-    height: 24px;
+    height: 26px;
     overflow: hidden;
 }
 
 .bar {
     width: 6px;
-    background: #FEE2E2;
-    max-height: 20px;
-    border-radius: 2px;
-    transition: height 80ms linear;
+    background: linear-gradient(to top, #3b82f6, #60a5fa);
+    max-height: 22px;
+    border-radius: 3px;
     min-height: 4px;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
 }
 
 .recording-overlay.fade-in {
@@ -86,10 +90,9 @@
 }
 
 .cancel-button:hover {
-    background: #EF444433;
-    transform: scale(1.05);
+    background: rgba(239, 68, 68, 0.25);
 }
 
 .cancel-button:active {
-    transform: scale(0.95);
+    background: rgba(239, 68, 68, 0.35);
 }

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export interface DropdownOption {
   value: string;
@@ -60,20 +61,26 @@ export const Dropdown: React.FC<DropdownProps> = ({
     <div className={`relative ${className}`} ref={dropdownRef}>
       <button
         type="button"
-        className={`px-2 py-1 text-sm font-semibold bg-mid-gray/10 border border-mid-gray/80 rounded min-w-[200px] text-left flex items-center justify-between transition-all duration-150 ${
+        className={`px-3 py-2 text-sm font-medium bg-surface dark:bg-neutral-800 border border-border dark:border-neutral-700 rounded-lg min-w-[200px] text-left flex items-center justify-between transition-all duration-200 shadow-sm ${
           disabled
             ? "opacity-50 cursor-not-allowed"
-            : "hover:bg-logo-primary/10 cursor-pointer hover:border-logo-primary"
+            : "hover:border-primary-300 dark:hover:border-primary-700 cursor-pointer hover:shadow-md focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
         }`}
         onClick={handleToggle}
         disabled={disabled}
       >
-        <span className="truncate">{selectedOption?.label || placeholder}</span>
-        <svg
-          className={`w-4 h-4 ml-2 transition-transform duration-200 ${isOpen ? "transform rotate-180" : ""}`}
+        <span className="truncate text-text dark:text-neutral-100">
+          {selectedOption?.label || (
+            <span className="text-text-subtle">{placeholder}</span>
+          )}
+        </span>
+        <motion.svg
+          className="w-4 h-4 ml-2 text-text-subtle"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
         >
           <path
             strokeLinecap="round"
@@ -81,33 +88,41 @@ export const Dropdown: React.FC<DropdownProps> = ({
             strokeWidth={2}
             d="M19 9l-7 7-7-7"
           />
-        </svg>
+        </motion.svg>
       </button>
-      {isOpen && !disabled && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-mid-gray/80 rounded shadow-lg z-50 max-h-60 overflow-y-auto">
-          {options.length === 0 ? (
-            <div className="px-2 py-1 text-sm text-mid-gray">
-              No options found
-            </div>
-          ) : (
-            options.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={`w-full px-2 py-1 text-sm text-left hover:bg-logo-primary/10 transition-colors duration-150 ${
-                  selectedValue === option.value
-                    ? "bg-logo-primary/20 font-semibold"
-                    : ""
-                } ${option.disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                onClick={() => handleSelect(option.value)}
-                disabled={option.disabled}
-              >
-                <span className="truncate">{option.label}</span>
-              </button>
-            ))
-          )}
-        </div>
-      )}
+      <AnimatePresence>
+        {isOpen && !disabled && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.15 }}
+            className="absolute top-full left-0 right-0 mt-2 bg-surface dark:bg-neutral-800 border border-border dark:border-neutral-700 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto backdrop-blur-sm"
+          >
+            {options.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-text-subtle">
+                No options found
+              </div>
+            ) : (
+              options.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`w-full px-3 py-2 text-sm text-left hover:bg-primary-50 dark:hover:bg-primary-950/30 transition-colors duration-150 first:rounded-t-lg last:rounded-b-lg ${
+                    selectedValue === option.value
+                      ? "bg-primary-100 dark:bg-primary-950/50 text-primary-700 dark:text-primary-300 font-medium"
+                      : "text-text dark:text-neutral-100"
+                  } ${option.disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                  onClick={() => handleSelect(option.value)}
+                  disabled={option.disabled}
+                >
+                  <span className="truncate">{option.label}</span>
+                </button>
+              ))
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

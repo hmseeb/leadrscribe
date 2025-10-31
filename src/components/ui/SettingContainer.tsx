@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface SettingContainerProps {
   title: string;
@@ -47,8 +48,8 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
   };
 
   const containerClasses = grouped
-    ? "px-4 p-2"
-    : "px-4 p-2 rounded-lg border border-mid-gray/20";
+    ? "px-4 py-3"
+    : "px-4 py-3 rounded-xl border border-border dark:border-neutral-700/50 shadow-sm";
 
   if (layout === "stacked") {
     if (descriptionMode === "tooltip") {
@@ -68,7 +69,7 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
               onClick={toggleTooltip}
             >
               <svg
-                className="w-4 h-4 text-mid-gray cursor-help hover:text-logo-primary transition-colors duration-200 select-none"
+                className="w-4 h-4 text-text-subtle dark:text-neutral-500 cursor-help hover:text-primary-500 dark:hover:text-primary-400 transition-colors duration-200 select-none"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -89,14 +90,22 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
                   d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              {showTooltip && (
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-background border border-mid-gray/80 rounded-lg shadow-lg z-50 max-w-xs min-w-[200px] whitespace-normal animate-in fade-in-0 zoom-in-95 duration-200">
-                  <p className="text-sm text-center leading-relaxed">
-                    {description}
-                  </p>
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-mid-gray/80"></div>
-                </div>
-              )}
+              <AnimatePresence>
+                {showTooltip && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 5 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 5 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-surface-elevated dark:bg-neutral-800 border border-border dark:border-neutral-700 rounded-lg shadow-xl z-50 max-w-xs min-w-[200px] whitespace-normal backdrop-blur-sm"
+                  >
+                    <p className="text-sm text-center leading-relaxed text-text dark:text-neutral-200">
+                      {description}
+                    </p>
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-border dark:border-t-neutral-700"></div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
           <div className="w-full">{children}</div>
@@ -121,8 +130,8 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
 
   // Horizontal layout (default)
   const horizontalContainerClasses = grouped
-    ? "flex items-center justify-between px-4 p-2"
-    : "flex items-center justify-between px-4 p-2 rounded-lg border border-mid-gray/20";
+    ? "flex items-center justify-between px-4 py-3"
+    : "flex items-center justify-between px-4 py-3 rounded-xl border border-border dark:border-neutral-700/50 shadow-sm";
 
   if (descriptionMode === "tooltip") {
     return (
@@ -142,7 +151,7 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
               onClick={toggleTooltip}
             >
               <svg
-                className="w-4 h-4 text-mid-gray cursor-help hover:text-logo-primary transition-colors duration-200 select-none"
+                className="w-4 h-4 text-text-subtle dark:text-neutral-500 cursor-help hover:text-primary-500 dark:hover:text-primary-400 transition-colors duration-200 select-none"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -163,14 +172,22 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
                   d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              {showTooltip && (
-                <div className={`absolute ${tooltipPosition === "top" ? "bottom-full" : "top-[150%]"} left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-background border border-mid-gray/80 rounded-lg shadow-lg z-50 max-w-xs min-w-[200px] whitespace-normal animate-in fade-in-0 zoom-in-95 duration-200`}>
-                  <p className="text-sm text-center leading-relaxed">
-                    {description}
-                  </p>
-                  <div className={`absolute ${tooltipPosition === "top" ? "top-full" : "bottom-full rotate-180"} left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-mid-gray/80`}></div>
-                </div>
-              )}
+              <AnimatePresence>
+                {showTooltip && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: tooltipPosition === "top" ? 5 : -5 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: tooltipPosition === "top" ? 5 : -5 }}
+                    transition={{ duration: 0.15 }}
+                    className={`absolute ${tooltipPosition === "top" ? "bottom-full" : "top-[150%]"} left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-surface-elevated dark:bg-neutral-800 border border-border dark:border-neutral-700 rounded-lg shadow-xl z-50 max-w-xs min-w-[200px] whitespace-normal backdrop-blur-sm`}
+                  >
+                    <p className="text-sm text-center leading-relaxed text-text dark:text-neutral-200">
+                      {description}
+                    </p>
+                    <div className={`absolute ${tooltipPosition === "top" ? "top-full" : "bottom-full rotate-180"} left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-border dark:border-t-neutral-700`}></div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>

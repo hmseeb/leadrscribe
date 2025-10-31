@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(bun run:*)",
-      "Read(//c/Users/hsbaz/Downloads/**)"
+      "Read(//c/Users/hsbaz/Downloads/**)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
