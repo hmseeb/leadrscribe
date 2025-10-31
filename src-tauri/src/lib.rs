@@ -5,6 +5,7 @@ mod clipboard;
 mod commands;
 mod ghostwriter;
 mod managers;
+mod migration;
 mod overlay;
 mod settings;
 mod shortcut;
@@ -55,6 +56,12 @@ fn show_main_window(app: &AppHandle) {
 }
 
 fn initialize_core_logic(app_handle: &AppHandle) {
+    // Migrate user data from old "handy" directory if it exists
+    if let Err(e) = migration::migrate_user_data(app_handle) {
+        eprintln!("Warning: Failed to migrate user data: {}", e);
+        // Continue with initialization even if migration fails
+    }
+
     // First, initialize the managers
     let recording_manager = Arc::new(
         AudioRecordingManager::new(app_handle).expect("Failed to initialize recording manager"),

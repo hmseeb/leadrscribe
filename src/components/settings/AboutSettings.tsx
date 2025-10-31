@@ -25,7 +25,7 @@ export const AboutSettings: React.FC = () => {
 
   const handleDonateClick = async () => {
     try {
-      await openUrl("https://handy.computer/donate");
+      await openUrl("https://leadrscribe.vercel.app/donate");
     } catch (error) {
       console.error("Failed to open donate link:", error);
     }
@@ -36,7 +36,7 @@ export const AboutSettings: React.FC = () => {
       <SettingsGroup title="About">
         <SettingContainer
           title="Version"
-          description="Current version of Handy"
+          description="Current version of LeadrScribe"
           grouped={true}
         >
           <span className="text-sm font-mono">v{version}</span>
@@ -52,7 +52,7 @@ export const AboutSettings: React.FC = () => {
           <Button
             variant="secondary"
             size="md"
-            onClick={() => openUrl("https://github.com/cjpais/Handy")}
+            onClick={() => openUrl("https://github.com/cjpais/LeadrScribe")}
           >
             View on GitHub
           </Button>
@@ -60,7 +60,7 @@ export const AboutSettings: React.FC = () => {
 
         <SettingContainer
           title="Support Development"
-          description="Help us continue building Handy"
+          description="Help us continue building LeadrScribe"
           grouped={true}
         >
           <Button variant="primary" size="md" onClick={handleDonateClick}>
@@ -77,7 +77,7 @@ export const AboutSettings: React.FC = () => {
           layout="stacked"
         >
           <div className="text-sm text-mid-gray">
-            Handy uses Whisper.cpp for fast, local speech-to-text processing.
+            LeadrScribe uses Whisper.cpp for fast, local speech-to-text processing.
             Thanks to the amazing work by Georgi Gerganov and contributors.
           </div>
         </SettingContainer>

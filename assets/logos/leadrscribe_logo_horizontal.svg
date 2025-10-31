@@ -1,0 +1,37 @@
+<svg width="600" height="200" viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gradient definitions -->
+  <defs>
+    <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#DC2626;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#EF4444;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="gradient2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FEE2E2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Icon circle -->
+  <circle cx="100" cy="100" r="75" fill="url(#gradient1)"/>
+
+  <!-- Audio waveform bars -->
+  <g transform="translate(100, 100)">
+    <!-- Center bar (tallest) -->
+    <rect x="-6" y="-35" width="12" height="70" rx="6" fill="url(#gradient2)"/>
+
+    <!-- Left bars -->
+    <rect x="-26" y="-25" width="10" height="50" rx="5" fill="url(#gradient2)" opacity="0.9"/>
+    <rect x="-44" y="-18" width="8" height="36" rx="4" fill="url(#gradient2)" opacity="0.8"/>
+    <rect x="-58" y="-12" width="6" height="24" rx="3" fill="url(#gradient2)" opacity="0.7"/>
+
+    <!-- Right bars -->
+    <rect x="16" y="-25" width="10" height="50" rx="5" fill="url(#gradient2)" opacity="0.9"/>
+    <rect x="36" y="-18" width="8" height="36" rx="4" fill="url(#gradient2)" opacity="0.8"/>
+    <rect x="52" y="-12" width="6" height="24" rx="3" fill="url(#gradient2)" opacity="0.7"/>
+  </g>
+
+  <!-- Company name -->
+  <text x="220" y="115" font-family="Arial, sans-serif" font-size="56" font-weight="700" fill="#2D3748">
+    Leadr<tspan fill="#DC2626">Scribe</tspan>
+  </text>
+</svg>

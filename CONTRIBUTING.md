@@ -1,6 +1,6 @@
-# Contributing to Handy
+# Contributing to LeadrScribe
 
-Thank you for your interest in contributing to Handy! This guide will help you get started with contributing to this open source speech-to-text application.
+Thank you for your interest in contributing to LeadrScribe! This guide will help you get started with contributing to this open source speech-to-text application.
 
 ## 📖 Philosophy
 
@@ -27,13 +27,13 @@ Before you begin, ensure you have the following installed:
 
 2. **Clone your fork**:
    ```bash
-   git clone git@github.com:YOUR_USERNAME/Handy.git
+   git clone git@github.com:YOUR_USERNAME/LeadrScribe.git
    cd Handy
    ```
 
 3. **Add upstream remote**:
    ```bash
-   git remote add upstream git@github.com:cjpais/Handy.git
+   git remote add upstream git@github.com:cjpais/LeadrScribe.git
    ```
 
 4. **Install dependencies**:
@@ -80,8 +80,8 @@ For more details, see the Architecture section in [README.md](README.md) or [CLA
 
 ### Before Submitting a Bug Report
 
-1. **Search existing issues** at [github.com/cjpais/Handy/issues](https://github.com/cjpais/Handy/issues)
-2. **Check discussions** at [github.com/cjpais/Handy/discussions](https://github.com/cjpais/Handy/discussions)
+1. **Search existing issues** at [github.com/hmseeb/leadrscribe/issues](https://github.com/hmseeb/leadrscribe/issues)
+2. **Check discussions** at [github.com/hmseeb/leadrscribe/discussions](https://github.com/hmseeb/leadrscribe/discussions)
 3. **Try the latest release** to see if the issue has been fixed
 4. **Enable debug mode** (`Cmd/Ctrl+Shift+D`) to gather diagnostic information
 
@@ -111,21 +111,21 @@ We use GitHub Discussions for feature requests rather than issues. This keeps is
 
 ### Before Suggesting a Feature
 
-1. **Search existing discussions** at [github.com/cjpais/Handy/discussions](https://github.com/cjpais/Handy/discussions)
+1. **Search existing discussions** at [github.com/hmseeb/leadrscribe/discussions](https://github.com/hmseeb/leadrscribe/discussions)
 2. **Check common feature requests**:
-   - [Post-processing / Editing Transcripts](https://github.com/cjpais/Handy/discussions/168)
-   - [Keyboard Shortcuts / Hotkeys](https://github.com/cjpais/Handy/discussions/211)
+   - [Post-processing / Editing Transcripts](https://github.com/hmseeb/leadrscribe/discussions/168)
+   - [Keyboard Shortcuts / Hotkeys](https://github.com/hmseeb/leadrscribe/discussions/211)
 
 ### Submitting a Feature Request
 
-1. Go to [Discussions](https://github.com/cjpais/Handy/discussions)
+1. Go to [Discussions](https://github.com/hmseeb/leadrscribe/discussions)
 2. Click "New discussion"
 3. Choose the appropriate category (Ideas, Feature Requests, etc.)
 4. Describe your feature idea including:
    - The problem you're trying to solve
    - Your proposed solution
    - Any alternatives you've considered
-   - How it fits with Handy's philosophy
+   - How it fits with LeadrScribe's philosophy
 
 ## 🔧 Making Code Contributions
 
@@ -178,7 +178,7 @@ We use GitHub Discussions for feature requests rather than issues. This keeps is
    ```
 
 7. **Create a Pull Request**:
-   - Go to the [Handy repository](https://github.com/cjpais/Handy)
+   - Go to the [Handy repository](https://github.com/hmseeb/leadrscribe)
    - Click "New Pull Request"
    - Select your fork and branch
    - Fill out the PR template with:
@@ -254,13 +254,13 @@ Look for issues labeled `good first issue` or `help wanted` if you're new to the
 ## 📞 Getting Help
 
 - **Discord**: Join our [Discord community](https://discord.com/invite/WVBeWsNXK4)
-- **Discussions**: Ask questions in [GitHub Discussions](https://github.com/cjpais/Handy/discussions)
-- **Email**: Reach out at [contact@handy.computer](mailto:contact@handy.computer)
+- **Discussions**: Ask questions in [GitHub Discussions](https://github.com/hmseeb/leadrscribe/discussions)
+- **Email**: Reach out at [contact@leadrscribe.vercel.app](mailto:contact@leadrscribe.vercel.app)
 
 ## 📜 License
 
-By contributing to Handy, you agree that your contributions will be licensed under the MIT License. See [LICENSE](LICENSE) for details.
+By contributing to LeadrScribe, you agree that your contributions will be licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
-**Thank you for contributing to Handy!** Your efforts help make speech-to-text technology more accessible, private, and extensible for everyone.
+**Thank you for contributing to LeadrScribe!** Your efforts help make speech-to-text technology more accessible, private, and extensible for everyone.

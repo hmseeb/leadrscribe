@@ -1,0 +1,34 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gradient definitions -->
+  <defs>
+    <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#DC2626;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#EF4444;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="gradient2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FEE2E2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle with gradient -->
+  <circle cx="256" cy="256" r="256" fill="url(#gradient1)"/>
+  
+  <!-- Audio waveform bars -->
+  <g transform="translate(256, 256)">
+    <!-- Center bar (tallest) -->
+    <rect x="-20" y="-120" width="40" height="240" rx="20" fill="url(#gradient2)"/>
+    
+    <!-- Left bars -->
+    <rect x="-80" y="-90" width="36" height="180" rx="18" fill="url(#gradient2)" opacity="0.95"/>
+    <rect x="-136" y="-70" width="32" height="140" rx="16" fill="url(#gradient2)" opacity="0.9"/>
+    <rect x="-186" y="-50" width="28" height="100" rx="14" fill="url(#gradient2)" opacity="0.85"/>
+    <rect x="-228" y="-35" width="24" height="70" rx="12" fill="url(#gradient2)" opacity="0.8"/>
+    
+    <!-- Right bars -->
+    <rect x="44" y="-90" width="36" height="180" rx="18" fill="url(#gradient2)" opacity="0.95"/>
+    <rect x="104" y="-70" width="32" height="140" rx="16" fill="url(#gradient2)" opacity="0.9"/>
+    <rect x="158" y="-50" width="28" height="100" rx="14" fill="url(#gradient2)" opacity="0.85"/>
+    <rect x="204" y="-35" width="24" height="70" rx="12" fill="url(#gradient2)" opacity="0.8"/>
+  </g>
+</svg>

@@ -1,21 +1,21 @@
-# Handy
+# LeadrScribe
 
 [![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/invite/WVBeWsNXK4)
 
 **A free, open source, and extensible speech-to-text application that works completely offline.**
 
-Handy is a cross-platform desktop application built with Tauri (Rust + React/TypeScript) that provides simple, privacy-focused speech transcription. Press a shortcut, speak, and have your words appear in any text field—all without sending your voice to the cloud.
+LeadrScribe is a cross-platform desktop application built with Tauri (Rust + React/TypeScript) that provides simple, privacy-focused speech transcription. Press a shortcut, speak, and have your words appear in any text field—all without sending your voice to the cloud.
 
 ## Why Handy?
 
-Handy was created to fill the gap for a truly open source, extensible speech-to-text tool. As stated on [handy.computer](https://handy.computer):
+Handy was created to fill the gap for a truly open source, extensible speech-to-text tool. As stated on [leadrscribe.vercel.app](https://leadrscribe.vercel.app):
 
 - **Free**: Accessibility tooling belongs in everyone's hands, not behind a paywall
 - **Open Source**: Together we can build further. Extend Handy for yourself and contribute to something bigger
 - **Private**: Your voice stays on your computer. Get transcriptions without sending audio to the cloud
 - **Simple**: One tool, one job. Transcribe what you say and put it into a text box
 
-Handy isn't trying to be the best speech-to-text app—it's trying to be the most forkable one.
+LeadrScribe isn't trying to be the best speech-to-text app—it's trying to be the most forkable one.
 
 ## How It Works
 
@@ -35,7 +35,7 @@ The process is entirely local:
 
 ### Installation
 
-1. Download the latest release from the [releases page](https://github.com/cjpais/Handy/releases) or the [website](https://handy.computer)
+1. Download the latest release from the [releases page](https://github.com/hmseeb/leadrscribe/releases) or the [website](https://leadrscribe.vercel.app)
 2. Install the application following platform-specific instructions
 3. Launch Handy and grant necessary system permissions (microphone, accessibility)
 4. Configure your preferred keyboard shortcuts in Settings
@@ -47,7 +47,7 @@ For detailed build instructions including platform-specific requirements, see [B
 
 ## Architecture
 
-Handy is built as a Tauri application combining:
+LeadrScribe is built as a Tauri application combining:
 
 - **Frontend**: React + TypeScript with Tailwind CSS for the settings UI
 - **Backend**: Rust for system integration, audio processing, and ML inference
@@ -67,7 +67,7 @@ Handy includes an advanced debug mode for development and troubleshooting. Acces
 
 ## Known Issues & Current Limitations
 
-This project is actively being developed and has some [known issues](https://github.com/cjpais/Handy/issues). We believe in transparency about the current state:
+This project is actively being developed and has some [known issues](https://github.com/hmseeb/leadrscribe/issues). We believe in transparency about the current state:
 
 ### Platform Support
 - **macOS (both Intel and Apple Silicon)**
@@ -92,11 +92,11 @@ The following are recommendations for running Handy on your own machine. If you 
 
 ### How to Contribute
 
-1. **Check existing issues** at [github.com/cjpais/Handy/issues](https://github.com/cjpais/Handy/issues)
+1. **Check existing issues** at [github.com/hmseeb/leadrscribe/issues](https://github.com/hmseeb/leadrscribe/issues)
 2. **Fork the repository** and create a feature branch
 3. **Test thoroughly** on your target platform
 4. **Submit a pull request** with clear description of changes
-5. **Join the discussion** - reach out at [contact@handy.computer](mailto:contact@handy.computer)
+5. **Join the discussion** - reach out at [contact@leadrscribe.vercel.app](mailto:contact@leadrscribe.vercel.app)
 
 The goal is to create both a useful tool and a foundation for others to build upon—a well-patterned, simple codebase that serves the community.
 
@@ -117,7 +117,7 @@ The goal is to create both a useful tool and a foundation for others to build up
 ## Related Projects
 
 - **[Handy CLI](https://github.com/cjpais/handy-cli)** - The original Python command-line version
-- **[handy.computer](https://handy.computer)** - Project website with demos and documentation
+- **[leadrscribe.vercel.app](https://leadrscribe.vercel.app)** - Project website with demos and documentation
 
 ## License
 
@@ -133,4 +133,4 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-*"Your search for the right speech-to-text tool can end here—not because Handy is perfect, but because you can make it perfect for you."*
+*"Your search for the right speech-to-text tool can end here—not because LeadrScribe is perfect, but because you can make it perfect for you."*

@@ -19,7 +19,7 @@ export const MuteWhileRecording: React.FC<MuteWhileRecordingToggleProps> =
         onChange={(enabled) => updateSetting("mute_while_recording", enabled)}
         isUpdating={isUpdating("mute_while_recording")}
         label="Mute While Recording"
-        description="Automatically mute all sound output while Handy is recording, then restore it when finished."
+        description="Automatically mute all sound output while LeadrScribe is recording, then restore it when finished."
         descriptionMode={descriptionMode}
         grouped={grouped}
       />

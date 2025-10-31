@@ -106,7 +106,7 @@
 ## [0.1.0] - 2025-05-16
 
 ### Added
-- **Initial release** of Handy
+- **Initial release** of LeadrScribe
 - Basic speech-to-text transcription functionality
 - Voice Activity Detection (VAD) for automatic recording
 - Cross-platform support (macOS, Windows, Linux)

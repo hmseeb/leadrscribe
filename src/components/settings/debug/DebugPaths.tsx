@@ -20,15 +20,15 @@ export const DebugPaths: React.FC<DebugPathsProps> = ({
       <div className="text-sm text-gray-600 space-y-2">
         <div>
           <span className="font-medium">App Data:</span>{" "}
-          <span className="font-mono text-xs">%APPDATA%/handy</span>
+          <span className="font-mono text-xs">%APPDATA%/leadrscribe</span>
         </div>
         <div>
           <span className="font-medium">Models:</span>{" "}
-          <span className="font-mono text-xs">%APPDATA%/handy/models</span>
+          <span className="font-mono text-xs">%APPDATA%/leadrscribe/models</span>
         </div>
         <div>
           <span className="font-medium">Settings:</span>{" "}
-          <span className="font-mono text-xs">%APPDATA%/handy/settings_store.json</span>
+          <span className="font-mono text-xs">%APPDATA%/leadrscribe/settings_store.json</span>
         </div>
       </div>
     </SettingContainer>

@@ -120,8 +120,8 @@ Now rewrite the transcription found in the <transcription> tags below. Remember:
         .post("https://openrouter.ai/api/v1/chat/completions")
         .header("Authorization", format!("Bearer {}", api_key))
         .header("Content-Type", "application/json")
-        .header("HTTP-Referer", "https://handy.computer")
-        .header("X-Title", "Handy")
+        .header("HTTP-Referer", "https://leadrscribe.vercel.app")
+        .header("X-Title", "LeadrScribe")
         .json(&request_body)
         .send()
         .await?;
