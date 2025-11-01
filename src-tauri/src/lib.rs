@@ -15,6 +15,8 @@ mod utils;
 use managers::audio::AudioRecordingManager;
 use managers::history::HistoryManager;
 use managers::model::ModelManager;
+use managers::profile::ProfileManager;
+use managers::tag::TagManager;
 use managers::transcription::TranscriptionManager;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -74,12 +76,18 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     );
     let history_manager =
         Arc::new(HistoryManager::new(app_handle).expect("Failed to initialize history manager"));
+    let profile_manager =
+        Arc::new(ProfileManager::new(app_handle).expect("Failed to initialize profile manager"));
+    let tag_manager =
+        Arc::new(TagManager::new(app_handle).expect("Failed to initialize tag manager"));
 
     // Add managers to Tauri's managed state
     app_handle.manage(recording_manager.clone());
     app_handle.manage(model_manager.clone());
     app_handle.manage(transcription_manager.clone());
     app_handle.manage(history_manager.clone());
+    app_handle.manage(profile_manager.clone());
+    app_handle.manage(tag_manager.clone());
 
     // Initialize the shortcuts
     shortcut::init_shortcuts(app_handle);
@@ -282,7 +290,31 @@ pub fn run() {
             commands::history::toggle_history_entry_saved,
             commands::history::get_audio_file_path,
             commands::history::delete_history_entry,
-            commands::history::update_history_limit
+            commands::history::update_history_limit,
+            commands::history::search_transcriptions,
+            commands::history::get_by_profile,
+            commands::history::get_by_date_range,
+            commands::history::get_saved_only,
+            commands::history::update_notes,
+            commands::history::get_history_stats,
+            commands::profile::get_profiles,
+            commands::profile::get_profile,
+            commands::profile::create_profile,
+            commands::profile::update_profile,
+            commands::profile::delete_profile,
+            commands::profile::get_profile_by_name,
+            commands::profile::get_profile_stats,
+            commands::tag::get_tags,
+            commands::tag::get_tag,
+            commands::tag::search_tags,
+            commands::tag::create_tag,
+            commands::tag::update_tag,
+            commands::tag::delete_tag,
+            commands::tag::get_tags_for_transcription,
+            commands::tag::add_tag_to_transcription,
+            commands::tag::remove_tag_from_transcription,
+            commands::tag::get_transcriptions_by_tag,
+            commands::tag::get_tag_stats
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,6 +1,8 @@
 pub mod audio;
 pub mod history;
 pub mod models;
+pub mod profile;
+pub mod tag;
 pub mod transcription;
 
 use crate::utils::cancel_current_operation;

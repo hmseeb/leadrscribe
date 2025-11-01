@@ -1,3 +1,4 @@
+use log::debug;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tauri::AppHandle;
@@ -184,6 +185,8 @@ pub struct AppSettings {
     pub openrouter_model: String,
     #[serde(default = "default_custom_instructions")]
     pub custom_instructions: String,
+    #[serde(default)]
+    pub active_profile_id: Option<i64>,
 }
 
 fn default_model() -> String {
@@ -226,7 +229,7 @@ fn default_word_correction_threshold() -> f64 {
 }
 
 fn default_history_limit() -> usize {
-    5
+    usize::MAX // Unlimited
 }
 
 fn default_audio_feedback_volume() -> f32 {
@@ -296,6 +299,7 @@ pub fn get_default_settings() -> AppSettings {
         openrouter_api_key: None,
         openrouter_model: default_openrouter_model(),
         custom_instructions: default_custom_instructions(),
+        active_profile_id: None,
     }
 }
 
@@ -309,12 +313,12 @@ pub fn load_or_create_app_settings(app: &AppHandle) -> AppSettings {
         // Parse the entire settings object
         match serde_json::from_value::<AppSettings>(settings_value) {
             Ok(settings) => {
-                println!("Found existing settings: {:?}", settings);
+                debug!("Found existing settings: {:?}", settings);
 
                 settings
             }
             Err(e) => {
-                println!("Failed to parse settings: {}", e);
+                debug!("Failed to parse settings: {}", e);
                 // Fall back to default settings if parsing fails
                 let default_settings = get_default_settings();
 

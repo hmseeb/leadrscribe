@@ -1,17 +1,17 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Cog, FlaskConical, History, Info, Settings } from "lucide-react";
+import { Cog, FlaskConical, History, Info, Users } from "lucide-react";
 import LeadrScribeLogo from "./icons/LeadrScribeLogo";
 import LeadrScribeIcon from "./icons/LeadrScribeIcon";
 import { useSettings } from "../hooks/useSettings";
 import {
   GeneralSettings,
-  BasicSettings,
-  AdvancedSettings,
   HistorySettings,
   DebugSettings,
   AboutSettings,
 } from "./settings";
+import Dashboard from "./dashboard";
+import ProfileManager from "./profile";
 
 export type SidebarSection = keyof typeof SECTIONS_CONFIG;
 
@@ -31,28 +31,28 @@ interface SectionConfig {
 }
 
 export const SECTIONS_CONFIG = {
-  general: {
-    label: "General",
+  dashboard: {
+    label: "Dashboard",
     icon: LeadrScribeIcon,
-    component: GeneralSettings,
+    component: Dashboard,
     enabled: () => true,
   },
-  basic: {
-    label: "Basic",
-    icon: Settings,
-    component: BasicSettings,
-    enabled: () => true,
-  },
-  advanced: {
-    label: "Advanced",
-    icon: Cog,
-    component: AdvancedSettings,
+  profiles: {
+    label: "Profiles",
+    icon: Users,
+    component: ProfileManager,
     enabled: () => true,
   },
   history: {
     label: "History",
     icon: History,
     component: HistorySettings,
+    enabled: () => true,
+  },
+  general: {
+    label: "Settings",
+    icon: Cog,
+    component: GeneralSettings,
     enabled: () => true,
   },
   debug: {
@@ -85,9 +85,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     .map(([id, config]) => ({ id: id as SidebarSection, ...config }));
 
   return (
-    <div className="flex flex-col w-[220px] h-full border-r border-border dark:border-neutral-800 bg-surface dark:bg-neutral-900/50 items-center px-3 py-4">
-      <LeadrScribeLogo className="mb-6" />
-      <div className="flex flex-col w-full items-center gap-1.5 pt-4 border-t border-border dark:border-neutral-800">
+    <div className="flex flex-col w-[220px] h-full border-r border-border dark:border-neutral-800 bg-surface dark:bg-neutral-900/50 items-center px-3 py-3">
+      <LeadrScribeLogo className="mb-3" />
+      <div className="flex flex-col w-full items-center gap-1.5 pt-3 border-t border-border dark:border-neutral-800">
         {availableSections.map((section) => {
           const Icon = section.icon;
           const isActive = activeSection === section.id;

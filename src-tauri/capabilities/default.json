@@ -15,6 +15,9 @@
     "global-shortcut:allow-unregister-all",
     "macos-permissions:default",
     "fs:read-files",
-    "fs:allow-resource-read-recursive"
+    "fs:allow-resource-read-recursive",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-close"
   ]
 }

@@ -1,18 +1,18 @@
 @import "tailwindcss";
 
 @theme {
-  /* ===== PRIMARY BLUE PALETTE ===== */
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93c5fd;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
-  --color-primary-950: #172554;
+  /* ===== PRIMARY RED PALETTE (LeadrScribe Brand Colors) ===== */
+  --color-primary-50: #fff1f1;
+  --color-primary-100: #ffe1e1;
+  --color-primary-200: #ffc7c7;
+  --color-primary-300: #ffa0a0;
+  --color-primary-400: #ff6b6b;
+  --color-primary-500: #f83e3e;
+  --color-primary-600: #e51c1c;
+  --color-primary-700: #c11414;
+  --color-primary-800: #a01414;
+  --color-primary-900: #851818;
+  --color-primary-950: #480707;
 
   /* ===== SEMANTIC COLORS ===== */
   --color-success-500: #10b981;
@@ -48,10 +48,10 @@
   --color-border-subtle: #f5f5f4;
 
   /* ===== LEGACY COMPATIBILITY (will migrate away) ===== */
-  --color-background-ui: #3b82f6;
-  --color-logo-primary: #3b82f6;
-  --color-logo-stroke: #1e3a8a;
-  --color-text-stroke: #dbeafe;
+  --color-background-ui: #ef4444;
+  --color-logo-primary: #ef4444;
+  --color-logo-stroke: #7f1d1d;
+  --color-text-stroke: #fee2e2;
   --color-mid-gray: #78716c;
 
   /* ===== SHADOWS ===== */
@@ -147,9 +147,9 @@
     --color-border-subtle: #292524;
 
     /* Legacy Compatibility */
-    --color-logo-primary: #60a5fa;
-    --color-logo-stroke: #dbeafe;
-    --color-text-stroke: #1e3a8a;
+    --color-logo-primary: #f87171;
+    --color-logo-stroke: #fee2e2;
+    --color-text-stroke: #7f1d1d;
 
     /* Refined Dark Mode Shadows */
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.15);
@@ -175,4 +175,74 @@
   fill: var(--color-logo-stroke);
   stroke: var(--color-logo-stroke);
   stroke-width: 1;
+}
+
+/* ===== CUSTOM SCROLLBAR STYLES ===== */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-neutral-300) transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+  * {
+    scrollbar-color: var(--color-neutral-700) transparent;
+  }
+}
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: var(--radius-full);
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-neutral-300);
+  border-radius: var(--radius-full);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.2s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-neutral-400);
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background-color: var(--color-neutral-500);
+}
+
+/* Dark mode scrollbar */
+@media (prefers-color-scheme: dark) {
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--color-neutral-700);
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-neutral-600);
+  }
+
+  *::-webkit-scrollbar-thumb:active {
+    background-color: var(--color-neutral-500);
+  }
+}
+
+/* Corner where scrollbars meet */
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Title bar drag region */
+[data-tauri-drag-region] {
+  -webkit-app-region: drag;
+}
+
+button {
+  -webkit-app-region: no-drag;
 }

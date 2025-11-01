@@ -77,6 +77,7 @@ export const SettingsSchema = z.object({
     .max(10000)
     .optional()
     .default("Improve grammar, spelling, clarity, and flow while preserving the original meaning and tone."),
+  active_profile_id: z.number().nullable().optional(),
 });
 
 export const BindingResponseSchema = z.object({

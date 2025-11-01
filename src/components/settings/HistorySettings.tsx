@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { SettingsGroup } from "../ui/SettingsGroup";
 import { AudioPlayer } from "../ui/AudioPlayer";
-import { Copy, Star, Check, Trash2 } from "lucide-react";
+import { Copy, Star, Check, Trash2, Search, Filter, X, Calendar, Clock } from "lucide-react";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { motion, AnimatePresence } from "framer-motion";
+import { Input } from "../ui/Input";
+import { Button } from "../ui/Button";
 
 interface HistoryEntry {
   id: number;
@@ -13,21 +16,124 @@ interface HistoryEntry {
   title: string;
   transcription_text: string;
   ghostwritten_text?: string | null;
+  profile_id: number | null;
+  notes: string | null;
+  duration_seconds: number | null;
+  word_count: number | null;
 }
+
+interface Profile {
+  id: number;
+  name: string;
+  description: string | null;
+  color: string;
+  icon: string;
+  custom_instructions: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+type DateFilter = "all" | "today" | "week" | "month" | "custom";
 
 export const HistorySettings: React.FC = () => {
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [selectedProfile, setSelectedProfile] = useState<number | null>(null);
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [showSavedOnly, setShowSavedOnly] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   const loadHistoryEntries = useCallback(async () => {
+    setIsSearching(true);
     try {
-      const entries = await invoke<HistoryEntry[]>("get_history_entries");
+      let entries: HistoryEntry[] = [];
+
+      // Determine which API to call based on filters
+      if (showSavedOnly) {
+        entries = await invoke("get_saved_only", { limit: 100 });
+      } else if (selectedProfile !== null) {
+        entries = await invoke("get_by_profile", {
+          profileId: selectedProfile,
+          limit: 100,
+        });
+      } else {
+        const dateRange = getDateRange();
+        if (dateRange) {
+          entries = await invoke("get_by_date_range", {
+            startTimestamp: dateRange.start,
+            endTimestamp: dateRange.end,
+            limit: 100,
+          });
+        } else if (searchQuery.trim()) {
+          entries = await invoke("search_transcriptions", {
+            query: searchQuery,
+            limit: 100,
+          });
+        } else {
+          entries = await invoke("get_history_entries");
+        }
+      }
+
+      // Client-side filtering for search query if other filters are active
+      if (searchQuery.trim() && (showSavedOnly || selectedProfile !== null || getDateRange())) {
+        const query = searchQuery.toLowerCase();
+        entries = entries.filter(
+          (entry) =>
+            entry.transcription_text.toLowerCase().includes(query) ||
+            (entry.ghostwritten_text?.toLowerCase().includes(query) ?? false) ||
+            (entry.notes?.toLowerCase().includes(query) ?? false)
+        );
+      }
+
       setHistoryEntries(entries);
     } catch (error) {
       console.error("Failed to load history entries:", error);
     } finally {
       setLoading(false);
+      setIsSearching(false);
     }
+  }, [searchQuery, selectedProfile, dateFilter, customStartDate, customEndDate, showSavedOnly]);
+
+  const loadProfiles = async () => {
+    try {
+      const data: Profile[] = await invoke("get_profiles");
+      setProfiles(data);
+    } catch (error) {
+      console.error("Failed to load profiles:", error);
+    }
+  };
+
+  const getDateRange = (): { start: number; end: number } | null => {
+    const now = Math.floor(Date.now() / 1000);
+    const day = 86400; // seconds in a day
+
+    switch (dateFilter) {
+      case "today":
+        return { start: now - day, end: now };
+      case "week":
+        return { start: now - day * 7, end: now };
+      case "month":
+        return { start: now - day * 30, end: now };
+      case "custom":
+        if (customStartDate && customEndDate) {
+          return {
+            start: Math.floor(new Date(customStartDate).getTime() / 1000),
+            end: Math.floor(new Date(customEndDate).getTime() / 1000),
+          };
+        }
+        return null;
+      default:
+        return null;
+    }
+  };
+
+  useEffect(() => {
+    loadProfiles();
   }, []);
 
   useEffect(() => {
@@ -36,7 +142,6 @@ export const HistorySettings: React.FC = () => {
     // Listen for history update events
     const setupListener = async () => {
       const unlisten = await listen("history-updated", () => {
-        console.log("History updated, reloading entries...");
         loadHistoryEntries();
       });
 
@@ -94,43 +199,224 @@ export const HistorySettings: React.FC = () => {
     }
   };
 
+  const clearFilters = () => {
+    setSelectedProfile(null);
+    setDateFilter("all");
+    setCustomStartDate("");
+    setCustomEndDate("");
+    setShowSavedOnly(false);
+    setSearchQuery("");
+  };
+
+  const hasActiveFilters =
+    selectedProfile !== null ||
+    dateFilter !== "all" ||
+    showSavedOnly ||
+    searchQuery.trim() !== "";
+
+  const formatDate = (timestamp: number): string => {
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const formatDuration = (seconds: number | null): string => {
+    if (!seconds) return "—";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
   if (loading) {
     return (
-      <div className="max-w-3xl w-full mx-auto space-y-6">
-        <SettingsGroup title="History">
-          <div className="px-4 py-3 text-center text-text/60">
-            Loading history...
-          </div>
-        </SettingsGroup>
-      </div>
-    );
-  }
-
-  if (historyEntries.length === 0) {
-    return (
-      <div className="max-w-3xl w-full mx-auto space-y-6">
-        <SettingsGroup title="History">
-          <div className="px-4 py-3 text-center text-text/60">
-            No transcriptions yet. Start recording to build your history!
-          </div>
-        </SettingsGroup>
+      <div className="max-w-4xl w-full mx-auto space-y-6">
+        <div className="px-4 py-3 text-center text-text/60">
+          Loading history...
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl w-full mx-auto space-y-6">
-      <SettingsGroup title="History">
-        {historyEntries.map((entry) => (
-          <HistoryEntryComponent
-            key={entry.id}
-            entry={entry}
-            onToggleSaved={() => toggleSaved(entry.id)}
-            onCopyText={copyToClipboard}
-            getAudioUrl={getAudioUrl}
-            deleteAudio={deleteAudioEntry}
-          />
-        ))}
+    <div className="max-w-4xl w-full mx-auto space-y-6">
+      {/* Header */}
+      <div>
+        <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">
+          Transcription History
+        </h2>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
+          View, search, and manage your transcriptions
+        </p>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+          <Search className="w-5 h-5" />
+        </div>
+        <Input
+          type="text"
+          placeholder="Search by keyword..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10 pr-24"
+        />
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+          {isSearching && (
+            <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-1"
+          >
+            <Filter className="w-4 h-4" />
+            Filters
+            {hasActiveFilters && (
+              <span className="w-2 h-2 bg-primary-500 rounded-full" />
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Filters Panel */}
+      <AnimatePresence>
+        {showFilters && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-neutral-50 dark:bg-neutral-800/50 rounded-xl p-4 space-y-4 border border-neutral-200 dark:border-neutral-700"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-neutral-900 dark:text-white">
+                Filters
+              </h3>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                  <X className="w-4 h-4 mr-1" />
+                  Clear All
+                </Button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Date Filter */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                  <Calendar className="w-4 h-4 inline mr-1" />
+                  Date Range
+                </label>
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value as DateFilter)}
+                  className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="week">Past Week</option>
+                  <option value="month">Past Month</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+
+                {dateFilter === "custom" && (
+                  <div className="mt-2 space-y-2">
+                    <Input
+                      type="date"
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                      placeholder="Start date"
+                    />
+                    <Input
+                      type="date"
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      placeholder="End date"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Profile Filter */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                  Profile
+                </label>
+                <select
+                  value={selectedProfile ?? ""}
+                  onChange={(e) =>
+                    setSelectedProfile(e.target.value ? Number(e.target.value) : null)
+                  }
+                  className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
+                >
+                  <option value="">All Profiles</option>
+                  {profiles.map((profile) => (
+                    <option key={profile.id} value={profile.id}>
+                      {profile.icon} {profile.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Saved Only Toggle */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showSavedOnly}
+                onChange={(e) => setShowSavedOnly(e.target.checked)}
+                className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              <Star className="w-4 h-4 text-amber-500" />
+              <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                Show saved only
+              </span>
+            </label>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Results Count */}
+      <div className="text-sm text-neutral-600 dark:text-neutral-400">
+        {historyEntries.length} {historyEntries.length === 1 ? "result" : "results"} found
+      </div>
+
+      {/* History Entries */}
+      <SettingsGroup title="">
+        {historyEntries.length === 0 ? (
+          <div className="px-4 py-12 text-center">
+            <Search className="w-12 h-12 mx-auto mb-3 text-neutral-400" />
+            <p className="text-neutral-600 dark:text-neutral-400">
+              {searchQuery || hasActiveFilters
+                ? "No transcriptions found. Try adjusting your filters."
+                : "No transcriptions yet. Start recording to build your history!"}
+            </p>
+          </div>
+        ) : (
+          historyEntries.map((entry, index) => (
+            <motion.div
+              key={entry.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.02 }}
+            >
+              <HistoryEntryComponent
+                entry={entry}
+                onToggleSaved={() => toggleSaved(entry.id)}
+                onCopyText={copyToClipboard}
+                getAudioUrl={getAudioUrl}
+                deleteAudio={deleteAudioEntry}
+                formatDate={formatDate}
+                formatDuration={formatDuration}
+              />
+            </motion.div>
+          ))
+        )}
       </SettingsGroup>
     </div>
   );
@@ -142,6 +428,8 @@ interface HistoryEntryProps {
   onCopyText: (text: string, isGhostwritten: boolean) => Promise<void>;
   getAudioUrl: (fileName: string) => Promise<string | null>;
   deleteAudio: (id: number) => Promise<void>;
+  formatDate: (timestamp: number) => string;
+  formatDuration: (seconds: number | null) => string;
 }
 
 const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
@@ -150,6 +438,8 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   onCopyText,
   getAudioUrl,
   deleteAudio,
+  formatDate,
+  formatDuration,
 }) => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [showCopiedOriginal, setShowCopiedOriginal] = useState(false);
@@ -189,16 +479,28 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   const hasGhostwritten = entry.ghostwritten_text && entry.ghostwritten_text.trim().length > 0;
 
   return (
-    <div className="px-4 py-2 pb-5 flex flex-col gap-3">
-      <div className="flex justify-between items-center">
-        <p className="text-sm font-medium">{entry.title}</p>
+    <div className="px-4 py-2 pb-5 flex flex-col gap-3 border-b border-neutral-200 dark:border-neutral-700 last:border-b-0">
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
+          <p className="text-sm font-medium text-neutral-900 dark:text-white">{entry.title}</p>
+          <div className="flex items-center gap-3 text-xs text-neutral-500 mt-1">
+            <span>{formatDate(entry.timestamp)}</span>
+            {entry.word_count && <span>• {entry.word_count} words</span>}
+            {entry.duration_seconds && (
+              <span className="flex items-center gap-1">
+                • <Clock className="w-3 h-3" />
+                {formatDuration(entry.duration_seconds)}
+              </span>
+            )}
+          </div>
+        </div>
         <div className="flex items-center gap-1">
           <button
             onClick={onToggleSaved}
-            className={`p-2 rounded  transition-colors cursor-pointer ${
+            className={`p-2 rounded transition-colors cursor-pointer ${
               entry.saved
-                ? "text-logo-primary hover:text-logo-primary/80"
-                : "text-text/50 hover:text-logo-primary"
+                ? "text-amber-500 hover:text-amber-600"
+                : "text-text/50 hover:text-amber-500"
             }`}
             title={entry.saved ? "Remove from saved" : "Save transcription"}
           >
@@ -210,7 +512,7 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
           </button>
           <button
             onClick={handleDeleteEntry}
-            className="text-text/50 hover:text-logo-primary transition-colors cursor-pointer"
+            className="text-text/50 hover:text-red-500 transition-colors cursor-pointer p-2 rounded"
             title="Delete entry"
           >
             <Trash2 width={16} height={16} />
@@ -226,7 +528,7 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
           </p>
           <button
             onClick={handleCopyOriginal}
-            className="text-text/50 hover:text-logo-primary transition-colors cursor-pointer"
+            className="text-text/50 hover:text-primary-500 transition-colors cursor-pointer"
             title="Copy original transcription to clipboard"
           >
             {showCopiedOriginal ? (
@@ -243,12 +545,12 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
 
       {/* Ghostwritten Version */}
       {hasGhostwritten && (
-        <div className="flex flex-col gap-1 pt-2 border-t border-mid-gray/20">
+        <div className="flex flex-col gap-1 pt-2 border-t border-neutral-200 dark:border-neutral-700">
           <div className="flex items-center justify-between">
             <p className="text-xs text-text/60 font-medium">Ghostwritten</p>
             <button
               onClick={handleCopyGhostwritten}
-              className="text-text/50 hover:text-logo-primary transition-colors cursor-pointer"
+              className="text-text/50 hover:text-primary-500 transition-colors cursor-pointer"
               title="Copy ghostwritten version to clipboard"
             >
               {showCopiedGhostwritten ? (

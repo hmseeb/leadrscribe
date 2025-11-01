@@ -2,6 +2,7 @@ use crate::settings::{get_settings, ClipboardHandling, PasteMethod};
 use enigo::Enigo;
 use enigo::Key;
 use enigo::Keyboard;
+use enigo::Mouse;
 use enigo::Settings;
 use tauri::AppHandle;
 use tauri_plugin_clipboard_manager::ClipboardExt;
@@ -62,12 +63,13 @@ fn paste_via_clipboard(text: &str, app_handle: &AppHandle) -> Result<(), String>
         .write_text(text)
         .map_err(|e| format!("Failed to write to clipboard: {}", e))?;
 
-    // small delay to ensure the clipboard content has been written to
-    std::thread::sleep(std::time::Duration::from_millis(50));
+    // Increased delay to ensure clipboard is ready (especially important after ghostwriter delay)
+    std::thread::sleep(std::time::Duration::from_millis(100));
 
     send_paste()?;
 
-    std::thread::sleep(std::time::Duration::from_millis(50));
+    // Wait for paste to complete before restoring clipboard
+    std::thread::sleep(std::time::Duration::from_millis(150));
 
     // restore the clipboard
     clipboard
@@ -81,7 +83,18 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
     let settings = get_settings(&app_handle);
     let paste_method = settings.paste_method;
 
-    println!("Using paste method: {:?}", paste_method);
+    // Restore focus by simulating a click at the current cursor position
+    // This fixes the issue where the shortcut causes the text field to lose focus
+    let mut enigo = Enigo::new(&Settings::default())
+        .map_err(|e| format!("Failed to initialize Enigo: {}", e))?;
+
+    // Click at current mouse position to restore focus
+    enigo
+        .button(enigo::Button::Left, enigo::Direction::Click)
+        .map_err(|e| format!("Failed to click to restore focus: {}", e))?;
+
+    // Small delay to ensure click is registered and focus is restored
+    std::thread::sleep(std::time::Duration::from_millis(100));
 
     // Perform the paste operation
     match paste_method {

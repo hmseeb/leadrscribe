@@ -3,30 +3,45 @@ import { useEffect, useState } from "react";
 import { Toaster } from "sonner";
 import "./App.css";
 import AccessibilityPermissions from "./components/AccessibilityPermissions";
-import Footer from "./components/footer";
+import CommandPalette from "./components/command-palette";
 import Onboarding from "./components/onboarding";
 import { Sidebar, SidebarSection, SECTIONS_CONFIG } from "./components/Sidebar";
+import TitleBar from "./components/TitleBar";
 import { useSettings } from "./hooks/useSettings";
 
-const renderSettingsContent = (section: SidebarSection) => {
+const renderSettingsContent = (
+  section: SidebarSection,
+  onNavigate: (section: SidebarSection) => void
+) => {
   const ActiveComponent =
     SECTIONS_CONFIG[section]?.component || SECTIONS_CONFIG.general.component;
-  return <ActiveComponent />;
+  return <ActiveComponent onNavigate={onNavigate} />;
 };
 
 function App() {
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const [currentSection, setCurrentSection] =
-    useState<SidebarSection>("general");
+    useState<SidebarSection>("dashboard");
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
   const { settings, updateSetting } = useSettings();
 
   useEffect(() => {
     checkOnboardingStatus();
   }, []);
 
-  // Handle keyboard shortcuts for debug mode toggle
+  // Handle keyboard shortcuts for debug mode toggle and command palette
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Check for Ctrl+K (Windows/Linux) or Cmd+K (macOS) for command palette
+      const isCommandPaletteShortcut =
+        event.key.toLowerCase() === "k" && (event.ctrlKey || event.metaKey);
+
+      if (isCommandPaletteShortcut) {
+        event.preventDefault();
+        setShowCommandPalette((prev) => !prev);
+        return;
+      }
+
       // Check for Ctrl+Shift+D (Windows/Linux) or Cmd+Shift+D (macOS)
       const isDebugShortcut =
         event.shiftKey &&
@@ -72,6 +87,12 @@ function App() {
   return (
     <div className="h-screen flex flex-col">
       <Toaster />
+      <TitleBar />
+      <CommandPalette
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        onNavigate={(section) => setCurrentSection(section as SidebarSection)}
+      />
       {/* Main content area that takes remaining space */}
       <div className="flex-1 flex overflow-hidden">
         <Sidebar
@@ -83,13 +104,11 @@ function App() {
           <div className="flex-1 overflow-y-auto">
             <div className="flex flex-col items-center p-4 gap-4">
               <AccessibilityPermissions />
-              {renderSettingsContent(currentSection)}
+              {renderSettingsContent(currentSection, setCurrentSection)}
             </div>
           </div>
         </div>
       </div>
-      {/* Fixed footer at bottom */}
-      <Footer />
     </div>
   );
 }

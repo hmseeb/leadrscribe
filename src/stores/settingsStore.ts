@@ -112,6 +112,14 @@ const settingUpdaters: {
     invoke("change_openrouter_model_setting", { model: value }),
   custom_instructions: (value) =>
     invoke("change_custom_instructions_setting", { instructions: value }),
+  active_profile_id: async (value) => {
+    // Save directly to store since there's no backend handler needed
+    const { load } = await import("@tauri-apps/plugin-store");
+    const store = await load("settings_store.json", { autoSave: false, defaults: {} });
+    const settings = (await store.get("settings")) as Settings;
+    await store.set("settings", { ...settings, active_profile_id: value });
+    await store.save();
+  },
 };
 
 export const useSettingsStore = create<SettingsStore>()(

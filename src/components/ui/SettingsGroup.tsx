@@ -26,7 +26,7 @@ export const SettingsGroup: React.FC<SettingsGroupProps> = ({
         </div>
       )}
       <div className="bg-surface dark:bg-neutral-800/50 border border-border dark:border-neutral-700/50 rounded-xl overflow-visible shadow-sm backdrop-blur-sm">
-        <div className="divide-y divide-border dark:divide-neutral-700/50">
+        <div className="divide-y divide-border dark:divide-neutral-700/50 overflow-visible">
           {children}
         </div>
       </div>

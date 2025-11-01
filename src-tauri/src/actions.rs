@@ -110,6 +110,11 @@ impl ShortcutAction for TranscribeAction {
                     samples.len()
                 );
 
+                // Calculate recording duration from samples (16kHz sample rate)
+                const WHISPER_SAMPLE_RATE: f64 = 16000.0;
+                let duration_seconds = samples.len() as f64 / WHISPER_SAMPLE_RATE;
+                debug!("Recording duration: {:.2}s", duration_seconds);
+
                 let transcription_time = Instant::now();
                 let samples_clone = samples.clone(); // Clone for history saving
                 match tm.transcribe(samples) {
@@ -122,6 +127,7 @@ impl ShortcutAction for TranscribeAction {
                         if !transcription.is_empty() {
                             // Apply ghostwriting if enabled
                             let settings = get_settings(&ah);
+                            debug!("Output mode: {:?}, Checking if ghostwriting should run", settings.output_mode);
                             let (final_text, ghostwritten_text) = if settings.output_mode == OutputMode::Ghostwriter {
                                 debug!("Ghostwriter mode enabled, processing transcription");
 
@@ -130,16 +136,58 @@ impl ShortcutAction for TranscribeAction {
                                     let _ = overlay_window.emit("show-overlay", "ghostwriting");
                                 }
 
+                                // Get active profile's custom instructions if available
+                                let profile_instructions = if let Some(profile_id) = settings.active_profile_id {
+                                    use crate::managers::profile::ProfileManager;
+                                    match ProfileManager::new(&ah) {
+                                        Ok(pm) => {
+                                            match pm.get_profile(profile_id).await {
+                                                Ok(Some(profile)) => {
+                                                    debug!("Using profile '{}' custom instructions", profile.name);
+                                                    profile.custom_instructions
+                                                }
+                                                Ok(None) => {
+                                                    debug!("Active profile ID {} not found", profile_id);
+                                                    None
+                                                }
+                                                Err(e) => {
+                                                    error!("Failed to get profile: {}", e);
+                                                    None
+                                                }
+                                            }
+                                        }
+                                        Err(e) => {
+                                            error!("Failed to create ProfileManager: {}", e);
+                                            None
+                                        }
+                                    }
+                                } else {
+                                    debug!("No active profile selected");
+                                    None
+                                };
+
+                                // Combine global and profile-specific instructions
+                                let combined_instructions = match (settings.custom_instructions.as_str(), profile_instructions.as_deref()) {
+                                    ("", None) => "Improve grammar, clarity, and professionalism while maintaining the original meaning.".to_string(),
+                                    ("", Some(profile_inst)) => profile_inst.to_string(),
+                                    (global_inst, None) => global_inst.to_string(),
+                                    (global_inst, Some(profile_inst)) => {
+                                        format!("{}\n\nAdditional context for this profile:\n{}", global_inst, profile_inst)
+                                    }
+                                };
+
+                                debug!("Using combined instructions: {}", combined_instructions);
+
                                 match ghostwriter::process_text(
                                     &transcription,
                                     &settings.openrouter_api_key,
                                     &settings.openrouter_model,
-                                    &settings.custom_instructions,
+                                    &combined_instructions,
                                 )
                                 .await
                                 {
                                     Ok(ghostwritten) => {
-                                        debug!("Ghostwriting successful");
+                                        debug!("Ghostwriting successful. Original: '{}', Ghostwritten: '{}'", transcription, ghostwritten);
                                         (ghostwritten.clone(), Some(ghostwritten))
                                     }
                                     Err(e) => {
@@ -156,17 +204,24 @@ impl ShortcutAction for TranscribeAction {
                             let transcription_for_history = transcription.clone();
                             tauri::async_runtime::spawn(async move {
                                 if let Err(e) = hm_clone
-                                    .save_transcription(samples_clone, transcription_for_history, ghostwritten_text)
+                                    .save_transcription(
+                                        samples_clone,
+                                        transcription_for_history,
+                                        ghostwritten_text,
+                                        None, // TODO: Get active profile_id from settings
+                                        Some(duration_seconds),
+                                    )
                                     .await
                                 {
                                     error!("Failed to save transcription to history: {}", e);
                                 }
                             });
 
-                            let transcription_clone = final_text;
+                            let transcription_clone = final_text.clone();
                             let ah_clone = ah.clone();
                             let paste_time = Instant::now();
                             ah.run_on_main_thread(move || {
+                                debug!("Pasting text on main thread: '{}'", transcription_clone);
                                 match utils::paste(transcription_clone, ah_clone.clone()) {
                                     Ok(()) => debug!(
                                         "Text pasted successfully in {:?}",

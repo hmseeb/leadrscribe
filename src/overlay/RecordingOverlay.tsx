@@ -45,36 +45,124 @@ const RecordingOverlay: React.FC = () => {
         setLevels(smoothed.slice(0, 9));
       });
 
+      // Listen for ghostwriter chunks (we don't display text, but keep listener for compatibility)
+      const unlistenChunk = await listen<string>("ghostwriter-chunk", () => {
+        // Not displaying ghostwriter text in overlay anymore
+      });
+
+      // Listen for ghostwriter completion
+      const unlistenComplete = await listen("ghostwriter-complete", () => {
+        // Not displaying ghostwriter text in overlay anymore
+      });
+
       // Cleanup function
       return () => {
         unlistenShow();
         unlistenHide();
         unlistenLevel();
+        unlistenChunk();
+        unlistenComplete();
       };
     };
 
     setupEventListeners();
   }, []);
 
+  // Handle ESC key to dismiss overlay
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isVisible) {
+        invoke("cancel_operation");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isVisible]);
+
   const getIcon = () => {
-    if (state === "recording") {
-      return <MicrophoneIcon />;
+    switch (state) {
+      case "recording":
+        return <MicrophoneIcon />;
+      case "transcribing":
+        return <TranscriptionIcon />;
+      case "ghostwriting":
+        return <TranscriptionIcon />; // Using transcription icon for ghostwriting too
+      default:
+        return <MicrophoneIcon />;
+    }
+  };
+
+  const getStateColor = () => {
+    switch (state) {
+      case "recording":
+        return "rgba(239, 68, 68, 0.8)"; // Red
+      case "transcribing":
+        return "rgba(59, 130, 246, 0.8)"; // Blue
+      case "ghostwriting":
+        return "rgba(168, 85, 247, 0.8)"; // Purple
+      default:
+        return "rgba(59, 130, 246, 0.8)";
+    }
+  };
+
+  if (!isVisible) {
+    return null;
+  }
+
+  const getPulseAnimation = () => {
+    if (state === "ghostwriting") {
+      // Full AI vibe - no pulse, handled by CSS gradient animation
+      return {};
+    } else if (state === "transcribing") {
+      // Subtle pulse for transcribing
+      return {
+        boxShadow: [
+          `0 0 0 0 ${getStateColor().replace('0.8', '0')}`,
+          `0 0 0 2px ${getStateColor().replace('0.8', '0.2')}`,
+          `0 0 0 0 ${getStateColor().replace('0.8', '0')}`,
+        ],
+      };
     } else {
-      return <TranscriptionIcon />;
+      // Normal pulse for recording
+      return {
+        boxShadow: [
+          `0 0 0 0 ${getStateColor()}`,
+          `0 0 0 4px ${getStateColor().replace('0.8', '0.3')}`,
+          `0 0 0 0 ${getStateColor()}`,
+        ],
+      };
     }
   };
 
   return (
     <motion.div
-      className={`recording-overlay ${isVisible ? "fade-in" : ""}`}
+      className={`recording-overlay fade-in overlay-state-${state}`}
       initial={{ scale: 0.8, opacity: 0 }}
       animate={{
-        scale: isVisible ? 1 : 0.8,
-        opacity: isVisible ? 1 : 0,
+        scale: 1,
+        opacity: 1,
+        ...getPulseAnimation(),
       }}
-      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      transition={{
+        scale: { type: "spring", stiffness: 300, damping: 25 },
+        boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+      }}
     >
-      <div className="overlay-left">{getIcon()}</div>
+      <div className="overlay-left">
+        <motion.div
+          animate={{
+            scale: state === "recording" ? [1, 1.1, 1] : 1
+          }}
+          transition={{
+            duration: 1.5,
+            repeat: state === "recording" ? Infinity : 0,
+            ease: "easeInOut"
+          }}
+        >
+          {getIcon()}
+        </motion.div>
+      </div>
 
       <div className="overlay-middle">
         {state === "recording" && (
@@ -83,6 +171,9 @@ const RecordingOverlay: React.FC = () => {
               <motion.div
                 key={i}
                 className="bar"
+                style={{
+                  background: `linear-gradient(to top, ${getStateColor()}, ${getStateColor().replace('0.8', '0.5')})`
+                }}
                 animate={{
                   height: `${Math.min(20, 4 + Math.pow(v, 0.7) * 16)}px`,
                   opacity: Math.max(0.3, v * 1.7),
@@ -121,18 +212,17 @@ const RecordingOverlay: React.FC = () => {
       </div>
 
       <div className="overlay-right">
-        {state === "recording" && (
-          <motion.div
-            className="cancel-button"
-            onClick={() => {
-              invoke("cancel_operation");
-            }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <CancelIcon />
-          </motion.div>
-        )}
+        <motion.div
+          className="cancel-button"
+          onClick={() => {
+            invoke("cancel_operation");
+          }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          title="Cancel (ESC)"
+        >
+          <CancelIcon />
+        </motion.div>
       </div>
     </motion.div>
   );

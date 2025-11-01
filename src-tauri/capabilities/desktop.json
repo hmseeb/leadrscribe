@@ -13,6 +13,9 @@
     "global-shortcut:default",
     "autostart:default",
     "autostart:default",
-    "updater:default"
+    "updater:default",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-close"
   ]
 }

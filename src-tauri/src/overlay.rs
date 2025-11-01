@@ -4,8 +4,8 @@ use log::debug;
 use enigo::{Enigo, Mouse};
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewWindowBuilder};
 
-const OVERLAY_WIDTH: f64 = 172.0;
-const OVERLAY_HEIGHT: f64 = 36.0;
+const OVERLAY_WIDTH: f64 = 220.0;
+const OVERLAY_HEIGHT: f64 = 42.0;
 
 #[cfg(target_os = "macos")]
 const OVERLAY_TOP_OFFSET: f64 = 46.0;
@@ -16,7 +16,7 @@ const OVERLAY_TOP_OFFSET: f64 = 4.0;
 const OVERLAY_BOTTOM_OFFSET: f64 = 15.0;
 
 #[cfg(any(target_os = "windows", target_os = "linux"))]
-const OVERLAY_BOTTOM_OFFSET: f64 = 40.0;
+const OVERLAY_BOTTOM_OFFSET: f64 = 60.0;
 
 fn get_monitor_with_cursor(app_handle: &AppHandle) -> Option<tauri::Monitor> {
     let enigo = Enigo::new(&Default::default());
