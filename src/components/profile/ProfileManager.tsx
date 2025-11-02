@@ -16,7 +16,7 @@ interface Profile {
   updated_at: number;
 }
 
-const PROFILE_ICONS = ["📊", "📝", "💻", "✉️", "📞", "🎯", "💡", "📚", "🎨", "🔬"];
+const PROFILE_ICONS = ["∅", "📊", "📝", "💻", "✉️", "📞", "🎯", "💡", "📚", "🎨", "🔬"];
 const PROFILE_COLORS = [
   "#3B82F6", // Blue
   "#10B981", // Green
@@ -53,8 +53,14 @@ export const ProfileManager: React.FC = () => {
     }
   };
 
-  const validateCustomInstructions = (instructions: string): boolean => {
+  const validateCustomInstructions = (instructions: string, isNoneProfile: boolean = false): boolean => {
     const trimmed = instructions.trim();
+
+    // "None" profile (ID 1) can have empty instructions
+    if (isNoneProfile) {
+      return true;
+    }
+
     if (!trimmed) {
       alert("Custom instructions are required. Please provide instructions for the AI.");
       return false;
@@ -93,7 +99,8 @@ export const ProfileManager: React.FC = () => {
 
   const handleUpdate = async () => {
     if (!editingId) return;
-    if (!validateCustomInstructions(formData.custom_instructions)) {
+    // Check if editing the "None" profile (ID 1)
+    if (!validateCustomInstructions(formData.custom_instructions, editingId === 1)) {
       return;
     }
     try {
@@ -300,8 +307,11 @@ export const ProfileManager: React.FC = () => {
                   onClick={editingId ? handleUpdate : handleCreate}
                   disabled={
                     !formData.name.trim() ||
-                    !formData.custom_instructions.trim() ||
-                    formData.custom_instructions.trim().length < 20 ||
+                    // "None" profile (ID 1) can have empty instructions, others require 20+ chars
+                    (editingId !== 1 && (
+                      !formData.custom_instructions.trim() ||
+                      formData.custom_instructions.trim().length < 20
+                    )) ||
                     formData.custom_instructions.trim().length > 10000
                   }
                   className="flex items-center gap-2"
@@ -358,12 +368,15 @@ export const ProfileManager: React.FC = () => {
                 >
                   <Edit2 className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
                 </button>
-                <button
-                  onClick={() => handleDelete(profile.id)}
-                  className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                >
-                  <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
-                </button>
+                {/* Don't allow deleting the "None" profile (ID 1) */}
+                {profile.id !== 1 && (
+                  <button
+                    onClick={() => handleDelete(profile.id)}
+                    className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>

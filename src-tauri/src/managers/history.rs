@@ -328,12 +328,13 @@ impl HistoryManager {
         if count == 0 {
             let now = Utc::now().timestamp();
 
-            // Insert default profiles
+            // Insert default profiles - "None" must always be ID 1
             let default_profiles = vec![
-                ("Meeting", "📊", "#3B82F6", "Perfect for team meetings and discussions. Formats output with bullet points and formal tone.", "Format this transcription as meeting notes with clear bullet points. Use formal business language."),
-                ("Note", "📝", "#10B981", "Quick capture for personal notes and thoughts. Casual and conversational.", "Keep this casual and conversational. Format as natural note-taking."),
-                ("Code", "💻", "#8B5CF6", "Technical vocabulary and code formatting. Preserves punctuation and technical terms.", "This is technical content. Preserve code formatting, technical terms, and punctuation exactly."),
-                ("Email", "✉️", "#F59E0B", "Formal email composition. Proper capitalization and paragraph structure.", "Format this as a professional email. Use proper capitalization, formal tone, and clear paragraph structure."),
+                ("None", "∅", "#6B7280", "No custom instructions. Uses only global settings.", None),
+                ("Meeting", "📊", "#3B82F6", "Perfect for team meetings and discussions. Formats output with bullet points and formal tone.", Some("Format this transcription as meeting notes with clear bullet points. Use formal business language.")),
+                ("Note", "📝", "#10B981", "Quick capture for personal notes and thoughts. Casual and conversational.", Some("Keep this casual and conversational. Format as natural note-taking.")),
+                ("Code", "💻", "#8B5CF6", "Technical vocabulary and code formatting. Preserves punctuation and technical terms.", Some("This is technical content. Preserve code formatting, technical terms, and punctuation exactly.")),
+                ("Email", "✉️", "#F59E0B", "Formal email composition. Proper capitalization and paragraph structure.", Some("Format this as a professional email. Use proper capitalization, formal tone, and clear paragraph structure.")),
             ];
 
             let profile_count = default_profiles.len();

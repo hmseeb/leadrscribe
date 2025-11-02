@@ -143,6 +143,11 @@ impl ProfileManager {
 
     /// Delete a profile
     pub async fn delete_profile(&self, id: i64) -> Result<()> {
+        // Don't allow deletion of the "None" profile (ID 1)
+        if id == 1 {
+            return Err(anyhow::anyhow!("Cannot delete the 'None' profile"));
+        }
+
         let conn = self.get_connection()?;
 
         // Don't allow deletion if this is the only profile

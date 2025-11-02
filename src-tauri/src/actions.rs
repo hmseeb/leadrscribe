@@ -137,28 +137,34 @@ impl ShortcutAction for TranscribeAction {
                                 }
 
                                 // Get active profile's custom instructions if available
+                                // Skip if "None" profile (ID 1) is selected
                                 let profile_instructions = if let Some(profile_id) = settings.active_profile_id {
-                                    use crate::managers::profile::ProfileManager;
-                                    match ProfileManager::new(&ah) {
-                                        Ok(pm) => {
-                                            match pm.get_profile(profile_id).await {
-                                                Ok(Some(profile)) => {
-                                                    debug!("Using profile '{}' custom instructions", profile.name);
-                                                    profile.custom_instructions
-                                                }
-                                                Ok(None) => {
-                                                    debug!("Active profile ID {} not found", profile_id);
-                                                    None
-                                                }
-                                                Err(e) => {
-                                                    error!("Failed to get profile: {}", e);
-                                                    None
+                                    if profile_id == 1 {
+                                        debug!("'None' profile selected - skipping profile instructions");
+                                        None
+                                    } else {
+                                        use crate::managers::profile::ProfileManager;
+                                        match ProfileManager::new(&ah) {
+                                            Ok(pm) => {
+                                                match pm.get_profile(profile_id).await {
+                                                    Ok(Some(profile)) => {
+                                                        debug!("Using profile '{}' custom instructions", profile.name);
+                                                        profile.custom_instructions
+                                                    }
+                                                    Ok(None) => {
+                                                        debug!("Active profile ID {} not found", profile_id);
+                                                        None
+                                                    }
+                                                    Err(e) => {
+                                                        error!("Failed to get profile: {}", e);
+                                                        None
+                                                    }
                                                 }
                                             }
-                                        }
-                                        Err(e) => {
-                                            error!("Failed to create ProfileManager: {}", e);
-                                            None
+                                            Err(e) => {
+                                                error!("Failed to create ProfileManager: {}", e);
+                                                None
+                                            }
                                         }
                                     }
                                 } else {
