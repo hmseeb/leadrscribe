@@ -227,6 +227,12 @@ impl ShortcutAction for TranscribeAction {
                             let ah_clone = ah.clone();
                             let paste_time = Instant::now();
                             ah.run_on_main_thread(move || {
+                                // Hide the overlay BEFORE pasting to prevent it from stealing focus
+                                utils::hide_recording_overlay(&ah_clone);
+
+                                // Small delay to ensure overlay is fully hidden before pasting
+                                std::thread::sleep(std::time::Duration::from_millis(50));
+
                                 debug!("Pasting text on main thread: '{}'", transcription_clone);
                                 match utils::paste(transcription_clone, ah_clone.clone()) {
                                     Ok(()) => debug!(
@@ -235,8 +241,6 @@ impl ShortcutAction for TranscribeAction {
                                     ),
                                     Err(e) => eprintln!("Failed to paste transcription: {}", e),
                                 }
-                                // Hide the overlay after transcription is complete
-                                utils::hide_recording_overlay(&ah_clone);
                                 change_tray_icon(&ah_clone, TrayIconState::Idle);
                             })
                             .unwrap_or_else(|e| {
