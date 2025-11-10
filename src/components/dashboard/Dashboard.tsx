@@ -337,11 +337,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
       {/* Profile Selector */}
       <motion.div variants={itemVariants} className="space-y-3">
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
-          Active Profile
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+            Active Profile
+          </h2>
+          {profiles.length > 6 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onNavigate?.("profiles")}
+            >
+              View All
+            </Button>
+          )}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {profiles.map((profile) => (
+          {profiles.slice(0, 6).map((profile) => (
             <button
               key={profile.id}
               onClick={() => handleProfileSelect(profile)}
