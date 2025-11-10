@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { getVersion } from "@tauri-apps/api/app";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { invoke } from "@tauri-apps/api/core";
 import { SettingsGroup } from "../ui/SettingsGroup";
 import { SettingContainer } from "../ui/SettingContainer";
 import { Button } from "../ui/Button";
@@ -8,6 +8,7 @@ import { AppDataDirectory } from "./AppDataDirectory";
 
 export const AboutSettings: React.FC = () => {
   const [version, setVersion] = useState("");
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     const fetchVersion = async () => {
@@ -23,11 +24,14 @@ export const AboutSettings: React.FC = () => {
     fetchVersion();
   }, []);
 
-  const handleDonateClick = async () => {
+  const handleCheckForUpdates = async () => {
+    setChecking(true);
     try {
-      await openUrl("https://leadrscribe.vercel.app/donate");
+      await invoke("trigger_update_check");
     } catch (error) {
-      console.error("Failed to open donate link:", error);
+      console.error("Failed to check for updates:", error);
+    } finally {
+      setTimeout(() => setChecking(false), 1000);
     }
   };
 
@@ -42,31 +46,22 @@ export const AboutSettings: React.FC = () => {
           <span className="text-sm font-mono">v{version}</span>
         </SettingContainer>
 
-        <AppDataDirectory descriptionMode="tooltip" grouped={true} />
-
         <SettingContainer
-          title="Source Code"
-          description="View source code and contribute"
+          title="Check for Updates"
+          description="Check if a newer version is available"
           grouped={true}
         >
           <Button
-            variant="secondary"
+            variant="primary"
             size="md"
-            onClick={() => openUrl("https://github.com/cjpais/LeadrScribe")}
+            onClick={handleCheckForUpdates}
+            disabled={checking}
           >
-            View on GitHub
+            {checking ? "Checking..." : "Check for Updates"}
           </Button>
         </SettingContainer>
 
-        <SettingContainer
-          title="Support Development"
-          description="Help us continue building LeadrScribe"
-          grouped={true}
-        >
-          <Button variant="primary" size="md" onClick={handleDonateClick}>
-            Donate
-          </Button>
-        </SettingContainer>
+        <AppDataDirectory descriptionMode="tooltip" grouped={true} />
       </SettingsGroup>
 
       <SettingsGroup title="Acknowledgments">
