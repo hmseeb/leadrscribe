@@ -4,12 +4,12 @@
 
 LeadrScribe is a cross-platform desktop application built with Tauri (Rust + React/TypeScript) that provides simple, privacy-focused speech transcription. Press a shortcut, speak, and have your words appear in any text field—all without sending your voice to the cloud.
 
-## Why Handy?
+## Why LeadrScribe?
 
-Handy was created to fill the gap for a truly open source, extensible speech-to-text tool. As stated on [leadrscribe.vercel.app](https://leadrscribe.vercel.app):
+LeadrScribe was created to fill the gap for a truly open source, extensible speech-to-text tool. As stated on [leadrscribe.vercel.app](https://leadrscribe.vercel.app):
 
 - **Free**: Accessibility tooling belongs in everyone's hands, not behind a paywall
-- **Open Source**: Together we can build further. Extend Handy for yourself and contribute to something bigger
+- **Open Source**: Together we can build further. Extend LeadrScribe for yourself and contribute to something bigger
 - **Private**: Your voice stays on your computer. Get transcriptions without sending audio to the cloud
 - **Simple**: One tool, one job. Transcribe what you say and put it into a text box
 
@@ -19,7 +19,7 @@ LeadrScribe isn't trying to be the best speech-to-text app—it's trying to be t
 
 1. **Press** a configurable keyboard shortcut to start/stop recording (or use push-to-talk mode)
 2. **Speak** your words while the shortcut is active
-3. **Release** and Handy processes your speech using Whisper
+3. **Release** and LeadrScribe processes your speech using Whisper
 4. **Get** your transcribed text pasted directly into whatever app you're using
 
 The process is entirely local:
@@ -35,7 +35,7 @@ The process is entirely local:
 
 1. Download the latest release from the [releases page](https://github.com/hmseeb/leadrscribe/releases) or the [website](https://leadrscribe.vercel.app)
 2. Install the application following platform-specific instructions
-3. Launch Handy and grant necessary system permissions (microphone, accessibility)
+3. Launch LeadrScribe and grant necessary system permissions (microphone, accessibility)
 4. Configure your preferred keyboard shortcuts in Settings
 5. Start transcribing!
 
@@ -59,7 +59,7 @@ LeadrScribe is built as a Tauri application combining:
 
 ### Debug Mode
 
-Handy includes an advanced debug mode for development and troubleshooting. Access it by pressing:
+LeadrScribe includes an advanced debug mode for development and troubleshooting. Access it by pressing:
 - **macOS**: `Cmd+Shift+D`
 - **Windows/Linux**: `Ctrl+Shift+D`
 
@@ -74,7 +74,7 @@ This project is actively being developed and has some [known issues](https://git
 
 ### System Requirements/Recommendations
 
-The following are recommendations for running Handy on your own machine. If you don't meet the system requirements, the performance of the application may be degraded. We are working on improving the performance across all kinds of computers and hardware.
+The following are recommendations for running LeadrScribe on your own machine. If you don't meet the system requirements, the performance of the application may be degraded. We are working on improving the performance across all kinds of computers and hardware.
 
 **For Whisper Models:**
 - **macOS**: M series Mac, Intel Mac
@@ -98,20 +98,6 @@ The following are recommendations for running Handy on your own machine. If you 
 
 The goal is to create both a useful tool and a foundation for others to build upon—a well-patterned, simple codebase that serves the community.
 
-## Sponsors
-
-<div align="center">
-  We're grateful for the support of our sponsors who help make Handy possible:
-  <br><br>
-  <a href="https://wordcab.com">
-    <img src="sponsor-images/wordcab.png" alt="Wordcab" width="120" height="120">
-  </a>
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <a href="https://github.com/epicenter-so/epicenter">
-    <img src="sponsor-images/epicenter.png" alt="Epicenter" width="120" height="120">
-  </a>
-</div>
-
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
@@ -122,7 +108,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **whisper.cpp and ggml** for amazing cross-platform whisper inference/acceleration
 - **Silero** for great lightweight VAD
 - **Tauri** team for the excellent Rust-based app framework
-- **Community contributors** helping make Handy better
+- **Community contributors** helping make LeadrScribe better
 
 ---
 
