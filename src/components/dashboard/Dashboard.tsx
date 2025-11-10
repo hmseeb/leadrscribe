@@ -360,8 +360,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all cursor-pointer
                 ${
                   selectedProfile?.id === profile.id
-                    ? "border-transparent bg-primary-50 dark:bg-primary-900/20"
-                    : "border-neutral-200 dark:border-neutral-700 hover:bg-primary-100/50 dark:hover:bg-primary-950/50"
+                    ? "border-primary-500 bg-gradient-to-br from-primary-50 to-primary-100/80 dark:from-primary-900/40 dark:to-primary-800/30 shadow-md shadow-primary-500/10"
+                    : "border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:border-primary-300 dark:hover:border-primary-700 hover:bg-primary-50/50 dark:hover:bg-primary-900/20"
                 }
               `}
             >
