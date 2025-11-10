@@ -229,7 +229,7 @@ fn default_word_correction_threshold() -> f64 {
 }
 
 fn default_history_limit() -> usize {
-    usize::MAX // Unlimited
+    10000 // Effectively unlimited for practical purposes
 }
 
 fn default_audio_feedback_volume() -> f32 {
@@ -274,7 +274,7 @@ pub fn get_default_settings() -> AppSettings {
 
     AppSettings {
         bindings,
-        push_to_talk: true,
+        push_to_talk: false,
         audio_feedback: false,
         audio_feedback_volume: default_audio_feedback_volume(),
         sound_theme: default_sound_theme(),
@@ -347,19 +347,36 @@ pub fn get_settings(app: &AppHandle) -> AppSettings {
         .expect("Failed to initialize store");
 
     if let Some(settings_value) = store.get("settings") {
-        serde_json::from_value::<AppSettings>(settings_value)
-            .unwrap_or_else(|_| get_default_settings())
+        match serde_json::from_value::<AppSettings>(settings_value) {
+            Ok(settings) => {
+                println!("DEBUG: get_settings returning settings with selected_model: {:?}", settings.selected_model);
+                settings
+            }
+            Err(e) => {
+                println!("DEBUG: get_settings failed to parse, returning defaults. Error: {}", e);
+                get_default_settings()
+            }
+        }
     } else {
+        println!("DEBUG: get_settings found no settings in store, returning defaults");
         get_default_settings()
     }
 }
 
 pub fn write_settings(app: &AppHandle, settings: AppSettings) {
+    println!("DEBUG: write_settings called with selected_model: {:?}", settings.selected_model);
     let store = app
         .store(SETTINGS_STORE_PATH)
         .expect("Failed to initialize store");
 
     store.set("settings", serde_json::to_value(&settings).unwrap());
+
+    // Explicitly save the store to disk
+    if let Err(e) = store.save() {
+        eprintln!("Failed to save settings store: {}", e);
+    } else {
+        println!("DEBUG: Settings saved successfully");
+    }
 }
 
 pub fn get_bindings(app: &AppHandle) -> HashMap<String, ShortcutBinding> {

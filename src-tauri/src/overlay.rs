@@ -119,12 +119,37 @@ pub fn show_recording_overlay(app_handle: &AppHandle) {
         return;
     }
 
+    // Ensure overlay exists before trying to show it
+    ensure_overlay_exists(app_handle);
+
     update_overlay_position(app_handle);
 
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
-        let _ = overlay_window.show();
-        // Emit event to trigger fade-in animation with recording state
-        let _ = overlay_window.emit("show-overlay", "recording");
+        // Verify the window is actually valid before showing
+        if overlay_window.is_visible().is_err() {
+            // Window handle is stale, recreate it
+            debug!("Overlay window handle is invalid, recreating...");
+            let _ = overlay_window.destroy();
+            create_recording_overlay(app_handle);
+
+            // Try again with the new window
+            if let Some(new_window) = app_handle.get_webview_window("recording_overlay") {
+                let _ = new_window.show();
+                let _ = new_window.emit("show-overlay", "recording");
+            }
+        } else {
+            let _ = overlay_window.show();
+            // Emit event to trigger fade-in animation with recording state
+            let _ = overlay_window.emit("show-overlay", "recording");
+        }
+    } else {
+        // Window doesn't exist, create it and show
+        debug!("Overlay window not found, creating...");
+        create_recording_overlay(app_handle);
+        if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
+            let _ = overlay_window.show();
+            let _ = overlay_window.emit("show-overlay", "recording");
+        }
     }
 }
 
@@ -161,5 +186,27 @@ pub fn emit_levels(app_handle: &AppHandle, levels: &Vec<f32>) {
     // also emit to the recording overlay if it's open
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
         let _ = overlay_window.emit("mic-level", levels);
+    }
+}
+
+/// Ensures the overlay window exists, recreating it if it was destroyed.
+/// This is used by the health check system to recover from system sleep/idle.
+pub fn ensure_overlay_exists(app_handle: &AppHandle) {
+    let needs_recreation = if let Some(window) = app_handle.get_webview_window("recording_overlay") {
+        // Check if window is actually valid by trying to query its state
+        // If is_visible() returns an error, the window handle is stale/invalid
+        window.is_visible().is_err()
+    } else {
+        // Window doesn't exist at all
+        true
+    };
+
+    if needs_recreation {
+        debug!("Health check: Overlay window missing or invalid, recreating...");
+        // First try to destroy the old one if it exists
+        if let Some(old_window) = app_handle.get_webview_window("recording_overlay") {
+            let _ = old_window.destroy();
+        }
+        create_recording_overlay(app_handle);
     }
 }

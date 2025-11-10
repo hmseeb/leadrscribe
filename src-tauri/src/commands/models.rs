@@ -24,10 +24,17 @@ pub async fn download_model(
     model_manager: State<'_, Arc<ModelManager>>,
     model_id: String,
 ) -> Result<(), String> {
-    model_manager
-        .download_model(&model_id)
-        .await
-        .map_err(|e| e.to_string())
+    // Spawn download in background to return immediately and avoid UI lag
+    let manager = model_manager.inner().clone();
+    let id = model_id.clone();
+
+    tokio::spawn(async move {
+        if let Err(e) = manager.download_model(&id).await {
+            eprintln!("Download failed for {}: {}", id, e);
+        }
+    });
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -72,6 +79,7 @@ pub async fn set_active_model(
 #[tauri::command]
 pub async fn get_current_model(app_handle: AppHandle) -> Result<String, String> {
     let settings = get_settings(&app_handle);
+    println!("DEBUG: get_current_model returning: {:?}", settings.selected_model);
     Ok(settings.selected_model)
 }
 
@@ -79,7 +87,9 @@ pub async fn get_current_model(app_handle: AppHandle) -> Result<String, String> 
 pub async fn get_transcription_model_status(
     transcription_manager: State<'_, Arc<TranscriptionManager>>,
 ) -> Result<Option<String>, String> {
-    Ok(transcription_manager.get_current_model())
+    let result = transcription_manager.get_current_model();
+    println!("DEBUG: get_transcription_model_status returning: {:?}", result);
+    Ok(result)
 }
 
 #[tauri::command]

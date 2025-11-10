@@ -203,6 +203,32 @@ pub fn run() {
 
             initialize_core_logic(&app_handle);
 
+            // Auto-load the selected model if one is configured
+            let selected_model = settings.selected_model.clone();
+            if !selected_model.is_empty() {
+                let transcription_manager: tauri::State<Arc<TranscriptionManager>> = app_handle.state();
+                let model_manager: tauri::State<Arc<ModelManager>> = app_handle.state();
+                let transcription_manager_clone = transcription_manager.inner().clone();
+                let model_manager_clone = model_manager.inner().clone();
+
+                tauri::async_runtime::spawn(async move {
+                    // Check if the model is actually downloaded before trying to load it
+                    if let Some(model_info) = model_manager_clone.get_model_info(&selected_model) {
+                        if model_info.is_downloaded {
+                            if let Err(e) = transcription_manager_clone.load_model(&selected_model) {
+                                eprintln!("Failed to auto-load model on startup: {}", e);
+                            } else {
+                                println!("Successfully auto-loaded model: {}", selected_model);
+                            }
+                        } else {
+                            println!("Selected model '{}' is not downloaded, skipping auto-load", selected_model);
+                        }
+                    } else {
+                        println!("Selected model '{}' not found in available models", selected_model);
+                    }
+                });
+            }
+
             // Show main window only if not starting hidden
             if !settings.start_hidden {
                 if let Some(main_window) = app_handle.get_webview_window("main") {
@@ -253,6 +279,7 @@ pub fn run() {
             shortcut::update_custom_words,
             shortcut::suspend_binding,
             shortcut::resume_binding,
+            shortcut::refresh_shortcuts,
             shortcut::change_mute_while_recording_setting,
             shortcut::change_output_mode_setting,
             shortcut::change_openrouter_api_key_setting,

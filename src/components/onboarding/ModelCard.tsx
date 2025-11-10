@@ -1,9 +1,16 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Download } from "lucide-react";
+import { Download, ArrowDown, Loader2 } from "lucide-react";
 import { ModelInfo } from "../../lib/types";
 import { formatModelSize } from "../../lib/utils/format";
 import Badge from "../ui/Badge";
+
+interface DownloadProgress {
+  model_id: string;
+  downloaded: number;
+  total: number;
+  percentage: number;
+}
 
 interface ModelCardProps {
   model: ModelInfo;
@@ -11,6 +18,9 @@ interface ModelCardProps {
   disabled?: boolean;
   className?: string;
   onSelect: (modelId: string) => void;
+  isDownloading?: boolean;
+  downloadProgress?: DownloadProgress | null;
+  isExtracting?: boolean;
 }
 
 const ModelCard: React.FC<ModelCardProps> = ({
@@ -19,86 +29,138 @@ const ModelCard: React.FC<ModelCardProps> = ({
   disabled = false,
   className = "",
   onSelect,
+  isDownloading = false,
+  downloadProgress = null,
+  isExtracting = false,
 }) => {
   const isFeatured = variant === "featured";
 
-  const baseButtonClasses =
-    "flex justify-between items-center rounded-xl p-4 px-5 text-left transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 cursor-pointer group";
-
-  const variantClasses = isFeatured
-    ? "border-2 border-primary-300 dark:border-primary-700 bg-gradient-to-br from-primary-50 to-primary-100/50 dark:from-primary-950/30 dark:to-primary-950/20 hover:border-primary-400 dark:hover:border-primary-600 hover:shadow-lg focus:ring-primary-500/20 shadow-md"
-    : "border border-border dark:border-neutral-700 bg-surface dark:bg-neutral-800/50 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-md focus:ring-primary-500/20 shadow-sm";
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  };
 
   return (
-    <motion.button
-      onClick={() => onSelect(model.id)}
-      disabled={disabled}
-      className={[baseButtonClasses, variantClasses, className]
-        .filter(Boolean)
-        .join(" ")}
-      type="button"
-      whileHover={disabled ? {} : { scale: 1.02, y: -2 }}
-      whileTap={disabled ? {} : { scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 400, damping: 17 }}
+    <motion.div
+      className={`w-full rounded-xl border-2 p-5 transition-all duration-200 ${
+        isFeatured
+          ? "border-primary-400 dark:border-primary-600 bg-gradient-to-br from-primary-50/50 to-white dark:from-primary-950/30 dark:to-neutral-900 shadow-md"
+          : "border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-sm"
+      } ${className}`}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
     >
-      <div className="flex flex-col items-start">
-        <div className="flex items-center gap-3 mb-1.5">
-          <h3 className={`text-lg font-semibold transition-colors ${isFeatured ? "text-primary-700 dark:text-primary-300" : "text-text dark:text-neutral-100 group-hover:text-primary-600 dark:group-hover:text-primary-400"}`}>
-            {model.name}
-          </h3>
-          <DownloadSize sizeMb={model.size_mb} />
-          {isFeatured && <Badge variant="primary">Recommended</Badge>}
-        </div>
-        <p className="text-text-muted dark:text-neutral-400 text-sm leading-relaxed">
-          {model.description}
-        </p>
-      </div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className={`text-xl font-bold ${isFeatured ? "text-primary-700 dark:text-primary-300" : "text-neutral-900 dark:text-neutral-100"}`}>
+              {model.name}
+            </h3>
+            {isFeatured && (
+              <Badge variant="primary">
+                <span className="text-xs font-semibold">Recommended</span>
+              </Badge>
+            )}
+          </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <p className="text-xs text-text-subtle dark:text-neutral-500 w-16 text-right font-medium">
-            accuracy
+          <p className="text-neutral-600 dark:text-neutral-400 text-sm mb-4">
+            {model.description}
           </p>
-          <div className="w-24 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-primary-500 to-primary-400 rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${model.accuracy_score * 100}%` }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-            />
+
+          <div className="flex items-center gap-1.5 text-sm text-neutral-500 dark:text-neutral-400 mb-4">
+            <Download className="w-4 h-4" />
+            <span className="font-medium">{formatModelSize(model.size_mb)}</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-neutral-600 dark:text-neutral-400 font-medium uppercase tracking-wide">Accuracy</span>
+                <span className="text-neutral-900 dark:text-neutral-100 font-bold">{Math.round(model.accuracy_score * 100)}%</span>
+              </div>
+              <div className="h-2 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-primary-600 to-primary-500 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${model.accuracy_score * 100}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-neutral-600 dark:text-neutral-400 font-medium uppercase tracking-wide">Speed</span>
+                <span className="text-neutral-900 dark:text-neutral-100 font-bold">{Math.round(model.speed_score * 100)}%</span>
+              </div>
+              <div className="h-2 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-primary-600 to-primary-500 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${model.speed_score * 100}%` }}
+                  transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
+                />
+              </div>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <p className="text-xs text-text-subtle dark:text-neutral-500 w-16 text-right font-medium">
-            speed
-          </p>
-          <div className="w-24 h-2 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-primary-500 to-primary-400 rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${model.speed_score * 100}%` }}
-              transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
-            />
-          </div>
-        </div>
-      </div>
-    </motion.button>
-  );
-};
 
-const DownloadSize = ({ sizeMb }: { sizeMb: number }) => {
-  return (
-    <div className="flex items-center gap-1.5 text-xs text-text/60 tabular-nums">
-      <Download
-        aria-hidden="true"
-        className="h-3.5 w-3.5 text-text/45"
-        strokeWidth={1.75}
-      />
-      <span className="sr-only">Download size</span>
-      <span className="font-medium text-text/70">
-        {formatModelSize(sizeMb)}
-      </span>
-    </div>
+        {isDownloading ? (
+          <div className="flex flex-col gap-2 min-w-[200px] items-end">
+            {isExtracting ? (
+              <div className="flex items-center gap-2 text-primary-600 dark:text-primary-400">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="font-semibold text-sm">Extracting...</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-neutral-600 dark:text-neutral-400 font-medium">Downloading...</span>
+                  <span className="text-neutral-900 dark:text-neutral-100 font-bold">
+                    {downloadProgress ? `${Math.round(downloadProgress.percentage)}%` : '0%'}
+                  </span>
+                </div>
+                <div className="h-2 bg-neutral-200 dark:bg-neutral-700 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-primary-600 to-primary-500 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${downloadProgress?.percentage || 0}%` }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                  />
+                </div>
+                {downloadProgress && (
+                  <div className="flex items-center gap-1 text-xs text-neutral-500 dark:text-neutral-400">
+                    <span>{formatBytes(downloadProgress.downloaded)}</span>
+                    <span>/</span>
+                    <span>{formatBytes(downloadProgress.total)}</span>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        ) : (
+          <motion.button
+            onClick={() => onSelect(model.id)}
+            disabled={disabled}
+            className={`px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center gap-2 ${
+              isFeatured
+                ? "bg-primary-600 hover:bg-primary-700 text-white shadow-md hover:shadow-lg"
+                : "bg-neutral-800 hover:bg-neutral-900 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-white shadow-sm hover:shadow-md"
+            } disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex-shrink-0`}
+            whileHover={disabled ? {} : { scale: 1.05 }}
+            whileTap={disabled ? {} : { scale: 0.95 }}
+            type="button"
+          >
+            <ArrowDown className="w-4 h-4" />
+            Download
+          </motion.button>
+        )}
+      </div>
+    </motion.div>
   );
 };
 

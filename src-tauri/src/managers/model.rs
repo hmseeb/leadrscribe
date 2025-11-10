@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
-use std::io::Write;
+use tokio::io::AsyncWriteExt;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tar::Archive;
@@ -393,12 +393,13 @@ impl ModelManager {
 
         // Open file for appending if resuming, or create new if starting fresh
         let mut file = if resume_from > 0 {
-            std::fs::OpenOptions::new()
+            tokio::fs::OpenOptions::new()
                 .create(true)
                 .append(true)
-                .open(&partial_path)?
+                .open(&partial_path)
+                .await?
         } else {
-            std::fs::File::create(&partial_path)?
+            tokio::fs::File::create(&partial_path).await?
         };
 
         // Emit initial progress
@@ -429,7 +430,7 @@ impl ModelManager {
                 e
             })?;
 
-            file.write_all(&chunk)?;
+            file.write_all(&chunk).await?;
             downloaded += chunk.len() as u64;
 
             let percentage = if total_size > 0 {
@@ -449,7 +450,7 @@ impl ModelManager {
             let _ = self.app_handle.emit("model-download-progress", &progress);
         }
 
-        file.flush()?;
+        file.flush().await?;
         drop(file); // Ensure file is closed before moving
 
         // Handle directory-based models (extract tar.gz) vs file-based models
@@ -464,34 +465,48 @@ impl ModelManager {
                 .join(format!("{}.extracting", &model_info.filename));
             let final_model_dir = self.models_dir.join(&model_info.filename);
 
-            // Clean up any previous incomplete extraction
-            if temp_extract_dir.exists() {
-                let _ = fs::remove_dir_all(&temp_extract_dir);
-            }
+            // Clone paths for the blocking task
+            let partial_path_clone = partial_path.clone();
+            let temp_extract_dir_clone = temp_extract_dir.clone();
+            let app_handle_clone = self.app_handle.clone();
+            let model_id_str = model_id.to_string();
 
-            // Create temporary extraction directory
-            fs::create_dir_all(&temp_extract_dir)?;
+            // Run extraction in a blocking task to avoid blocking the async runtime
+            let _extraction_result = tokio::task::spawn_blocking(move || -> Result<()> {
+                // Clean up any previous incomplete extraction
+                if temp_extract_dir_clone.exists() {
+                    let _ = fs::remove_dir_all(&temp_extract_dir_clone);
+                }
 
-            // Open the downloaded tar.gz file
-            let tar_gz = File::open(&partial_path)?;
-            let tar = GzDecoder::new(tar_gz);
-            let mut archive = Archive::new(tar);
+                // Create temporary extraction directory
+                fs::create_dir_all(&temp_extract_dir_clone)?;
 
-            // Extract to the temporary directory first
-            archive.unpack(&temp_extract_dir).map_err(|e| {
-                let error_msg = format!("Failed to extract archive: {}", e);
-                // Clean up failed extraction
-                let _ = fs::remove_dir_all(&temp_extract_dir);
-                let _ = self.app_handle.emit(
-                    "model-extraction-failed",
-                    &serde_json::json!({
-                        "model_id": model_id,
-                        "error": error_msg
-                    }),
-                );
-                anyhow::anyhow!(error_msg)
-            })?;
+                // Open the downloaded tar.gz file
+                let tar_gz = File::open(&partial_path_clone)?;
+                let tar = GzDecoder::new(tar_gz);
+                let mut archive = Archive::new(tar);
 
+                // Extract to the temporary directory first
+                archive.unpack(&temp_extract_dir_clone).map_err(|e| {
+                    let error_msg = format!("Failed to extract archive: {}", e);
+                    // Clean up failed extraction
+                    let _ = fs::remove_dir_all(&temp_extract_dir_clone);
+                    let _ = app_handle_clone.emit(
+                        "model-extraction-failed",
+                        &serde_json::json!({
+                            "model_id": model_id_str,
+                            "error": error_msg.clone()
+                        }),
+                    );
+                    anyhow::anyhow!(error_msg)
+                })?;
+
+                Ok(())
+            })
+            .await
+            .map_err(|e| anyhow::anyhow!("Extraction task failed: {}", e))??;
+
+            // Continue with moving directories (these are fast operations)
             // Find the actual extracted directory (archive might have a nested structure)
             let extracted_dirs: Vec<_> = fs::read_dir(&temp_extract_dir)?
                 .filter_map(|entry| entry.ok())
@@ -516,8 +531,6 @@ impl ModelManager {
             }
 
             println!("Successfully extracted archive for model: {}", model_id);
-            // Emit extraction completed event
-            let _ = self.app_handle.emit("model-extraction-completed", model_id);
 
             // Remove the downloaded tar.gz file
             let _ = fs::remove_file(&partial_path);
@@ -526,7 +539,7 @@ impl ModelManager {
             fs::rename(&partial_path, &model_path)?;
         }
 
-        // Update download status
+        // Update download status BEFORE emitting events
         {
             let mut models = self.available_models.lock().unwrap();
             if let Some(model) = models.get_mut(model_id) {
@@ -536,8 +549,13 @@ impl ModelManager {
             }
         }
 
-        // Emit completion event
+        // Emit completion events after status is updated
         let _ = self.app_handle.emit("model-download-complete", model_id);
+
+        // For directory-based models, also emit extraction completed event
+        if model_info.is_directory {
+            let _ = self.app_handle.emit("model-extraction-completed", model_id);
+        }
 
         println!(
             "Successfully downloaded model {} to {:?}",

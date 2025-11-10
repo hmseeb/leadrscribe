@@ -1,7 +1,5 @@
 # LeadrScribe
 
-[![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/invite/WVBeWsNXK4)
-
 **A free, open source, and extensible speech-to-text application that works completely offline.**
 
 LeadrScribe is a cross-platform desktop application built with Tauri (Rust + React/TypeScript) that provides simple, privacy-focused speech transcription. Press a shortcut, speak, and have your words appear in any text field—all without sending your voice to the cloud.
@@ -113,11 +111,6 @@ The goal is to create both a useful tool and a foundation for others to build up
     <img src="sponsor-images/epicenter.png" alt="Epicenter" width="120" height="120">
   </a>
 </div>
-
-## Related Projects
-
-- **[Handy CLI](https://github.com/cjpais/handy-cli)** - The original Python command-line version
-- **[leadrscribe.vercel.app](https://leadrscribe.vercel.app)** - Project website with demos and documentation
 
 ## License
 

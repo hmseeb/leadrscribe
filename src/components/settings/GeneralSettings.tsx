@@ -41,41 +41,47 @@ export const GeneralSettings: React.FC = () => {
         </div>
       </div>
 
-      <SettingsGroup title="General">
-        <LeadrScribeShortcut descriptionMode="tooltip" grouped={true} />
-        <LanguageSelector descriptionMode="tooltip" grouped={true} />
-        <PushToTalk descriptionMode="tooltip" grouped={true} />
-        <StartHidden descriptionMode="tooltip" grouped={true} />
-        <AutostartToggle descriptionMode="tooltip" grouped={true} />
-        <ShowOverlay descriptionMode="tooltip" grouped={true} />
-        <TranslateToEnglish descriptionMode="tooltip" grouped={true} />
-        <ModelUnloadTimeoutSetting descriptionMode="tooltip" grouped={true} />
-      </SettingsGroup>
+      <div className="relative z-40">
+        <SettingsGroup title="General">
+          <LeadrScribeShortcut descriptionMode="tooltip" grouped={true} />
+          <LanguageSelector descriptionMode="tooltip" grouped={true} />
+          <PushToTalk descriptionMode="tooltip" grouped={true} />
+          <StartHidden descriptionMode="tooltip" grouped={true} />
+          <AutostartToggle descriptionMode="tooltip" grouped={true} />
+          <ShowOverlay descriptionMode="tooltip" grouped={true} />
+          <TranslateToEnglish descriptionMode="tooltip" grouped={true} />
+          <ModelUnloadTimeoutSetting descriptionMode="tooltip" grouped={true} />
+        </SettingsGroup>
+      </div>
 
-      <SettingsGroup title="Audio">
-        <MicrophoneSelector descriptionMode="tooltip" grouped={true} />
-        <AudioFeedback descriptionMode="tooltip" grouped={true} />
-        <OutputDeviceSelector
-          descriptionMode="tooltip"
-          grouped={true}
-          disabled={!audioFeedbackEnabled}
-        />
-        <VolumeSlider disabled={!audioFeedbackEnabled} />
-      </SettingsGroup>
+      <div className="relative z-30">
+        <SettingsGroup title="Audio">
+          <MicrophoneSelector descriptionMode="tooltip" grouped={true} />
+          <AudioFeedback descriptionMode="tooltip" grouped={true} />
+          <OutputDeviceSelector
+            descriptionMode="tooltip"
+            grouped={true}
+            disabled={!audioFeedbackEnabled}
+          />
+          <VolumeSlider disabled={!audioFeedbackEnabled} />
+        </SettingsGroup>
+      </div>
 
-      <SettingsGroup title="Output">
-        <OutputModeSetting descriptionMode="tooltip" grouped={true} />
-        {isGhostwriterMode && (
-          <>
-            <OpenRouterApiKey descriptionMode="tooltip" grouped={true} />
-            <OpenRouterModel descriptionMode="tooltip" grouped={true} />
-            <CustomInstructions descriptionMode="tooltip" grouped={true} />
-          </>
-        )}
-        {isTranscriptMode && (
-          <CustomWords descriptionMode="tooltip" grouped />
-        )}
-      </SettingsGroup>
+      <div className="relative z-20">
+        <SettingsGroup title="Output">
+          <OutputModeSetting descriptionMode="tooltip" grouped={true} />
+          {isGhostwriterMode && (
+            <>
+              <OpenRouterApiKey descriptionMode="tooltip" grouped={true} />
+              <OpenRouterModel descriptionMode="tooltip" grouped={true} />
+              <CustomInstructions descriptionMode="tooltip" grouped={true} />
+            </>
+          )}
+          {isTranscriptMode && (
+            <CustomWords descriptionMode="tooltip" grouped />
+          )}
+        </SettingsGroup>
+      </div>
     </div>
   );
 };

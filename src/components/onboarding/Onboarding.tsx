@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ModelInfo } from "../../lib/types";
 import ModelCard from "./ModelCard";
 import LeadrScribeLogo from "../icons/LeadrScribeLogo";
@@ -9,14 +11,80 @@ interface OnboardingProps {
   onModelSelected: () => void;
 }
 
+interface DownloadProgress {
+  model_id: string;
+  downloaded: number;
+  total: number;
+  percentage: number;
+}
+
 const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
-  const [downloading, setDownloading] = useState(false);
+  const [downloadingModelId, setDownloadingModelId] = useState<string | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadModels();
-  }, []);
+
+    // Listen for download progress
+    const progressUnlisten = listen<DownloadProgress>("model-download-progress", (event) => {
+      setDownloadProgress(event.payload);
+    });
+
+    // Listen for download completion
+    const completeUnlisten = listen<string>("model-download-complete", async (event) => {
+      const modelId = event.payload;
+      console.log("Download completed for:", modelId);
+      // Don't navigate yet - wait for extraction if needed
+    });
+
+    // Listen for extraction events
+    const extractStartUnlisten = listen<string>("model-extraction-started", () => {
+      setIsExtracting(true);
+    });
+
+    const extractCompleteUnlisten = listen<string>("model-extraction-completed", async (event) => {
+      const modelId = event.payload;
+      console.log("Extraction completed for:", modelId);
+
+      // Set as active model
+      try {
+        console.log("Calling set_active_model for:", modelId);
+        await invoke("set_active_model", { modelId });
+        console.log("Successfully called set_active_model, model should be loaded");
+
+        // Verify the model is actually loaded
+        const status = await invoke("get_transcription_model_status");
+        console.log("Model status after set_active_model:", status);
+
+        // Now navigate to main app
+        onModelSelected();
+      } catch (err) {
+        console.error("Failed to set active model:", err);
+        setError(`Failed to activate model: ${err}`);
+        setDownloadingModelId(null);
+        setDownloadProgress(null);
+        setIsExtracting(false);
+      }
+    });
+
+    const extractFailedUnlisten = listen<{ model_id: string; error: string }>("model-extraction-failed", (event) => {
+      setError(`Extraction failed: ${event.payload.error}`);
+      setDownloadingModelId(null);
+      setDownloadProgress(null);
+      setIsExtracting(false);
+    });
+
+    return () => {
+      progressUnlisten.then((fn) => fn());
+      completeUnlisten.then((fn) => fn());
+      extractStartUnlisten.then((fn) => fn());
+      extractCompleteUnlisten.then((fn) => fn());
+      extractFailedUnlisten.then((fn) => fn());
+    };
+  }, [onModelSelected]);
 
   const loadModels = async () => {
     try {
@@ -30,18 +98,18 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   };
 
   const handleDownloadModel = async (modelId: string) => {
-    setDownloading(true);
+    setDownloadingModelId(modelId);
+    setDownloadProgress(null);
+    setIsExtracting(false);
     setError(null);
 
-    // Immediately transition to main app - download will continue in footer
-    onModelSelected();
-
     try {
+      // Start download in background
       await invoke("download_model", { modelId });
     } catch (err) {
       console.error("Download failed:", err);
-      setError(`Failed to download model: ${err}`);
-      setDownloading(false);
+      setError(`Failed to start download: ${err}`);
+      setDownloadingModelId(null);
     }
   };
 
@@ -65,23 +133,42 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col p-6 gap-6 inset-0 bg-gradient-to-br from-background via-background to-primary-50/30 dark:to-primary-950/10">
-      <motion.div
-        className="flex flex-col items-center gap-3 shrink-0"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <LeadrScribeLogo width={200} />
-        <p className="text-text-muted dark:text-neutral-400 max-w-md font-medium mx-auto text-center">
-          To get started, choose a transcription model
-        </p>
-      </motion.div>
+    <div className="h-screen w-screen flex flex-col inset-0 bg-gradient-to-br from-background via-background to-primary-50/30 dark:to-primary-950/10">
+      {/* Title bar with window controls */}
+      <div data-tauri-drag-region className="h-8 flex items-center justify-end px-3 shrink-0 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm border-b border-neutral-200 dark:border-neutral-800">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => getCurrentWindow().minimize()}
+            className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-600 transition-colors"
+            aria-label="Minimize"
+          />
+          <button
+            onClick={() => getCurrentWindow().close()}
+            className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 transition-colors"
+            aria-label="Close"
+          />
+        </div>
+      </div>
 
-      <div className="max-w-[680px] w-full mx-auto text-center flex-1 flex flex-col min-h-0">
+      {/* Content */}
+      <div className="flex-1 flex flex-col p-8 gap-6 overflow-auto">
+        <motion.div
+          className="flex flex-col items-center gap-3 shrink-0"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <LeadrScribeLogo width={200} />
+          <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Welcome to LeadrScribe</h1>
+          <p className="text-neutral-600 dark:text-neutral-400 max-w-md font-medium mx-auto text-center">
+            Choose and download a transcription model to get started
+          </p>
+        </motion.div>
+
+      <div className="max-w-3xl w-full mx-auto text-center flex-1 flex flex-col min-h-0">
         {error && (
           <motion.div
-            className="bg-error-500/10 dark:bg-error-500/20 border border-error-500/30 dark:border-error-500/40 rounded-xl p-4 mb-4 shrink-0 shadow-sm"
+            className="bg-error-500/10 dark:bg-error-500/20 border border-error-500/30 dark:border-error-500/40 rounded-xl p-4 mb-6 shrink-0 shadow-sm"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
           >
@@ -92,7 +179,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
         )}
 
         <motion.div
-          className="flex flex-col gap-4"
+          className="flex flex-col gap-3"
           variants={containerVariants}
           initial="hidden"
           animate="show"
@@ -104,7 +191,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
                 <ModelCard
                   model={model}
                   variant="featured"
-                  disabled={downloading}
+                  disabled={downloadingModelId !== null && downloadingModelId !== model.id}
+                  isDownloading={downloadingModelId === model.id}
+                  downloadProgress={downloadingModelId === model.id ? downloadProgress : null}
+                  isExtracting={downloadingModelId === model.id && isExtracting}
                   onSelect={handleDownloadModel}
                 />
               </motion.div>
@@ -117,12 +207,16 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
               <motion.div key={model.id} variants={itemVariants}>
                 <ModelCard
                   model={model}
-                  disabled={downloading}
+                  disabled={downloadingModelId !== null && downloadingModelId !== model.id}
+                  isDownloading={downloadingModelId === model.id}
+                  downloadProgress={downloadingModelId === model.id ? downloadProgress : null}
+                  isExtracting={downloadingModelId === model.id && isExtracting}
                   onSelect={handleDownloadModel}
                 />
               </motion.div>
             ))}
         </motion.div>
+      </div>
       </div>
     </div>
   );

@@ -248,6 +248,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
   const loadCurrentModel = async () => {
     try {
       const current = await invoke<string>("get_current_model");
+      console.log("DEBUG: get_current_model returned:", current);
       setCurrentModelId(current);
 
       if (current) {
@@ -255,6 +256,10 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
         const transcriptionStatus = await invoke<string | null>(
           "get_transcription_model_status",
         );
+        console.log("DEBUG: get_transcription_model_status returned:", transcriptionStatus);
+        console.log("DEBUG: Comparison (transcriptionStatus === current):", transcriptionStatus === current);
+        console.log("DEBUG: Type check - current type:", typeof current, "transcriptionStatus type:", typeof transcriptionStatus);
+
         if (transcriptionStatus === current) {
           setModelStatus("ready");
         } else {

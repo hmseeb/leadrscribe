@@ -257,6 +257,15 @@ impl TranscriptionManager {
             *current_model = Some(model_id.to_string());
         }
 
+        // Update last activity timestamp to prevent immediate unloading
+        self.last_activity.store(
+            SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
+            std::sync::atomic::Ordering::Relaxed,
+        );
+
         // Emit loading completed event
         let _ = self.app_handle.emit(
             "model-state-changed",

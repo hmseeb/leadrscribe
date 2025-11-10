@@ -113,12 +113,18 @@ const settingUpdaters: {
   custom_instructions: (value) =>
     invoke("change_custom_instructions_setting", { instructions: value }),
   active_profile_id: async (value) => {
-    // Save directly to store since there's no backend handler needed
+    // Save via backend to avoid race conditions with store
     const { load } = await import("@tauri-apps/plugin-store");
     const store = await load("settings_store.json", { autoSave: false, defaults: {} });
-    const settings = (await store.get("settings")) as Settings;
-    await store.set("settings", { ...settings, active_profile_id: value });
-    await store.save();
+    const settings = (await store.get("settings")) as Settings | null;
+
+    // Only proceed if we have existing settings to avoid overwriting
+    if (settings) {
+      await store.set("settings", { ...settings, active_profile_id: value });
+      await store.save();
+    } else {
+      console.error("Cannot update active_profile_id: settings not found in store");
+    }
   },
 };
 
@@ -151,7 +157,14 @@ export const useSettingsStore = create<SettingsStore>()(
       try {
         const { load } = await import("@tauri-apps/plugin-store");
         const store = await load("settings_store.json", { autoSave: false, defaults: {} });
-        const settings = (await store.get("settings")) as Settings;
+        const settings = (await store.get("settings")) as Settings | null;
+
+        // If settings don't exist or are invalid, don't proceed with empty settings
+        if (!settings || !settings.bindings) {
+          console.error("Settings not found or invalid in store");
+          set({ isLoading: false });
+          return;
+        }
 
         // Load additional settings that come from invoke calls
         const [microphoneMode, selectedMicrophone, selectedOutputDevice] =

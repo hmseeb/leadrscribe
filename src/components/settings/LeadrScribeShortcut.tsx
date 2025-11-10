@@ -201,6 +201,14 @@ export const LeadrScribeShortcut: React.FC<LeadrScribeShortcutProps> = ({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("click", handleClickOutside);
+
+      // CRITICAL FIX: If component unmounts while editing, resume the binding
+      // Otherwise the shortcut remains suspended forever and stops working
+      if (editingShortcutId) {
+        invoke("resume_binding", { id: editingShortcutId }).catch(
+          console.error,
+        );
+      }
     };
   }, [
     keyPressed,

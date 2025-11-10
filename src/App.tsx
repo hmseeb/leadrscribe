@@ -76,8 +76,9 @@ function App() {
   };
 
   const handleModelSelected = () => {
-    // Transition to main app - user has started a download
+    // Transition to main app and navigate to general settings to show the selected model
     setShowOnboarding(false);
+    setCurrentSection("general");
   };
 
   if (showOnboarding) {

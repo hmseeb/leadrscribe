@@ -17,6 +17,47 @@ pub fn init_shortcuts(app: &AppHandle) {
             eprintln!("Failed to register shortcut {} during init: {}", _id, e);
         }
     }
+
+    // Start periodic health check to recover from Windows sleep/idle issues
+    // This runs every 10 seconds to verify shortcuts and overlay are still registered
+    let app_clone = app.clone();
+    std::thread::spawn(move || {
+        loop {
+            std::thread::sleep(std::time::Duration::from_secs(10));
+            verify_and_reregister_shortcuts(&app_clone);
+        }
+    });
+}
+
+/// Verifies that all shortcuts are still registered and re-registers them if needed.
+/// This recovers from Windows sleep/idle scenarios where shortcuts silently stop working.
+fn verify_and_reregister_shortcuts(app: &AppHandle) {
+    let settings = settings::get_settings(app);
+
+    for (id, binding) in settings.bindings.iter() {
+        // Try to parse the shortcut
+        if let Ok(shortcut) = binding.current_binding.parse::<Shortcut>() {
+            // Check if it's still registered
+            if !app.global_shortcut().is_registered(shortcut) {
+                eprintln!(
+                    "Health check: Shortcut '{}' ({}) is not registered. Re-registering...",
+                    id, binding.current_binding
+                );
+                // Try to re-register
+                if let Err(e) = _register_shortcut(app, binding.clone()) {
+                    eprintln!(
+                        "Health check: Failed to re-register shortcut '{}': {}",
+                        id, e
+                    );
+                } else {
+                    eprintln!("Health check: Successfully re-registered shortcut '{}'", id);
+                }
+            }
+        }
+    }
+
+    // Also ensure overlay window still exists
+    crate::overlay::ensure_overlay_exists(app);
 }
 
 #[derive(Serialize)]
@@ -381,6 +422,16 @@ pub fn resume_binding(app: AppHandle, id: String) -> Result<(), String> {
             return Err(e);
         }
     }
+    Ok(())
+}
+
+/// Manually trigger a health check and re-register all shortcuts if needed.
+/// This can be called from the frontend for testing or troubleshooting,
+/// or automatically after system wake events.
+#[tauri::command]
+pub fn refresh_shortcuts(app: AppHandle) -> Result<(), String> {
+    eprintln!("Manual shortcut refresh triggered");
+    verify_and_reregister_shortcuts(&app);
     Ok(())
 }
 
