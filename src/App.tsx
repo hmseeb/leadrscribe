@@ -7,7 +7,6 @@ import CommandPalette from "./components/command-palette";
 import Onboarding from "./components/onboarding";
 import { Sidebar, SidebarSection, SECTIONS_CONFIG } from "./components/Sidebar";
 import TitleBar from "./components/TitleBar";
-import Footer from "./components/footer/Footer";
 import { useSettings } from "./hooks/useSettings";
 
 const renderSettingsContent = (
@@ -109,8 +108,6 @@ function App() {
               {renderSettingsContent(currentSection, setCurrentSection)}
             </div>
           </div>
-          {/* Footer with UpdateChecker */}
-          <Footer />
         </div>
       </div>
     </div>

@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { getVersion } from "@tauri-apps/api/app";
-import { invoke } from "@tauri-apps/api/core";
 import { SettingsGroup } from "../ui/SettingsGroup";
 import { SettingContainer } from "../ui/SettingContainer";
-import { Button } from "../ui/Button";
 import { AppDataDirectory } from "./AppDataDirectory";
+import UpdateChecker from "../update-checker";
 
 export const AboutSettings: React.FC = () => {
   const [version, setVersion] = useState("");
-  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     const fetchVersion = async () => {
@@ -24,17 +22,6 @@ export const AboutSettings: React.FC = () => {
     fetchVersion();
   }, []);
 
-  const handleCheckForUpdates = async () => {
-    setChecking(true);
-    try {
-      await invoke("trigger_update_check");
-    } catch (error) {
-      console.error("Failed to check for updates:", error);
-    } finally {
-      setTimeout(() => setChecking(false), 1000);
-    }
-  };
-
   return (
     <div className="max-w-3xl w-full mx-auto space-y-6">
       <SettingsGroup title="About">
@@ -47,18 +34,11 @@ export const AboutSettings: React.FC = () => {
         </SettingContainer>
 
         <SettingContainer
-          title="Check for Updates"
-          description="Check if a newer version is available"
+          title="Updates"
+          description="Check for and install new versions"
           grouped={true}
         >
-          <Button
-            variant="primary"
-            size="md"
-            onClick={handleCheckForUpdates}
-            disabled={checking}
-          >
-            {checking ? "Checking..." : "Check for Updates"}
-          </Button>
+          <UpdateChecker />
         </SettingContainer>
 
         <AppDataDirectory descriptionMode="tooltip" grouped={true} />
