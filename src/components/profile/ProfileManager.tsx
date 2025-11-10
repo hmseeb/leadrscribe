@@ -4,6 +4,7 @@ import { Plus, Edit2, Trash2, X, Check } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
+import { useSettings } from "../../hooks/useSettings";
 
 interface Profile {
   id: number;
@@ -29,7 +30,9 @@ const PROFILE_COLORS = [
 ];
 
 export const ProfileManager: React.FC = () => {
+  const { settings, updateSetting } = useSettings();
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [activeProfileId, setActiveProfileId] = useState<number | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
@@ -44,13 +47,25 @@ export const ProfileManager: React.FC = () => {
     loadProfiles();
   }, []);
 
+  useEffect(() => {
+    if (settings) {
+      setActiveProfileId(settings.active_profile_id || null);
+    }
+  }, [settings]);
+
   const loadProfiles = async () => {
     try {
       const data: Profile[] = await invoke("get_profiles");
-      setProfiles(data);
+      // Filter out "None" profile (ID 1) from the Profiles page
+      setProfiles(data.filter(p => p.id !== 1));
     } catch (error) {
       console.error("Failed to load profiles:", error);
     }
+  };
+
+  const handleProfileActivate = (profileId: number) => {
+    setActiveProfileId(profileId);
+    updateSetting("active_profile_id", profileId);
   };
 
   const validateCustomInstructions = (instructions: string, isNoneProfile: boolean = false): boolean => {
@@ -335,20 +350,35 @@ export const ProfileManager: React.FC = () => {
           <motion.div
             key={profile.id}
             layout
-            className="bg-white dark:bg-neutral-800 rounded-xl p-4 border border-neutral-200 dark:border-neutral-700"
+            onClick={() => handleProfileActivate(profile.id)}
+            className={`
+              bg-white dark:bg-neutral-800 rounded-xl p-4 border-2 transition-all cursor-pointer
+              ${
+                activeProfileId === profile.id
+                  ? "border-transparent bg-primary-50 dark:bg-primary-900/20 ring-2 ring-primary-500"
+                  : "border-neutral-200 dark:border-neutral-700 hover:bg-primary-100/50 dark:hover:bg-primary-950/50"
+              }
+            `}
           >
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-3 flex-1">
                 <div
-                  className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
+                  className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl flex-shrink-0"
                   style={{ backgroundColor: profile.color + "20" }}
                 >
                   {profile.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-neutral-900 dark:text-white">
-                    {profile.name}
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-neutral-900 dark:text-white">
+                      {profile.name}
+                    </h3>
+                    {activeProfileId === profile.id && (
+                      <span className="px-2 py-0.5 bg-primary-500 text-white text-xs rounded-full">
+                        Active
+                      </span>
+                    )}
+                  </div>
                   {profile.description && (
                     <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
                       {profile.description}
@@ -361,22 +391,19 @@ export const ProfileManager: React.FC = () => {
                   )}
                 </div>
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => startEdit(profile)}
                   className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"
                 >
                   <Edit2 className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
                 </button>
-                {/* Don't allow deleting the "None" profile (ID 1) */}
-                {profile.id !== 1 && (
-                  <button
-                    onClick={() => handleDelete(profile.id)}
-                    className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
-                  </button>
-                )}
+                <button
+                  onClick={() => handleDelete(profile.id)}
+                  className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+                </button>
               </div>
             </div>
           </motion.div>
