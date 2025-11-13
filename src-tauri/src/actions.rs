@@ -1,6 +1,6 @@
 use crate::audio_feedback::{SoundType, play_feedback_sound};
 use crate::ghostwriter;
-use crate::managers::audio::AudioRecordingManager;
+use crate::managers::audio::{AudioRecordingManager, AudioSegmentEvent};
 use crate::managers::history::HistoryManager;
 use crate::managers::transcription::TranscriptionManager;
 use crate::overlay::show_recording_overlay;
@@ -10,14 +10,117 @@ use crate::utils;
 use log::{debug, error};
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter, Listener, Manager};
 
 // Shortcut Action Trait
 pub trait ShortcutAction: Send + Sync {
     fn start(&self, app: &AppHandle, binding_id: &str, shortcut_str: &str);
     fn stop(&self, app: &AppHandle, binding_id: &str, shortcut_str: &str);
+}
+
+// Structure to hold streaming transcription state
+#[derive(Clone)]
+struct StreamingState {
+    segments: Arc<Mutex<Vec<String>>>,
+    segment_count: Arc<Mutex<usize>>,
+    is_recording: Arc<Mutex<bool>>,
+}
+
+impl StreamingState {
+    fn new() -> Self {
+        Self {
+            segments: Arc::new(Mutex::new(Vec::new())),
+            segment_count: Arc::new(Mutex::new(0)),
+            is_recording: Arc::new(Mutex::new(false)),
+        }
+    }
+
+    fn start_recording(&self) {
+        *self.is_recording.lock().unwrap() = true;
+        self.segments.lock().unwrap().clear();
+        *self.segment_count.lock().unwrap() = 0;
+    }
+
+    fn stop_recording(&self) {
+        *self.is_recording.lock().unwrap() = false;
+    }
+
+    fn add_segment(&self, text: String, index: usize) {
+        let mut segments = self.segments.lock().unwrap();
+        // Ensure the vector is large enough
+        if segments.len() <= index {
+            segments.resize(index + 1, String::new());
+        }
+        segments[index] = text;
+        debug!("Segment {} added: '{}'", index, segments[index]);
+
+        // Emit progress update to frontend
+    }
+
+    fn get_accumulated_text(&self) -> String {
+        let segments = self.segments.lock().unwrap();
+        segments.iter()
+            .filter(|s| !s.is_empty())
+            .cloned()
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
+}
+
+// Global streaming state
+static STREAMING_STATE: Lazy<StreamingState> = Lazy::new(StreamingState::new);
+
+// Initialize segment listener once globally
+pub fn setup_segment_listener(app: &AppHandle) {
+    static LISTENER_INITIALIZED: std::sync::Once = std::sync::Once::new();
+
+    LISTENER_INITIALIZED.call_once(|| {
+        let app_clone = app.clone();
+        let tm_clone = app.state::<Arc<TranscriptionManager>>().inner().clone();
+
+        app.listen("audio-segment", move |event| {
+            if !*STREAMING_STATE.is_recording.lock().unwrap() {
+                return; // Ignore segments if not recording
+            }
+
+            if let Ok(segment_event) = serde_json::from_str::<AudioSegmentEvent>(event.payload()) {
+                debug!("Received audio segment with {} samples", segment_event.samples.len());
+
+                let segment_index = {
+                    let mut count = STREAMING_STATE.segment_count.lock().unwrap();
+                    let idx = *count;
+                    *count += 1;
+                    idx
+                };
+
+                // Transcribe segment asynchronously
+                let tm = tm_clone.clone();
+                let app_for_emit = app_clone.clone();
+                tm.transcribe_segment_async(
+                    segment_event.samples,
+                    segment_index,
+                    move |index, result| {
+                        match result {
+                            Ok(text) if !text.is_empty() => {
+                                debug!("Segment {} transcribed: '{}'", index, text);
+                                STREAMING_STATE.add_segment(text.clone(), index);
+
+                                // Emit progress to frontend for overlay update
+                                let accumulated = STREAMING_STATE.get_accumulated_text();
+                                let _ = app_for_emit.emit("transcription-progress", accumulated);
+                            }
+                            Ok(_) => debug!("Segment {} was empty", index),
+                            Err(e) => error!("Segment {} transcription failed: {}", index, e),
+                        }
+                    },
+                );
+            }
+        });
+
+        debug!("Segment listener initialized");
+    });
 }
 
 // Transcribe Action
@@ -27,6 +130,12 @@ impl ShortcutAction for TranscribeAction {
     fn start(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) {
         let start_time = Instant::now();
         debug!("TranscribeAction::start called for binding: {}", binding_id);
+
+        // Ensure segment listener is initialized (only happens once)
+        setup_segment_listener(app);
+
+        // Initialize streaming state
+        STREAMING_STATE.start_recording();
 
         // Load model in the background
         let tm = app.state::<Arc<TranscriptionManager>>();
@@ -78,6 +187,9 @@ impl ShortcutAction for TranscribeAction {
         let stop_time = Instant::now();
         debug!("TranscribeAction::stop called for binding: {}", binding_id);
 
+        // Stop accepting new segments
+        STREAMING_STATE.stop_recording();
+
         let ah = app.clone();
         let rm = Arc::clone(&app.state::<Arc<AudioRecordingManager>>());
         let tm = Arc::clone(&app.state::<Arc<TranscriptionManager>>());
@@ -115,17 +227,38 @@ impl ShortcutAction for TranscribeAction {
                 let duration_seconds = samples.len() as f64 / WHISPER_SAMPLE_RATE;
                 debug!("Recording duration: {:.2}s", duration_seconds);
 
-                let transcription_time = Instant::now();
                 let samples_clone = samples.clone(); // Clone for history saving
-                match tm.transcribe(samples) {
-                    Ok(transcription) => {
-                        debug!(
-                            "Transcription completed in {:?}: '{}'",
-                            transcription_time.elapsed(),
-                            transcription
-                        );
-                        if !transcription.is_empty() {
-                            // Apply ghostwriting if enabled
+
+                // Wait a short time for any remaining segments to finish transcribing
+                tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+                // Get accumulated streaming transcriptions
+                let accumulated_text = STREAMING_STATE.get_accumulated_text();
+
+                // Use streaming transcription as primary result if available
+                // Only fall back to full transcription if streaming failed or produced insufficient results
+                let transcription = if !accumulated_text.is_empty() && accumulated_text.len() >= 3 {
+                    debug!("Using streaming transcription result: '{}'", accumulated_text);
+                    accumulated_text
+                } else {
+                    // Fallback: transcribe full audio if streaming didn't produce results
+                    debug!("Streaming transcription insufficient, falling back to full transcription");
+                    match tm.transcribe(samples) {
+                        Ok(t) => {
+                            debug!("Full transcription result: '{}'", t);
+                            t
+                        }
+                        Err(err) => {
+                            debug!("Global Shortcut Transcription error: {}", err);
+                            utils::hide_recording_overlay(&ah);
+                            change_tray_icon(&ah, TrayIconState::Idle);
+                            return;
+                        }
+                    }
+                };
+
+                if !transcription.is_empty() {
+                    // Apply ghostwriting if enabled
                             let settings = get_settings(&ah);
                             debug!("Output mode: {:?}, Checking if ghostwriting should run", settings.output_mode);
                             let (final_text, ghostwritten_text) = if settings.output_mode == OutputMode::Ghostwriter {
@@ -248,16 +381,9 @@ impl ShortcutAction for TranscribeAction {
                                 utils::hide_recording_overlay(&ah);
                                 change_tray_icon(&ah, TrayIconState::Idle);
                             });
-                        } else {
-                            utils::hide_recording_overlay(&ah);
-                            change_tray_icon(&ah, TrayIconState::Idle);
-                        }
-                    }
-                    Err(err) => {
-                        debug!("Global Shortcut Transcription error: {}", err);
-                        utils::hide_recording_overlay(&ah);
-                        change_tray_icon(&ah, TrayIconState::Idle);
-                    }
+                } else {
+                    utils::hide_recording_overlay(&ah);
+                    change_tray_icon(&ah, TrayIconState::Idle);
                 }
             } else {
                 debug!("No samples retrieved from recording stop");

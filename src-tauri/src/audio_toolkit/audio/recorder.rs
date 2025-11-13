@@ -12,7 +12,7 @@ use cpal::{
 use crate::audio_toolkit::{
     audio::{AudioVisualiser, FrameResampler},
     constants,
-    vad::{self, VadFrame},
+    vad::{self, VadFrame, VadSegmentEvent},
     VoiceActivityDetector,
 };
 
@@ -28,6 +28,7 @@ pub struct AudioRecorder {
     worker_handle: Option<std::thread::JoinHandle<()>>,
     vad: Option<Arc<Mutex<Box<dyn vad::VoiceActivityDetector>>>>,
     level_cb: Option<Arc<dyn Fn(Vec<f32>) + Send + Sync + 'static>>,
+    segment_cb: Option<Arc<dyn Fn(Vec<f32>) + Send + Sync + 'static>>,
 }
 
 impl AudioRecorder {
@@ -38,6 +39,7 @@ impl AudioRecorder {
             worker_handle: None,
             vad: None,
             level_cb: None,
+            segment_cb: None,
         })
     }
 
@@ -51,6 +53,14 @@ impl AudioRecorder {
         F: Fn(Vec<f32>) + Send + Sync + 'static,
     {
         self.level_cb = Some(Arc::new(cb));
+        self
+    }
+
+    pub fn with_segment_callback<F>(mut self, cb: F) -> Self
+    where
+        F: Fn(Vec<f32>) + Send + Sync + 'static,
+    {
+        self.segment_cb = Some(Arc::new(cb));
         self
     }
 
@@ -72,8 +82,9 @@ impl AudioRecorder {
 
         let thread_device = device.clone();
         let vad = self.vad.clone();
-        // Move the optional level callback into the worker thread
+        // Move the optional callbacks into the worker thread
         let level_cb = self.level_cb.clone();
+        let segment_cb = self.segment_cb.clone();
 
         let worker = std::thread::spawn(move || {
             let config = AudioRecorder::get_preferred_config(&thread_device)
@@ -117,7 +128,7 @@ impl AudioRecorder {
             stream.play().expect("failed to start stream");
 
             // keep the stream alive while we process samples
-            run_consumer(sample_rate, vad, sample_rx, cmd_rx, level_cb);
+            run_consumer(sample_rate, vad, sample_rx, cmd_rx, level_cb, segment_cb);
             // stream is dropped here, after run_consumer returns
         });
 
@@ -228,6 +239,7 @@ fn run_consumer(
     sample_rx: mpsc::Receiver<Vec<f32>>,
     cmd_rx: mpsc::Receiver<Cmd>,
     level_cb: Option<Arc<dyn Fn(Vec<f32>) + Send + Sync + 'static>>,
+    segment_cb: Option<Arc<dyn Fn(Vec<f32>) + Send + Sync + 'static>>,
 ) {
     let mut frame_resampler = FrameResampler::new(
         in_sample_rate as usize,
@@ -236,6 +248,7 @@ fn run_consumer(
     );
 
     let mut processed_samples = Vec::<f32>::new();
+    let mut segment_buffer = Vec::<f32>::new(); // Buffer for current segment
     let mut recording = false;
 
     // ---------- spectrum visualisation setup ---------------------------- //
@@ -254,20 +267,37 @@ fn run_consumer(
         recording: bool,
         vad: &Option<Arc<Mutex<Box<dyn vad::VoiceActivityDetector>>>>,
         out_buf: &mut Vec<f32>,
-    ) {
+        segment_buf: &mut Vec<f32>,
+        segment_cb: &Option<Arc<dyn Fn(Vec<f32>) + Send + Sync + 'static>>,
+    ) -> bool {
         if !recording {
-            return;
+            return false;
         }
+
+        let mut should_emit_segment = false;
 
         if let Some(vad_arc) = vad {
             let mut det = vad_arc.lock().unwrap();
             match det.push_frame(samples).unwrap_or(VadFrame::Speech(samples)) {
-                VadFrame::Speech(buf) => out_buf.extend_from_slice(buf),
+                VadFrame::Speech(buf) => {
+                    out_buf.extend_from_slice(buf);
+                    segment_buf.extend_from_slice(buf);
+                }
                 VadFrame::Noise => {}
+            }
+
+            // Check for segment boundary
+            if segment_cb.is_some() {
+                if let Some(VadSegmentEvent::SegmentComplete) = det.check_segment_boundary() {
+                    should_emit_segment = true;
+                }
             }
         } else {
             out_buf.extend_from_slice(samples);
+            segment_buf.extend_from_slice(samples);
         }
+
+        should_emit_segment
     }
 
     loop {
@@ -285,7 +315,21 @@ fn run_consumer(
 
         // ---------- existing pipeline ------------------------------------ //
         frame_resampler.push(&raw, &mut |frame: &[f32]| {
-            handle_frame(frame, recording, &vad, &mut processed_samples)
+            let should_emit = handle_frame(
+                frame,
+                recording,
+                &vad,
+                &mut processed_samples,
+                &mut segment_buffer,
+                &segment_cb,
+            );
+
+            // Emit segment if boundary detected and we have data
+            if should_emit && !segment_buffer.is_empty() {
+                if let Some(cb) = &segment_cb {
+                    cb(std::mem::take(&mut segment_buffer));
+                }
+            }
         });
 
         // non-blocking check for a command
@@ -293,6 +337,7 @@ fn run_consumer(
             match cmd {
                 Cmd::Start => {
                     processed_samples.clear();
+                    segment_buffer.clear();
                     recording = true;
                     visualizer.reset(); // Reset visualization buffer
                     if let Some(v) = &vad {
@@ -304,8 +349,22 @@ fn run_consumer(
 
                     frame_resampler.finish(&mut |frame: &[f32]| {
                         // we still want to process the last few frames
-                        handle_frame(frame, true, &vad, &mut processed_samples)
+                        handle_frame(
+                            frame,
+                            true,
+                            &vad,
+                            &mut processed_samples,
+                            &mut segment_buffer,
+                            &segment_cb,
+                        );
                     });
+
+                    // Emit any remaining segment data
+                    if !segment_buffer.is_empty() {
+                        if let Some(cb) = &segment_cb {
+                            cb(std::mem::take(&mut segment_buffer));
+                        }
+                    }
 
                     let _ = reply_tx.send(std::mem::take(&mut processed_samples));
                 }

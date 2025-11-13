@@ -9,7 +9,9 @@
       "Bash(git remote:*)",
       "Bash(git push:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(cargo check:*)",
+      "Bash(cargo tree:*)"
     ],
     "deny": [],
     "ask": []

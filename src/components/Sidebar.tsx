@@ -41,7 +41,7 @@ export const SECTIONS_CONFIG = {
     label: "Profiles",
     icon: Users,
     component: ProfileManager,
-    enabled: () => true,
+    enabled: (settings) => settings?.output_mode === "ghostwriter",
   },
   history: {
     label: "History",

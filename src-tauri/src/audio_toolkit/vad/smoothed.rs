@@ -1,4 +1,4 @@
-use super::{VadFrame, VoiceActivityDetector};
+use super::{VadFrame, VadSegmentEvent, VoiceActivityDetector};
 use anyhow::Result;
 use std::collections::VecDeque;
 
@@ -14,6 +14,12 @@ pub struct SmoothedVad {
     in_speech: bool,
 
     temp_out: Vec<f32>,
+
+    // Segment boundary detection
+    silence_frames: usize,
+    segment_boundary_threshold: usize, // Number of consecutive silence frames to trigger segment
+    speech_frames_since_segment: usize, // Track speech duration to enforce minimum segment length
+    min_segment_frames: usize, // Minimum frames before allowing a segment boundary
 }
 
 impl SmoothedVad {
@@ -23,6 +29,11 @@ impl SmoothedVad {
         hangover_frames: usize,
         onset_frames: usize,
     ) -> Self {
+        // Default: 1.5 seconds of silence at 30ms per frame = 50 frames
+        let segment_boundary_threshold = 50;
+        // Minimum 2 seconds of speech at 30ms per frame = ~67 frames
+        let min_segment_frames = 67;
+
         Self {
             inner_vad,
             prefill_frames,
@@ -33,8 +44,13 @@ impl SmoothedVad {
             onset_counter: 0,
             in_speech: false,
             temp_out: Vec::new(),
+            silence_frames: 0,
+            segment_boundary_threshold,
+            speech_frames_since_segment: 0,
+            min_segment_frames,
         }
     }
+
 }
 
 impl VoiceActivityDetector for SmoothedVad {
@@ -49,7 +65,7 @@ impl VoiceActivityDetector for SmoothedVad {
         let is_voice = self.inner_vad.is_voice(frame)?;
         // println!("Is Voice: {}", is_voice);
 
-        match (self.in_speech, is_voice) {
+        let result = match (self.in_speech, is_voice) {
             // Potential start of speech - need to accumulate onset frames
             (false, true) => {
                 self.onset_counter += 1;
@@ -58,6 +74,7 @@ impl VoiceActivityDetector for SmoothedVad {
                     self.in_speech = true;
                     self.hangover_counter = self.hangover_frames;
                     self.onset_counter = 0; // Reset for next time
+                    self.silence_frames = 0; // Reset silence counter
 
                     // Collect prefill + current frame
                     self.temp_out.clear();
@@ -67,6 +84,7 @@ impl VoiceActivityDetector for SmoothedVad {
                     Ok(VadFrame::Speech(&self.temp_out))
                 } else {
                     // Not enough frames yet, still silence
+                    self.silence_frames += 1;
                     Ok(VadFrame::Noise)
                 }
             }
@@ -74,6 +92,8 @@ impl VoiceActivityDetector for SmoothedVad {
             // Ongoing Speech
             (true, true) => {
                 self.hangover_counter = self.hangover_frames;
+                self.silence_frames = 0; // Reset silence counter on speech
+                self.speech_frames_since_segment += 1; // Track speech duration
                 Ok(VadFrame::Speech(frame))
             }
 
@@ -81,9 +101,11 @@ impl VoiceActivityDetector for SmoothedVad {
             (true, false) => {
                 if self.hangover_counter > 0 {
                     self.hangover_counter -= 1;
+                    self.speech_frames_since_segment += 1; // Still counting as speech during hangover
                     Ok(VadFrame::Speech(frame))
                 } else {
                     self.in_speech = false;
+                    self.silence_frames += 1;
                     Ok(VadFrame::Noise)
                 }
             }
@@ -91,9 +113,12 @@ impl VoiceActivityDetector for SmoothedVad {
             // Silence or broken onset sequence
             (false, false) => {
                 self.onset_counter = 0; // Reset onset counter on silence
+                self.silence_frames += 1;
                 Ok(VadFrame::Noise)
             }
-        }
+        };
+
+        result
     }
 
     fn reset(&mut self) {
@@ -102,5 +127,24 @@ impl VoiceActivityDetector for SmoothedVad {
         self.onset_counter = 0;
         self.in_speech = false;
         self.temp_out.clear();
+        self.silence_frames = 0;
+        self.speech_frames_since_segment = 0;
+    }
+
+    /// Check if a segment boundary has been detected
+    /// Returns Some(SegmentComplete) if a long pause was detected after sufficient speech
+    fn check_segment_boundary(&mut self) -> Option<VadSegmentEvent> {
+        if self.silence_frames >= self.segment_boundary_threshold
+            && self.speech_frames_since_segment >= self.min_segment_frames
+        {
+            // Reset counters for next segment
+            self.speech_frames_since_segment = 0;
+            self.silence_frames = 0;
+            Some(VadSegmentEvent::SegmentComplete)
+        } else if self.in_speech {
+            Some(VadSegmentEvent::SpeechContinue)
+        } else {
+            Some(VadSegmentEvent::Silence)
+        }
     }
 }

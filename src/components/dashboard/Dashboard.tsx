@@ -335,56 +335,58 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </motion.div>
       )}
 
-      {/* Profile Selector */}
-      <motion.div variants={itemVariants} className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
-            Active Profile
-          </h2>
-          {profiles.length > 6 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onNavigate?.("profiles")}
-            >
-              View All
-            </Button>
-          )}
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {profiles.slice(0, 6).map((profile) => (
-            <button
-              key={profile.id}
-              onClick={() => handleProfileSelect(profile)}
-              className={`
-                flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all cursor-pointer
-                ${
-                  selectedProfile?.id === profile.id
-                    ? "border-primary-500 bg-gradient-to-br from-primary-50 to-primary-100/80 dark:from-primary-900/40 dark:to-primary-800/30 shadow-md shadow-primary-500/10"
-                    : "border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:border-primary-300 dark:hover:border-primary-700 hover:bg-primary-50/50 dark:hover:bg-primary-900/20"
-                }
-              `}
-            >
-              <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center text-2xl flex-shrink-0"
-                style={{ backgroundColor: profile.color + "20" }}
+      {/* Profile Selector - Only show in ghostwriter mode */}
+      {getSetting("output_mode") === "ghostwriter" && (
+        <motion.div variants={itemVariants} className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+              Active Profile
+            </h2>
+            {profiles.length > 6 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onNavigate?.("profiles")}
               >
-                {profile.icon}
-              </div>
-              <div className="flex-1 min-w-0 text-left">
-                <div className="font-medium text-neutral-900 dark:text-white truncate">
-                  {profile.name}
+                View All
+              </Button>
+            )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {profiles.slice(0, 6).map((profile) => (
+              <button
+                key={profile.id}
+                onClick={() => handleProfileSelect(profile)}
+                className={`
+                  flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all cursor-pointer
+                  ${
+                    selectedProfile?.id === profile.id
+                      ? "border-primary-500 bg-gradient-to-br from-primary-50 to-primary-100/80 dark:from-primary-900/40 dark:to-primary-800/30 shadow-md shadow-primary-500/10"
+                      : "border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:border-primary-300 dark:hover:border-primary-700 hover:bg-primary-50/50 dark:hover:bg-primary-900/20"
+                  }
+                `}
+              >
+                <div
+                  className="w-10 h-10 rounded-lg flex items-center justify-center text-2xl flex-shrink-0"
+                  style={{ backgroundColor: profile.color + "20" }}
+                >
+                  {profile.icon}
                 </div>
-                {profile.description && (
-                  <div className="text-xs text-neutral-600 dark:text-neutral-400 truncate">
-                    {profile.description}
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="font-medium text-neutral-900 dark:text-white truncate">
+                    {profile.name}
                   </div>
-                )}
-              </div>
-            </button>
-          ))}
-        </div>
-      </motion.div>
+                  {profile.description && (
+                    <div className="text-xs text-neutral-600 dark:text-neutral-400 truncate">
+                      {profile.description}
+                    </div>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Search Bar */}
       <motion.div variants={itemVariants} className="relative">

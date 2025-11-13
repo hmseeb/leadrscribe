@@ -2,13 +2,19 @@ use crate::audio_toolkit::{list_input_devices, vad::SmoothedVad, AudioRecorder, 
 use crate::settings::get_settings;
 use crate::utils;
 use log::{debug, info};
+use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 const WHISPER_SAMPLE_RATE: usize = 16000;
 
 /* ──────────────────────────────────────────────────────────────── */
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AudioSegmentEvent {
+    pub samples: Vec<f32>,
+}
 
 #[derive(Clone, Debug)]
 pub enum RecordingState {
@@ -32,8 +38,7 @@ fn create_audio_recorder(
         .map_err(|e| anyhow::anyhow!("Failed to create SileroVad: {}", e))?;
     let smoothed_vad = SmoothedVad::new(Box::new(silero), 15, 15, 2);
 
-    // Recorder with VAD plus a spectrum-level callback that forwards updates to
-    // the frontend.
+    // Recorder with VAD plus callbacks for level and segment streaming
     let recorder = AudioRecorder::new()
         .map_err(|e| anyhow::anyhow!("Failed to create AudioRecorder: {}", e))?
         .with_vad(Box::new(smoothed_vad))
@@ -41,6 +46,17 @@ fn create_audio_recorder(
             let app_handle = app_handle.clone();
             move |levels| {
                 utils::emit_levels(&app_handle, &levels);
+            }
+        })
+        .with_segment_callback({
+            let app_handle = app_handle.clone();
+            move |samples| {
+                debug!("Audio segment detected: samples={}", samples.len());
+
+                // Emit segment event for processing
+                let _ = app_handle.emit("audio-segment", AudioSegmentEvent {
+                    samples,
+                });
             }
         });
 

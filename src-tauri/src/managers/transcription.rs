@@ -358,6 +358,7 @@ impl TranscriptionManager {
 
             match engine {
                 LoadedEngine::Whisper(whisper_engine) => {
+                    // Performance-optimized parameters
                     let params = WhisperInferenceParams {
                         language: if settings.selected_language == "auto" {
                             None
@@ -365,6 +366,13 @@ impl TranscriptionManager {
                             Some(settings.selected_language.clone())
                         },
                         translate: settings.translate_to_english,
+                        // Speed optimizations
+                        suppress_blank: true,              // Skip blank segments for speed
+                        suppress_non_speech_tokens: true,  // Skip non-speech tokens
+                        print_special: false,              // Don't print special tokens
+                        print_progress: false,             // No progress output for speed
+                        print_realtime: false,             // No real-time output
+                        print_timestamps: false,           // Skip timestamps for speed
                         ..Default::default()
                     };
 
@@ -413,6 +421,26 @@ impl TranscriptionManager {
         }
 
         Ok(corrected_result.trim().to_string())
+    }
+
+    /// Transcribe an audio segment and invoke callback with result
+    /// This method is designed for streaming transcription where segments
+    /// are processed as they become available during recording
+    pub fn transcribe_segment_async<F>(
+        &self,
+        audio: Vec<f32>,
+        segment_index: usize,
+        callback: F,
+    ) where
+        F: FnOnce(usize, Result<String>) + Send + 'static,
+    {
+        let manager_clone = self.clone();
+
+        // Spawn a background thread to transcribe the segment
+        thread::spawn(move || {
+            let result = manager_clone.transcribe(audio);
+            callback(segment_index, result);
+        });
     }
 }
 

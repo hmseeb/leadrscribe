@@ -7,6 +7,7 @@ import { listen } from "@tauri-apps/api/event";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "../ui/Input";
 import { Button } from "../ui/Button";
+import { useSettings } from "../../hooks/useSettings";
 
 interface HistoryEntry {
   id: number;
@@ -36,6 +37,7 @@ interface Profile {
 type DateFilter = "all" | "today" | "week" | "month" | "custom";
 
 export const HistorySettings: React.FC = () => {
+  const { getSetting } = useSettings();
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -342,26 +344,28 @@ export const HistorySettings: React.FC = () => {
                 )}
               </div>
 
-              {/* Profile Filter */}
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                  Profile
-                </label>
-                <select
-                  value={selectedProfile ?? ""}
-                  onChange={(e) =>
-                    setSelectedProfile(e.target.value ? Number(e.target.value) : null)
-                  }
-                  className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
-                >
-                  <option value="">All Profiles</option>
-                  {profiles.map((profile) => (
-                    <option key={profile.id} value={profile.id}>
-                      {profile.icon} {profile.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Profile Filter - Only show in ghostwriter mode */}
+              {getSetting("output_mode") === "ghostwriter" && (
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                    Profile
+                  </label>
+                  <select
+                    value={selectedProfile ?? ""}
+                    onChange={(e) =>
+                      setSelectedProfile(e.target.value ? Number(e.target.value) : null)
+                    }
+                    className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
+                  >
+                    <option value="">All Profiles</option>
+                    {profiles.map((profile) => (
+                      <option key={profile.id} value={profile.id}>
+                        {profile.icon} {profile.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* Saved Only Toggle */}
