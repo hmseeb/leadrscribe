@@ -331,6 +331,13 @@ impl ShortcutAction for TranscribeAction {
                                     }
                                     Err(e) => {
                                         error!("Ghostwriting failed, using original transcription: {}", e);
+
+                                        // Emit error event to frontend for user notification
+                                        if let Some(overlay_window) = ah.get_webview_window("recording_overlay") {
+                                            let error_message = e.to_string();
+                                            let _ = overlay_window.emit("ghostwriter-error", error_message);
+                                        }
+
                                         (transcription.clone(), None)
                                     }
                                 }

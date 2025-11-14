@@ -97,12 +97,12 @@ pub async fn process_text(
 ) -> Result<String> {
     let start_time = std::time::Instant::now();
 
-    // If no API key, return original text
+    // If no API key, return specific error
     let api_key = match api_key {
         Some(key) if !key.is_empty() => key,
         _ => {
             debug!("No OpenRouter API key configured, skipping ghostwriting");
-            return Ok(original_text.to_string());
+            return Err(anyhow::anyhow!("No API key configured. Please add your OpenRouter API key in settings."));
         }
     };
 
@@ -176,15 +176,24 @@ Now rewrite the transcription found in the <transcription> tags below. Remember:
             "OpenRouter API returned error status {}: {}",
             status, error_text
         );
-        return Err(anyhow::anyhow!(
-            "OpenRouter API error: {} - {}",
-            status,
-            error_text
-        ));
+
+        // Provide user-friendly error messages based on status code
+        let user_message = match status.as_u16() {
+            401 => "Invalid API key. Please check your OpenRouter API key in settings.".to_string(),
+            402 => "Insufficient credits. Please add credits to your OpenRouter account.".to_string(),
+            403 => "Access forbidden. Please check your API key permissions.".to_string(),
+            404 => format!("Model '{}' not found. Please select a valid model in settings.", model),
+            429 => "Rate limit exceeded. Please try again in a moment.".to_string(),
+            500..=599 => "OpenRouter server error. Please try again later.".to_string(),
+            _ => format!("API error ({}). Please check your settings.", status),
+        };
+
+        return Err(anyhow::anyhow!("{}", user_message));
     }
 
     // Parse response
-    let response_body: OpenRouterResponse = response.json().await?;
+    let response_body: OpenRouterResponse = response.json().await
+        .map_err(|e| anyhow::anyhow!("Failed to parse API response: {}", e))?;
 
     let message = &response_body
         .choices

@@ -9,11 +9,12 @@ import {
 } from "../components/icons";
 import "./RecordingOverlay.css";
 
-type OverlayState = "recording" | "transcribing" | "ghostwriting";
+type OverlayState = "recording" | "transcribing" | "ghostwriting" | "error";
 
 const RecordingOverlay: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [state, setState] = useState<OverlayState>("recording");
+  const [errorMessage, setErrorMessage] = useState<string>("");
   const [levels, setLevels] = useState<number[]>(Array(16).fill(0));
   const smoothedLevelsRef = useRef<number[]>(Array(16).fill(0));
 
@@ -55,6 +56,19 @@ const RecordingOverlay: React.FC = () => {
         // Not displaying ghostwriter text in overlay anymore
       });
 
+      // Listen for ghostwriter errors
+      const unlistenError = await listen<string>("ghostwriter-error", (event) => {
+        const error = event.payload as string;
+        setErrorMessage(error);
+        setState("error");
+
+        // Auto-hide error after 5 seconds
+        setTimeout(() => {
+          setIsVisible(false);
+          setErrorMessage("");
+        }, 5000);
+      });
+
       // Cleanup function
       return () => {
         unlistenShow();
@@ -62,6 +76,7 @@ const RecordingOverlay: React.FC = () => {
         unlistenLevel();
         unlistenChunk();
         unlistenComplete();
+        unlistenError();
       };
     };
 
@@ -88,6 +103,14 @@ const RecordingOverlay: React.FC = () => {
         return <TranscriptionIcon />;
       case "ghostwriting":
         return <TranscriptionIcon />; // Using transcription icon for ghostwriting too
+      case "error":
+        return (
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        );
       default:
         return <MicrophoneIcon />;
     }
@@ -101,6 +124,8 @@ const RecordingOverlay: React.FC = () => {
         return "rgba(59, 130, 246, 0.8)"; // Blue
       case "ghostwriting":
         return "rgba(168, 85, 247, 0.8)"; // Purple
+      case "error":
+        return "rgba(239, 68, 68, 0.9)"; // Bright Red for errors
       default:
         return "rgba(59, 130, 246, 0.8)";
     }
@@ -206,6 +231,22 @@ const RecordingOverlay: React.FC = () => {
               exit={{ opacity: 0, y: 5 }}
             >
               Ghostwriting...
+            </motion.div>
+          )}
+          {state === "error" && (
+            <motion.div
+              className="transcribing-text"
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 5 }}
+              style={{
+                maxWidth: "400px",
+                fontSize: "13px",
+                lineHeight: "1.4",
+                textAlign: "center"
+              }}
+            >
+              {errorMessage}
             </motion.div>
           )}
         </AnimatePresence>
