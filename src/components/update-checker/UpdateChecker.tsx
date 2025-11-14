@@ -22,7 +22,10 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
   const contentLengthRef = useRef(0);
 
   useEffect(() => {
-    checkForUpdates();
+    // Only auto-check for updates in production builds
+    if (import.meta.env.PROD) {
+      checkForUpdates();
+    }
 
     // Listen for update check events
     const updateUnlisten = listen("check-for-updates", () => {
