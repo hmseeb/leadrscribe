@@ -1,5 +1,5 @@
 import React from "react";
-import { ModelInfo } from "../../lib/types";
+import { ModelInfo, CpuCapabilities } from "../../lib/types";
 import { formatModelSize } from "../../lib/utils/format";
 import { ProgressBar } from "../shared";
 
@@ -18,6 +18,7 @@ interface ModelDropdownProps {
   onModelDownload: (modelId: string) => void;
   onModelDelete: (modelId: string) => Promise<void>;
   onError?: (error: string) => void;
+  cpuCapabilities?: CpuCapabilities | null;
 }
 
 const ModelDropdown: React.FC<ModelDropdownProps> = ({
@@ -28,10 +29,21 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
   onModelDownload,
   onModelDelete,
   onError,
+  cpuCapabilities,
 }) => {
   const availableModels = models.filter((m) => m.is_downloaded);
   const downloadableModels = models.filter((m) => !m.is_downloaded);
   const isFirstRun = availableModels.length === 0 && models.length > 0;
+
+  // Helper to check if a model is Parakeet
+  const isParakeetModel = (modelId: string): boolean => {
+    return modelId.includes("parakeet");
+  };
+
+  // Check if Parakeet model is incompatible with CPU
+  const isIncompatibleParakeet = (modelId: string): boolean => {
+    return isParakeetModel(modelId) && cpuCapabilities !== null && cpuCapabilities !== undefined && !cpuCapabilities.supports_parakeet;
+  };
 
   const handleDeleteClick = async (e: React.MouseEvent, modelId: string) => {
     e.preventDefault();
@@ -49,12 +61,20 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
     if (downloadProgress.has(modelId)) {
       return; // Don't allow interaction while downloading
     }
+    if (isIncompatibleParakeet(modelId)) {
+      onError?.("This model requires AVX2 CPU support. Your processor does not support this feature. Please use Whisper models instead.");
+      return;
+    }
     onModelSelect(modelId);
   };
 
   const handleDownloadClick = (modelId: string) => {
     if (downloadProgress.has(modelId)) {
       return; // Don't allow interaction while downloading
+    }
+    if (isIncompatibleParakeet(modelId)) {
+      onError?.("Cannot download: This model requires AVX2 CPU support. Your processor does not support this feature. Please choose a Whisper model instead.");
+      return;
     }
     onModelDownload(modelId);
   };
@@ -146,6 +166,8 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
           {downloadableModels.map((model) => {
             const isDownloading = downloadProgress.has(model.id);
             const progress = downloadProgress.get(model.id);
+            const incompatible = isIncompatibleParakeet(model.id);
+            const disabled = isDownloading || incompatible;
 
             return (
               <div
@@ -159,11 +181,11 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
                 }}
                 tabIndex={0}
                 role="button"
-                aria-disabled={isDownloading}
-                className={`w-full px-3 py-2 text-left hover:bg-mid-gray/10 transition-colors cursor-pointer focus:outline-none ${
-                  isDownloading
+                aria-disabled={disabled}
+                className={`w-full px-3 py-2 text-left transition-colors focus:outline-none ${
+                  disabled
                     ? "opacity-50 cursor-not-allowed hover:bg-transparent"
-                    : ""
+                    : "hover:bg-mid-gray/10 cursor-pointer"
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -175,13 +197,24 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
                           Recommended
                         </span>
                       )}
+                      {incompatible && (
+                        <span className="ml-2 text-xs bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded" title="Requires AVX2 CPU support">
+                          Incompatible
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs text-text/40 italic pr-4">
                       {model.description}
                     </div>
-                    <div className="mt-1 text-xs text-text/50 tabular-nums">
-                      Download size · {formatModelSize(model.size_mb)}
-                    </div>
+                    {incompatible ? (
+                      <div className="mt-1 text-xs text-red-400">
+                        Requires AVX2 CPU support
+                      </div>
+                    ) : (
+                      <div className="mt-1 text-xs text-text/50 tabular-nums">
+                        Download size · {formatModelSize(model.size_mb)}
+                      </div>
+                    )}
                   </div>
                   <div className="text-xs text-logo-primary tabular-nums">
                     {isDownloading && progress ? (

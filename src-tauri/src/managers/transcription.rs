@@ -1,4 +1,5 @@
 use crate::audio_toolkit::apply_custom_words;
+use crate::cpu_features;
 use crate::managers::model::{EngineType, ModelManager};
 use crate::settings::{get_settings, ModelUnloadTimeout};
 use anyhow::Result;
@@ -226,6 +227,27 @@ impl TranscriptionManager {
                 LoadedEngine::Whisper(engine)
             }
             EngineType::Parakeet => {
+                // Check CPU capabilities before attempting to load Parakeet model
+                // ONNX Runtime is compiled with AVX/AVX2 instructions and will crash
+                // with STATUS_ILLEGAL_INSTRUCTION on CPUs without these features
+                if !cpu_features::supports_parakeet() {
+                    let error_msg = format!(
+                        "Cannot load Parakeet model: CPU does not support required AVX2 instructions. \
+                         Your processor lacks the AVX/AVX2 features required by ONNX Runtime. \
+                         Please use Whisper models instead (e.g., whisper-small, whisper-medium)."
+                    );
+                    let _ = self.app_handle.emit(
+                        "model-state-changed",
+                        ModelStateEvent {
+                            event_type: "loading_failed".to_string(),
+                            model_id: Some(model_id.to_string()),
+                            model_name: Some(model_info.name.clone()),
+                            error: Some(error_msg.clone()),
+                        },
+                    );
+                    return Err(anyhow::anyhow!(error_msg));
+                }
+
                 let mut engine = ParakeetEngine::new();
                 engine
                     .load_model_with_params(&model_path, ParakeetModelParams::int8())

@@ -5,6 +5,7 @@ import { ModelInfo } from "../../lib/types";
 import ModelStatusButton from "./ModelStatusButton";
 import ModelDropdown from "./ModelDropdown";
 import DownloadProgressDisplay from "./DownloadProgressDisplay";
+import { useCpuCapabilities } from "../../hooks/useCpuCapabilities";
 
 interface ModelStateEvent {
   event_type: string;
@@ -57,6 +58,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
   );
 
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { cpuCapabilities } = useCpuCapabilities();
 
   useEffect(() => {
     loadModels();
@@ -376,6 +378,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ onError }) => {
             onModelDownload={handleModelDownload}
             onModelDelete={handleModelDelete}
             onError={onError}
+            cpuCapabilities={cpuCapabilities}
           />
         )}
       </div>

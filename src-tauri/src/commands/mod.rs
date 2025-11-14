@@ -5,6 +5,7 @@ pub mod profile;
 pub mod tag;
 pub mod transcription;
 
+use crate::cpu_features::{self, CpuCapabilities};
 use crate::utils::cancel_current_operation;
 use tauri::{AppHandle, Manager};
 
@@ -21,4 +22,9 @@ pub fn get_app_dir_path(app: AppHandle) -> Result<String, String> {
         .map_err(|e| format!("Failed to get app data directory: {}", e))?;
 
     Ok(app_data_dir.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub fn get_cpu_capabilities() -> CpuCapabilities {
+    cpu_features::check_cpu_capabilities()
 }

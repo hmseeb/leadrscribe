@@ -3,6 +3,7 @@ mod audio_feedback;
 pub mod audio_toolkit;
 mod clipboard;
 mod commands;
+mod cpu_features;
 mod ghostwriter;
 mod managers;
 mod migration;
@@ -204,12 +205,43 @@ pub fn run() {
             initialize_core_logic(&app_handle);
 
             // Auto-load the selected model if one is configured
-            let selected_model = settings.selected_model.clone();
+            let mut selected_model = settings.selected_model.clone();
             if !selected_model.is_empty() {
                 let transcription_manager: tauri::State<Arc<TranscriptionManager>> = app_handle.state();
                 let model_manager: tauri::State<Arc<ModelManager>> = app_handle.state();
                 let transcription_manager_clone = transcription_manager.inner().clone();
                 let model_manager_clone = model_manager.inner().clone();
+                let app_handle_clone = app_handle.clone();
+
+                // Check if selected model is Parakeet and CPU doesn't support it
+                if let Some(model_info) = model_manager.get_model_info(&selected_model) {
+                    if matches!(model_info.engine_type, managers::model::EngineType::Parakeet)
+                        && !cpu_features::supports_parakeet() {
+                        eprintln!(
+                            "Warning: Selected Parakeet model '{}' requires AVX2 CPU support. \
+                             Your CPU does not support this feature. Switching to Whisper Small model.",
+                            selected_model
+                        );
+
+                        // Switch to whisper-small as a safe default
+                        selected_model = "whisper-small".to_string();
+
+                        // Update settings to reflect the change
+                        let mut updated_settings = settings.clone();
+                        updated_settings.selected_model = selected_model.clone();
+                        settings::write_settings(&app_handle_clone, updated_settings);
+
+                        // Emit event to notify frontend
+                        let _ = app_handle_clone.emit(
+                            "cpu-incompatible-model",
+                            serde_json::json!({
+                                "message": "Your CPU does not support Parakeet models (requires AVX2). Switched to Whisper Small.",
+                                "original_model": model_info.id,
+                                "fallback_model": "whisper-small"
+                            })
+                        );
+                    }
+                }
 
                 tauri::async_runtime::spawn(async move {
                     // Check if the model is actually downloaded before trying to load it
@@ -288,6 +320,7 @@ pub fn run() {
             trigger_update_check,
             commands::cancel_operation,
             commands::get_app_dir_path,
+            commands::get_cpu_capabilities,
             commands::models::get_available_models,
             commands::models::get_model_info,
             commands::models::download_model,

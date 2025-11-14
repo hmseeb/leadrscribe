@@ -108,3 +108,11 @@ export const ModelInfoSchema = z.object({
 });
 
 export type ModelInfo = z.infer<typeof ModelInfoSchema>;
+
+export const CpuCapabilitiesSchema = z.object({
+  has_avx: z.boolean(),
+  has_avx2: z.boolean(),
+  supports_parakeet: z.boolean(),
+});
+
+export type CpuCapabilities = z.infer<typeof CpuCapabilitiesSchema>;
