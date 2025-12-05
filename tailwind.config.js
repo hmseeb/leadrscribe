@@ -7,7 +7,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        /* Primary Blue Palette */
+        /* Hand-Drawn Palette */
+        'paper': 'var(--color-paper)',
+        'pencil': 'var(--color-pencil)',
+        'old-paper': 'var(--color-old-paper)',
+        'red-marker': 'var(--color-red-marker)',
+        'post-it': 'var(--color-post-it)',
+        'blue-pen': 'var(--color-blue-pen)',
+        /* Primary Palette (mapped to red-marker) */
         primary: {
           50: 'var(--color-primary-50)',
           100: 'var(--color-primary-100)',
@@ -83,6 +90,15 @@ export default {
         '2xl': 'var(--radius-2xl)',
         '3xl': 'var(--radius-3xl)',
         full: 'var(--radius-full)',
+        /* Wobbly borders for hand-drawn aesthetic */
+        'wobbly': 'var(--wobble-sm-1)',
+        'wobbly-md': 'var(--wobble-md-1)',
+        'wobbly-lg': 'var(--wobble-lg-1)',
+        'wobbly-full': 'var(--wobble-full-1)',
+      },
+      borderWidth: {
+        '3': '3px',
+        '4': '4px',
       },
       spacing: {
         0: 'var(--spacing-0)',
