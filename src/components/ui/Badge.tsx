@@ -13,20 +13,20 @@ const Badge: React.FC<BadgeProps> = ({
 }) => {
   const variantClasses = {
     primary:
-      "bg-primary-100 text-primary-700 dark:bg-primary-950/50 dark:text-primary-300",
+      "bg-red-marker text-white border-2 border-pencil",
     success:
-      "bg-success-500/10 text-success-600 dark:bg-success-500/20 dark:text-success-500",
+      "bg-success-500 text-white border-2 border-pencil",
     warning:
-      "bg-warning-500/10 text-warning-600 dark:bg-warning-500/20 dark:text-warning-500",
+      "bg-warning-500 text-white border-2 border-pencil",
     error:
-      "bg-error-500/10 text-error-600 dark:bg-error-500/20 dark:text-error-500",
+      "bg-red-marker text-white border-2 border-pencil",
     neutral:
-      "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300",
+      "bg-old-paper text-pencil border-2 border-pencil",
   };
 
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variantClasses[variant]} ${className}`}
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-wobbly text-xs font-bold rotate-slightly-right ${variantClasses[variant]} ${className}`}
     >
       {children}
     </span>
