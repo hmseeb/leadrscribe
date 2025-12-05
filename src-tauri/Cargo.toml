@@ -1,6 +1,6 @@
 [package]
 name = "leadrscribe"
-version = "0.5.12"
+version = "0.5.13"
 description = "LeadrScribe"
 authors = ["cjpais"]
 edition = "2021"

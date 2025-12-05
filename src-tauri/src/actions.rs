@@ -22,7 +22,10 @@ pub trait ShortcutAction: Send + Sync {
 }
 
 // Structure to hold streaming transcription state
+// Note: Streaming mode is currently disabled in favor of direct full-audio transcription
+// for better performance. Kept for potential future re-enablement.
 #[derive(Clone)]
+#[allow(dead_code)]
 struct StreamingState {
     segments: Arc<Mutex<Vec<String>>>,
     segment_count: Arc<Mutex<usize>>,
@@ -30,6 +33,7 @@ struct StreamingState {
     is_recording: Arc<Mutex<bool>>,
 }
 
+#[allow(dead_code)]
 impl StreamingState {
     fn new() -> Self {
         Self {
@@ -248,48 +252,18 @@ impl ShortcutAction for TranscribeAction {
 
                 let samples_clone = samples.clone(); // Clone for history saving
 
-                // Wait for all pending segment transcriptions to complete
-                // Poll the pending counter instead of using fixed timeouts
-                const POLL_INTERVAL_MS: u64 = 50;
-                const MAX_WAIT_MS: u64 = 30000; // 30 second absolute max timeout
-                let mut waited_ms: u64 = 0;
-
-                while STREAMING_STATE.pending_count() > 0 && waited_ms < MAX_WAIT_MS {
-                    tokio::time::sleep(tokio::time::Duration::from_millis(POLL_INTERVAL_MS)).await;
-                    waited_ms += POLL_INTERVAL_MS;
-                }
-
-                if waited_ms >= MAX_WAIT_MS {
-                    debug!(
-                        "Timeout waiting for segments. {} still pending.",
-                        STREAMING_STATE.pending_count()
-                    );
-                } else {
-                    debug!("All segments completed in {}ms", waited_ms);
-                }
-
-                // Get accumulated streaming transcriptions
-                let accumulated_text = STREAMING_STATE.get_accumulated_text();
-
-                // Use streaming transcription as primary result if available
-                // Only fall back to full transcription if streaming failed or produced insufficient results
-                let transcription = if !accumulated_text.is_empty() && accumulated_text.len() >= 3 {
-                    debug!("Using streaming transcription result: '{}'", accumulated_text);
-                    accumulated_text
-                } else {
-                    // Fallback: transcribe full audio if streaming didn't produce results
-                    debug!("Streaming transcription insufficient, falling back to full transcription");
-                    match tm.transcribe(samples) {
-                        Ok(t) => {
-                            debug!("Full transcription result: '{}'", t);
-                            t
-                        }
-                        Err(err) => {
-                            debug!("Global Shortcut Transcription error: {}", err);
-                            utils::hide_recording_overlay(&ah);
-                            change_tray_icon(&ah, TrayIconState::Idle);
-                            return;
-                        }
+                // Transcribe full audio directly (faster than streaming mode which
+                // processes segments sequentially due to engine mutex lock)
+                let transcription = match tm.transcribe(samples) {
+                    Ok(t) => {
+                        debug!("Transcription result: '{}'", t);
+                        t
+                    }
+                    Err(err) => {
+                        debug!("Transcription error: {}", err);
+                        utils::hide_recording_overlay(&ah);
+                        change_tray_icon(&ah, TrayIconState::Idle);
+                        return;
                     }
                 };
 
