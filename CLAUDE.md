@@ -126,3 +126,19 @@ Debug mode can be toggled via keyboard shortcut:
 - **Windows/Linux**: `Ctrl+Shift+D`
 
 Enables additional settings like 5-second model unload timeout for testing.
+
+## Version Management
+
+**IMPORTANT:** When pushing changes to GitHub, always update the version number before committing.
+
+**Version files to update:**
+- `package.json` - `"version": "x.x.x"`
+- `src-tauri/Cargo.toml` - `version = "x.x.x"`
+- `src-tauri/tauri.conf.json` - `"version": "x.x.x"`
+
+**Versioning rules:**
+- **Patch increment (0.0.x):** Bug fixes, minor improvements, small changes
+- **Minor increment (0.x.0):** New features, significant enhancements, breaking changes to minor functionality
+- **Major increment (x.0.0):** Major new features, breaking changes, architectural overhauls
+
+After updating version files, create a commit with message: `Bump version to x.x.x`
