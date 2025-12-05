@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun run:*)",
+      "Read(//c/Users/hsbaz/Downloads/**)",
+      "WebSearch",
+      "Bash(powershell -Command \"Write-Output $env:APPDATA\")",
+      "Bash(cargo build:*)",
+      "Bash(git remote:*)",
+      "Bash(git push:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(cargo check:*)",
+      "Bash(cargo tree:*)",
+      "Bash(cargo search:*)",
+      "Bash(gh release list:*)"
+    ],
+    "deny": [],
+    "ask": []
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -Command \"(New-Object Media.SoundPlayer 'C:\\Windows\\Media\\chimes.wav').PlaySync(); [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null; $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02); $textNodes = $template.GetElementsByTagName('text'); $textNodes.Item(0).AppendChild($template.CreateTextNode('Claude''s Done!')) > $null; $textNodes.Item(1).AppendChild($template.CreateTextNode('Task completed successfully')) > $null; $toast = [Windows.UI.Notifications.ToastNotification]::new($template); $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('Claude Code'); $notifier.Show($toast)\""
+          }
+        ]
+      }
+    ]
+  }
+}
