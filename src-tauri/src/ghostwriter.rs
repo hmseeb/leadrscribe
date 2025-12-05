@@ -179,13 +179,13 @@ Now rewrite the transcription found in the <transcription> tags below. Remember:
 
         // Provide user-friendly error messages based on status code
         let user_message = match status.as_u16() {
-            401 => "Invalid API key. Please check your OpenRouter API key in settings.".to_string(),
-            402 => "Insufficient credits. Please add credits to your OpenRouter account.".to_string(),
-            403 => "Access forbidden. Please check your API key permissions.".to_string(),
+            401 => "Invalid OpenRouter API key. Please check your API key in Settings → OpenRouter API Key.".to_string(),
+            402 => "Insufficient OpenRouter credits. Please add credits to your account at openrouter.ai.".to_string(),
+            403 => "Access forbidden. Please check your OpenRouter API key permissions.".to_string(),
             404 => format!("Model '{}' not found. Please select a valid model in settings.", model),
-            429 => "Rate limit exceeded. Please try again in a moment.".to_string(),
-            500..=599 => "OpenRouter server error. Please try again later.".to_string(),
-            _ => format!("API error ({}). Please check your settings.", status),
+            429 => "OpenRouter rate limit exceeded. Please wait a moment and try again.".to_string(),
+            500..=599 => "OpenRouter service error. Please try again later.".to_string(),
+            _ => "OpenRouter API request failed. Please check your settings and try again.".to_string(),
         };
 
         return Err(anyhow::anyhow!("{}", user_message));

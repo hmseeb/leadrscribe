@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
-import { Toaster } from "sonner";
+import { toast, Toaster } from "sonner";
 import "./App.css";
 import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import CommandPalette from "./components/command-palette";
@@ -27,6 +28,35 @@ function App() {
 
   useEffect(() => {
     checkOnboardingStatus();
+  }, []);
+
+  // Listen for notification events from backend
+  useEffect(() => {
+    const setupNotificationListener = async () => {
+      const unlisten = await listen<{
+        title: string;
+        message: string;
+        type: string;
+      }>("show-notification", (event) => {
+        const { title, message, type } = event.payload;
+
+        if (type === "error") {
+          toast.error(message, {
+            duration: 10000, // Show for 10 seconds
+            description: title,
+          });
+        } else {
+          toast(message, {
+            duration: 5000,
+            description: title,
+          });
+        }
+      });
+
+      return unlisten;
+    };
+
+    setupNotificationListener();
   }, []);
 
   // Handle keyboard shortcuts for debug mode toggle and command palette

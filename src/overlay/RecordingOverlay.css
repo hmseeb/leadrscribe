@@ -57,6 +57,18 @@
     box-shadow: 4px 4px 0px #8B5CF6;
 }
 
+/* Error state styling with red-marker theme */
+.overlay-state-error {
+    border: 3px solid #ff4d4d;
+    box-shadow: 4px 4px 0px #ff4d4d;
+    background: #fff9c4; /* Post-it yellow background for visibility */
+}
+
+.overlay-state-error .transcribing-text {
+    color: #ff4d4d; /* Red marker color */
+    font-weight: 600;
+}
+
 @keyframes ai-gradient-rotate {
     0% {
         transform: rotate(0deg);
