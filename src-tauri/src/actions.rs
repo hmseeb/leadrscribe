@@ -10,6 +10,7 @@ use crate::utils;
 use log::{debug, error};
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use tauri::{AppHandle, Emitter, Listener, Manager};
@@ -25,6 +26,7 @@ pub trait ShortcutAction: Send + Sync {
 struct StreamingState {
     segments: Arc<Mutex<Vec<String>>>,
     segment_count: Arc<Mutex<usize>>,
+    pending_segments: Arc<AtomicUsize>,
     is_recording: Arc<Mutex<bool>>,
 }
 
@@ -33,6 +35,7 @@ impl StreamingState {
         Self {
             segments: Arc::new(Mutex::new(Vec::new())),
             segment_count: Arc::new(Mutex::new(0)),
+            pending_segments: Arc::new(AtomicUsize::new(0)),
             is_recording: Arc::new(Mutex::new(false)),
         }
     }
@@ -41,10 +44,23 @@ impl StreamingState {
         *self.is_recording.lock().unwrap() = true;
         self.segments.lock().unwrap().clear();
         *self.segment_count.lock().unwrap() = 0;
+        self.pending_segments.store(0, Ordering::Release);
     }
 
     fn stop_recording(&self) {
         *self.is_recording.lock().unwrap() = false;
+    }
+
+    fn increment_pending(&self) {
+        self.pending_segments.fetch_add(1, Ordering::AcqRel);
+    }
+
+    fn decrement_pending(&self) {
+        self.pending_segments.fetch_sub(1, Ordering::AcqRel);
+    }
+
+    fn pending_count(&self) -> usize {
+        self.pending_segments.load(Ordering::Acquire)
     }
 
     fn add_segment(&self, text: String, index: usize) {
@@ -98,6 +114,7 @@ pub fn setup_segment_listener(app: &AppHandle) {
                 // Transcribe segment asynchronously
                 let tm = tm_clone.clone();
                 let app_for_emit = app_clone.clone();
+                STREAMING_STATE.increment_pending(); // Track pending transcription
                 tm.transcribe_segment_async(
                     segment_event.samples,
                     segment_index,
@@ -114,6 +131,8 @@ pub fn setup_segment_listener(app: &AppHandle) {
                             Ok(_) => debug!("Segment {} was empty", index),
                             Err(e) => error!("Segment {} transcription failed: {}", index, e),
                         }
+                        // Always decrement pending count when done (success or failure)
+                        STREAMING_STATE.decrement_pending();
                     },
                 );
             }
@@ -229,10 +248,25 @@ impl ShortcutAction for TranscribeAction {
 
                 let samples_clone = samples.clone(); // Clone for history saving
 
-                // Wait for any remaining segments to finish transcribing
-                // Each segment can take 500ms-2s to transcribe, so we need sufficient time
-                // for long recordings with multiple segments
-                tokio::time::sleep(tokio::time::Duration::from_millis(5000)).await;
+                // Wait for all pending segment transcriptions to complete
+                // Poll the pending counter instead of using fixed timeouts
+                const POLL_INTERVAL_MS: u64 = 50;
+                const MAX_WAIT_MS: u64 = 30000; // 30 second absolute max timeout
+                let mut waited_ms: u64 = 0;
+
+                while STREAMING_STATE.pending_count() > 0 && waited_ms < MAX_WAIT_MS {
+                    tokio::time::sleep(tokio::time::Duration::from_millis(POLL_INTERVAL_MS)).await;
+                    waited_ms += POLL_INTERVAL_MS;
+                }
+
+                if waited_ms >= MAX_WAIT_MS {
+                    debug!(
+                        "Timeout waiting for segments. {} still pending.",
+                        STREAMING_STATE.pending_count()
+                    );
+                } else {
+                    debug!("All segments completed in {}ms", waited_ms);
+                }
 
                 // Get accumulated streaming transcriptions
                 let accumulated_text = STREAMING_STATE.get_accumulated_text();
