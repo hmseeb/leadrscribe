@@ -62,11 +62,11 @@ const RecordingOverlay: React.FC = () => {
         setErrorMessage(error);
         setState("error");
 
-        // Auto-hide error after 5 seconds
+        // Auto-hide error after 10 seconds (increased from 5 for better visibility)
         setTimeout(() => {
           setIsVisible(false);
           setErrorMessage("");
-        }, 5000);
+        }, 10000);
       });
 
       // Cleanup function
@@ -218,12 +218,16 @@ const RecordingOverlay: React.FC = () => {
               exit={{ opacity: 0, y: 5 }}
               style={{
                 maxWidth: "400px",
-                fontSize: "13px",
+                fontSize: "14px",
+                fontWeight: "600",
                 lineHeight: "1.4",
                 textAlign: "center"
               }}
             >
-              {errorMessage}
+              <div>⚠️ {errorMessage}</div>
+              <div style={{ fontSize: "12px", marginTop: "4px", fontWeight: "400" }}>
+                Original transcription pasted
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

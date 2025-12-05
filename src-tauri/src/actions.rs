@@ -342,10 +342,20 @@ impl ShortcutAction for TranscribeAction {
                                     Err(e) => {
                                         error!("Ghostwriting failed, using original transcription: {}", e);
 
-                                        // Emit error event to frontend for user notification
+                                        // Emit error event to overlay for immediate feedback
                                         if let Some(overlay_window) = ah.get_webview_window("recording_overlay") {
                                             let error_message = e.to_string();
                                             let _ = overlay_window.emit("ghostwriter-error", error_message);
+                                        }
+
+                                        // Emit notification event to main window for persistent alert
+                                        if let Some(main_window) = ah.get_webview_window("main") {
+                                            let notification_data = serde_json::json!({
+                                                "title": "Ghostwriter Failed",
+                                                "message": format!("{}\n\nOriginal transcription was pasted instead.\n\nPlease check your OpenRouter API key in settings.", e),
+                                                "type": "error"
+                                            });
+                                            let _ = main_window.emit("show-notification", notification_data);
                                         }
 
                                         (transcription.clone(), None)
