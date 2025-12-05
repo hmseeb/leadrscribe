@@ -51,14 +51,14 @@ export const TitleBar: React.FC = () => {
 
   return (
     <div
-      className="flex items-center justify-between h-10 bg-surface dark:bg-neutral-900 border-b border-border dark:border-neutral-800 select-none"
+      className="flex items-center justify-between h-10 bg-white border-b-3 border-pencil select-none"
     >
       {/* Logo - Draggable Area */}
       <div
         data-tauri-drag-region
         className="flex items-center gap-2 px-3 flex-1 h-full"
       >
-        <LeadrScribeIcon width={20} height={20} className="text-primary-500 dark:text-primary-400" />
+        <LeadrScribeIcon width={20} height={20} className="text-red-marker" />
       </div>
 
       {/* Window Controls */}
@@ -66,32 +66,32 @@ export const TitleBar: React.FC = () => {
         {/* Minimize Button */}
         <button
           onMouseDown={handleMinimize}
-          className="h-full px-4 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center justify-center group"
+          className="h-full px-4 hover:bg-old-paper transition-colors flex items-center justify-center group"
           aria-label="Minimize"
         >
-          <Minus className="w-4 h-4 text-neutral-600 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-neutral-100" />
+          <Minus className="w-4 h-4 text-pencil" strokeWidth={2.5} />
         </button>
 
         {/* Maximize/Restore Button */}
         <button
           onMouseDown={handleMaximize}
-          className="h-full px-4 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center justify-center group"
+          className="h-full px-4 hover:bg-old-paper transition-colors flex items-center justify-center group"
           aria-label={isMaximized ? "Restore" : "Maximize"}
         >
           {isMaximized ? (
-            <Maximize2 className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-neutral-100" />
+            <Maximize2 className="w-3.5 h-3.5 text-pencil" strokeWidth={2.5} />
           ) : (
-            <Square className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-neutral-100" />
+            <Square className="w-3.5 h-3.5 text-pencil" strokeWidth={2.5} />
           )}
         </button>
 
         {/* Close Button */}
         <button
           onMouseDown={handleClose}
-          className="h-full px-4 hover:bg-red-500 transition-colors flex items-center justify-center group"
+          className="h-full px-4 hover:bg-red-marker transition-colors flex items-center justify-center group"
           aria-label="Close"
         >
-          <X className="w-4 h-4 text-neutral-600 dark:text-neutral-400 group-hover:text-white" />
+          <X className="w-4 h-4 text-pencil group-hover:text-white" strokeWidth={2.5} />
         </button>
       </div>
     </div>

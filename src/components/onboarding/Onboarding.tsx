@@ -139,14 +139,18 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => getCurrentWindow().minimize()}
-            className="w-3 h-3 rounded-wobbly-full bg-post-it border-2 border-pencil hover:bg-old-paper transition-colors"
+            className="w-5 h-5 rounded-wobbly-full bg-post-it border-2 border-pencil hover:bg-old-paper transition-colors flex items-center justify-center font-bold text-pencil text-sm"
             aria-label="Minimize"
-          />
+          >
+            −
+          </button>
           <button
             onClick={() => getCurrentWindow().close()}
-            className="w-3 h-3 rounded-wobbly-full bg-red-marker border-2 border-pencil hover:bg-primary-600 transition-colors"
+            className="w-5 h-5 rounded-wobbly-full bg-red-marker border-2 border-pencil hover:bg-primary-600 transition-colors flex items-center justify-center font-bold text-white text-xs"
             aria-label="Close"
-          />
+          >
+            ✕
+          </button>
         </div>
       </div>
 
