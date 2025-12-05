@@ -247,10 +247,10 @@ export const HistorySettings: React.FC = () => {
     <div className="max-w-4xl w-full mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">
+        <h1 className="text-3xl font-kalam font-bold text-pencil">
           Transcription History
-        </h2>
-        <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
+        </h1>
+        <p className="text-sm text-text-subtle mt-1">
           View, search, and manage your transcriptions
         </p>
       </div>
@@ -293,10 +293,10 @@ export const HistorySettings: React.FC = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="bg-neutral-50 dark:bg-neutral-800/50 rounded-xl p-4 space-y-4 border border-neutral-200 dark:border-neutral-700"
+            className="bg-white rounded-wobbly-lg p-4 space-y-4 border-3 border-pencil shadow-md"
           >
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-neutral-900 dark:text-white">
+              <h3 className="font-semibold text-pencil">
                 Filters
               </h3>
               {hasActiveFilters && (
@@ -310,14 +310,14 @@ export const HistorySettings: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Date Filter */}
               <div>
-                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                <label className="block text-sm font-medium text-pencil mb-2">
                   <Calendar className="w-4 h-4 inline mr-1" />
                   Date Range
                 </label>
                 <select
                   value={dateFilter}
                   onChange={(e) => setDateFilter(e.target.value as DateFilter)}
-                  className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
+                  className="w-full px-3 py-2 border-3 border-pencil rounded-wobbly-lg bg-white text-pencil"
                 >
                   <option value="all">All Time</option>
                   <option value="today">Today</option>
@@ -347,7 +347,7 @@ export const HistorySettings: React.FC = () => {
               {/* Profile Filter - Only show in ghostwriter mode */}
               {getSetting("output_mode") === "ghostwriter" && (
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                  <label className="block text-sm font-medium text-pencil mb-2">
                     Profile
                   </label>
                   <select
@@ -355,7 +355,7 @@ export const HistorySettings: React.FC = () => {
                     onChange={(e) =>
                       setSelectedProfile(e.target.value ? Number(e.target.value) : null)
                     }
-                    className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white"
+                    className="w-full px-3 py-2 border-3 border-pencil rounded-wobbly-lg bg-white text-pencil"
                   >
                     <option value="">All Profiles</option>
                     {profiles.map((profile) => (
@@ -377,7 +377,7 @@ export const HistorySettings: React.FC = () => {
                 className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
               />
               <Star className="w-4 h-4 text-amber-500" />
-              <span className="text-sm text-neutral-700 dark:text-neutral-300">
+              <span className="text-sm text-pencil">
                 Show saved only
               </span>
             </label>
@@ -386,7 +386,7 @@ export const HistorySettings: React.FC = () => {
       </AnimatePresence>
 
       {/* Results Count */}
-      <div className="text-sm text-neutral-600 dark:text-neutral-400">
+      <div className="text-sm text-text-subtle">
         {historyEntries.length} {historyEntries.length === 1 ? "result" : "results"} found
       </div>
 
@@ -394,8 +394,8 @@ export const HistorySettings: React.FC = () => {
       <SettingsGroup title="">
         {historyEntries.length === 0 ? (
           <div className="px-4 py-12 text-center">
-            <Search className="w-12 h-12 mx-auto mb-3 text-neutral-400" />
-            <p className="text-neutral-600 dark:text-neutral-400">
+            <Search className="w-12 h-12 mx-auto mb-3 text-pencil" />
+            <p className="text-text-subtle">
               {searchQuery || hasActiveFilters
                 ? "No transcriptions found. Try adjusting your filters."
                 : "No transcriptions yet. Start recording to build your history!"}
@@ -483,10 +483,10 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   const hasGhostwritten = entry.ghostwritten_text && entry.ghostwritten_text.trim().length > 0;
 
   return (
-    <div className="px-4 py-2 pb-5 flex flex-col gap-3 border-b border-neutral-200 dark:border-neutral-700 last:border-b-0">
+    <div className="px-4 py-2 pb-5 flex flex-col gap-3 border-b border-pencil last:border-b-0">
       <div className="flex justify-between items-start">
         <div className="flex-1">
-          <p className="text-sm font-medium text-neutral-900 dark:text-white">{entry.title}</p>
+          <p className="text-sm font-medium text-pencil">{entry.title}</p>
           <div className="flex items-center gap-3 text-xs text-neutral-500 mt-1">
             <span>{formatDate(entry.timestamp)}</span>
             {entry.word_count && <span>• {entry.word_count} words</span>}
@@ -549,7 +549,7 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
 
       {/* Ghostwritten Version */}
       {hasGhostwritten && (
-        <div className="flex flex-col gap-1 pt-2 border-t border-neutral-200 dark:border-neutral-700">
+        <div className="flex flex-col gap-1 pt-2 border-t border-pencil">
           <div className="flex items-center justify-between">
             <p className="text-xs text-text/60 font-medium">Ghostwritten</p>
             <button

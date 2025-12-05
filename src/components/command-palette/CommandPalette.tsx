@@ -230,11 +230,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: -20 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-2xl bg-white dark:bg-neutral-800 rounded-xl shadow-2xl border border-neutral-200 dark:border-neutral-700 overflow-hidden"
+          className="w-full max-w-2xl bg-white rounded-wobbly-lg shadow-xl border-3 border-pencil overflow-hidden"
         >
           {/* Search Input */}
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-neutral-200 dark:border-neutral-700">
-            <Search className="w-5 h-5 text-neutral-400" />
+          <div className="flex items-center gap-3 px-4 py-3 border-b-3 border-pencil">
+            <Search className="w-5 h-5 text-text-subtle" />
             <input
               ref={inputRef}
               type="text"
@@ -242,10 +242,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Search commands or transcriptions..."
-              className="flex-1 outline-none bg-transparent text-neutral-900 dark:text-white text-lg"
+              className="flex-1 outline-none bg-transparent text-pencil text-lg"
             />
-            <div className="flex items-center gap-1 text-xs text-neutral-500">
-              <kbd className="px-2 py-1 bg-neutral-100 dark:bg-neutral-700 rounded border border-neutral-300 dark:border-neutral-600">
+            <div className="flex items-center gap-1 text-xs text-text-subtle">
+              <kbd className="px-2 py-1 bg-old-paper rounded-wobbly border-2 border-pencil">
                 <Command className="w-3 h-3 inline" />K
               </kbd>
               <span>to close</span>
@@ -255,7 +255,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           {/* Results */}
           <div className="max-h-[400px] overflow-y-auto">
             {results.length === 0 ? (
-              <div className="px-4 py-8 text-center text-neutral-500">
+              <div className="px-4 py-8 text-center text-text-subtle">
                 {query.trim()
                   ? "No results found"
                   : "Type to search commands or transcriptions"}
@@ -278,8 +278,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                         w-full px-4 py-3 text-left flex items-start gap-3 transition-colors
                         ${
                           isSelected
-                            ? "bg-primary-50 dark:bg-primary-900/20"
-                            : "hover:bg-neutral-50 dark:hover:bg-neutral-700/50"
+                            ? "bg-post-it"
+                            : "hover:bg-old-paper"
                         }
                       `}
                     >
@@ -287,21 +287,21 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                         <>
                           <div
                             className={`
-                            flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center
+                            flex-shrink-0 w-8 h-8 rounded-wobbly flex items-center justify-center border-2 border-pencil
                             ${
                               isSelected
-                                ? "bg-primary-100 dark:bg-primary-900/40 text-primary-600 dark:text-primary-400"
-                                : "bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400"
+                                ? "bg-red-marker text-white"
+                                : "bg-white text-pencil"
                             }
                           `}
                           >
                             {item.icon}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-neutral-900 dark:text-white">
+                            <div className="font-medium text-pencil">
                               {item.label}
                             </div>
-                            <div className="text-xs text-neutral-500 capitalize">
+                            <div className="text-xs text-text-subtle capitalize">
                               {item.category}
                             </div>
                           </div>
@@ -310,24 +310,24 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                         <>
                           <div
                             className={`
-                            flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center
+                            flex-shrink-0 w-8 h-8 rounded-wobbly flex items-center justify-center border-2 border-pencil
                             ${
                               isSelected
-                                ? "bg-primary-100 dark:bg-primary-900/40 text-primary-600 dark:text-primary-400"
-                                : "bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400"
+                                ? "bg-red-marker text-white"
+                                : "bg-white text-pencil"
                             }
                           `}
                           >
                             <FileText className="w-4 h-4" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-neutral-900 dark:text-white truncate">
+                            <div className="font-medium text-pencil truncate">
                               {item.title}
                             </div>
-                            <div className="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-1">
+                            <div className="text-sm text-text-subtle line-clamp-1">
                               {item.ghostwritten_text || item.transcription_text}
                             </div>
-                            <div className="text-xs text-neutral-500 mt-1">
+                            <div className="text-xs text-text-subtle mt-1">
                               {formatDate(item.timestamp)}
                               {item.word_count && ` • ${item.word_count} words`}
                             </div>
@@ -342,23 +342,23 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="px-4 py-2 border-t border-neutral-200 dark:border-neutral-700 text-xs text-neutral-500 flex items-center justify-between">
+          <div className="px-4 py-2 border-t-2 border-pencil text-xs text-text-subtle flex items-center justify-between">
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-700 rounded border border-neutral-300 dark:border-neutral-600">
+                <kbd className="px-1.5 py-0.5 bg-old-paper rounded-wobbly border-2 border-pencil">
                   ↑↓
                 </kbd>
                 Navigate
               </span>
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-700 rounded border border-neutral-300 dark:border-neutral-600">
+                <kbd className="px-1.5 py-0.5 bg-old-paper rounded-wobbly border-2 border-pencil">
                   ↵
                 </kbd>
                 Select
               </span>
             </div>
             <div className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-700 rounded border border-neutral-300 dark:border-neutral-600">
+              <kbd className="px-1.5 py-0.5 bg-old-paper rounded-wobbly border-2 border-pencil">
                 Esc
               </kbd>
               Close

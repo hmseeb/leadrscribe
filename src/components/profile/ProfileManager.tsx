@@ -19,11 +19,11 @@ interface Profile {
 
 const PROFILE_ICONS = ["∅", "📊", "📝", "💻", "✉️", "📞", "🎯", "💡", "📚", "🎨", "🔬"];
 const PROFILE_COLORS = [
-  "#3B82F6", // Blue
+  "#2d5da1", // Blue pen
   "#10B981", // Green
   "#8B5CF6", // Purple
   "#F59E0B", // Amber
-  "#EF4444", // Red
+  "#ff4d4d", // Red marker
   "#EC4899", // Pink
   "#14B8A6", // Teal
   "#F97316", // Orange
@@ -176,10 +176,10 @@ export const ProfileManager: React.FC = () => {
     <div className="w-full max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">
+          <h1 className="text-3xl font-kalam font-bold text-pencil">
             Voice Profiles
-          </h2>
-          <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
+          </h1>
+          <p className="text-sm text-text-subtle mt-1">
             Customize AI behavior for different contexts
           </p>
         </div>
@@ -201,16 +201,16 @@ export const ProfileManager: React.FC = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="bg-white dark:bg-neutral-800 rounded-xl p-6 border border-neutral-200 dark:border-neutral-700 shadow-lg"
+            className="bg-white rounded-wobbly-lg p-6 border-3 border-pencil shadow-md"
           >
-            <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-4">
+            <h3 className="text-lg font-kalam font-bold text-pencil mb-4">
               {editingId ? "Edit Profile" : "Create New Profile"}
             </h3>
 
             <div className="space-y-4">
               {/* Icon Selector */}
               <div>
-                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                <label className="block text-sm font-medium text-pencil mb-2">
                   Icon
                 </label>
                 <div className="flex gap-2 flex-wrap">
@@ -219,11 +219,11 @@ export const ProfileManager: React.FC = () => {
                       key={icon}
                       onClick={() => setFormData({ ...formData, icon })}
                       className={`
-                        w-12 h-12 text-2xl rounded-lg border-2 transition-all
+                        w-12 h-12 text-2xl rounded-wobbly border-2 border-pencil transition-all
                         ${
                           formData.icon === icon
-                            ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20"
-                            : "border-neutral-200 dark:border-neutral-700 hover:border-primary-300"
+                            ? "bg-post-it"
+                            : "bg-white hover:bg-old-paper"
                         }
                       `}
                     >
@@ -235,7 +235,7 @@ export const ProfileManager: React.FC = () => {
 
               {/* Color Selector */}
               <div>
-                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                <label className="block text-sm font-medium text-pencil mb-2">
                   Color
                 </label>
                 <div className="flex gap-2">
@@ -244,10 +244,10 @@ export const ProfileManager: React.FC = () => {
                       key={color}
                       onClick={() => setFormData({ ...formData, color })}
                       className={`
-                        w-10 h-10 rounded-lg border-2 transition-all
+                        w-10 h-10 rounded-wobbly border-2 transition-all
                         ${
                           formData.color === color
-                            ? "border-neutral-900 dark:border-white scale-110"
+                            ? "border-pencil scale-110"
                             : "border-transparent hover:scale-105"
                         }
                       `}
@@ -259,7 +259,7 @@ export const ProfileManager: React.FC = () => {
 
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                <label className="block text-sm font-medium text-pencil mb-2">
                   Name *
                 </label>
                 <Input
@@ -274,7 +274,7 @@ export const ProfileManager: React.FC = () => {
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                <label className="block text-sm font-medium text-pencil mb-2">
                   Description
                 </label>
                 <Input
@@ -289,7 +289,7 @@ export const ProfileManager: React.FC = () => {
 
               {/* Custom Instructions */}
               <div>
-                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                <label className="block text-sm font-medium text-pencil mb-2">
                   Custom AI Instructions *
                 </label>
                 <textarea
@@ -301,17 +301,17 @@ export const ProfileManager: React.FC = () => {
                     })
                   }
                   placeholder="Tell the AI how to format your transcriptions for this context... (20-10,000 characters)"
-                  className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 border-3 border-pencil rounded-wobbly-lg bg-white text-pencil focus:outline-none focus:ring-2 focus:ring-blue-pen"
                   rows={4}
                   maxLength={10000}
                 />
-                <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                <div className="mt-1 text-xs text-text-subtle">
                   {formData.custom_instructions.trim().length} / 10,000 characters
                   {formData.custom_instructions.trim().length < 20 && formData.custom_instructions.trim().length > 0 &&
-                    <span className="text-red-500 ml-2">(minimum 20 characters required)</span>
+                    <span className="text-red-marker ml-2">(minimum 20 characters required)</span>
                   }
                   {formData.custom_instructions.trim().length > 10000 &&
-                    <span className="text-red-500 ml-2">(exceeds maximum)</span>
+                    <span className="text-red-marker ml-2">(exceeds maximum)</span>
                   }
                 </div>
               </div>
@@ -352,11 +352,11 @@ export const ProfileManager: React.FC = () => {
             layout
             onClick={() => handleProfileActivate(profile.id)}
             className={`
-              rounded-xl p-4 border-2 transition-all cursor-pointer
+              rounded-wobbly-lg p-4 border-3 transition-all cursor-pointer
               ${
                 activeProfileId === profile.id
-                  ? "border-primary-500 bg-gradient-to-br from-primary-50 to-primary-100/80 dark:from-primary-900/40 dark:to-primary-800/30 shadow-md shadow-primary-500/10"
-                  : "bg-white dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700 hover:border-primary-300 dark:hover:border-primary-700 hover:bg-primary-50/50 dark:hover:bg-primary-900/20"
+                  ? "border-blue-pen bg-post-it shadow-md"
+                  : "bg-white border-pencil hover:bg-old-paper"
               }
             `}
           >
@@ -370,22 +370,22 @@ export const ProfileManager: React.FC = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-neutral-900 dark:text-white">
+                    <h3 className="font-semibold text-pencil">
                       {profile.name}
                     </h3>
                     {activeProfileId === profile.id && (
-                      <span className="px-2 py-0.5 bg-primary-500 text-white text-xs rounded-full">
+                      <span className="px-2 py-0.5 bg-blue-pen text-white text-xs rounded-wobbly">
                         Active
                       </span>
                     )}
                   </div>
                   {profile.description && (
-                    <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
+                    <p className="text-sm text-text-subtle mt-1">
                       {profile.description}
                     </p>
                   )}
                   {profile.custom_instructions && (
-                    <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-2 line-clamp-2">
+                    <p className="text-xs text-text-subtle mt-2 line-clamp-2">
                       {profile.custom_instructions}
                     </p>
                   )}
@@ -394,15 +394,15 @@ export const ProfileManager: React.FC = () => {
               <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => startEdit(profile)}
-                  className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"
+                  className="p-2 hover:bg-old-paper rounded-wobbly transition-colors"
                 >
-                  <Edit2 className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
+                  <Edit2 className="w-4 h-4 text-pencil" />
                 </button>
                 <button
                   onClick={() => handleDelete(profile.id)}
-                  className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  className="p-2 hover:bg-red-marker/20 rounded-wobbly transition-colors"
                 >
-                  <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+                  <Trash2 className="w-4 h-4 text-red-marker" />
                 </button>
               </div>
             </div>
@@ -411,9 +411,9 @@ export const ProfileManager: React.FC = () => {
       </div>
 
       {profiles.length === 0 && !isCreating && (
-        <div className="text-center py-12 px-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border-2 border-dashed border-neutral-200 dark:border-neutral-700">
+        <div className="text-center py-12 px-4 bg-white rounded-wobbly-lg border-3 border-dashed border-pencil shadow-md">
           <div className="text-4xl mb-3">📊</div>
-          <p className="text-neutral-600 dark:text-neutral-400 mb-4">
+          <p className="text-text-subtle mb-4">
             No profiles yet. Create your first profile to get started!
           </p>
           <Button

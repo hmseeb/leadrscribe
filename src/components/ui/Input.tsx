@@ -10,7 +10,7 @@ export const Input: React.FC<InputProps> = ({
   ...props
 }) => {
   const baseClasses =
-    "w-full bg-surface dark:bg-neutral-800 border border-border dark:border-neutral-700 rounded-lg text-sm font-medium text-text dark:text-neutral-100 placeholder:text-text-subtle transition-all duration-200 hover:border-primary-300 dark:hover:border-primary-700 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 shadow-sm focus:shadow-md";
+    "w-full bg-white border-3 border-pencil rounded-wobbly text-base font-medium text-pencil placeholder:text-mid-gray/40 transition-all duration-100 hover:shadow-md focus:outline-none focus:border-blue-pen focus:shadow-lg focus:ring-2 focus:ring-blue-pen/30";
 
   const variantClasses = {
     default: "px-3 py-2",

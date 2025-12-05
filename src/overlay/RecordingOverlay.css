@@ -7,15 +7,13 @@
     align-items: center;
     gap: 12px;
     padding: 8px 16px;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1.5px solid rgba(255, 255, 255, 0.15);
-    border-radius: 24px;
+    background: #fdfbf7;
+    border: 3px solid #2d2d2d;
+    border-radius: 20px 25px 22px 24px / 24px 20px 26px 22px;
     opacity: 0;
     transition: all 300ms ease-out;
     box-sizing: border-box;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+    box-shadow: 4px 4px 0px #2d2d2d;
     position: relative;
     overflow: hidden;
 }
@@ -45,8 +43,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(20px);
+    background: rgba(253, 251, 247, 0.9);
     z-index: 0;
 }
 
@@ -56,11 +53,8 @@
 }
 
 .overlay-state-ghostwriting {
-    border: 1.5px solid rgba(168, 85, 247, 0.5);
-    box-shadow:
-        0 0 20px rgba(168, 85, 247, 0.4),
-        0 0 40px rgba(236, 72, 153, 0.2),
-        0 10px 24px rgba(0, 0, 0, 0.4);
+    border: 3px solid #8B5CF6;
+    box-shadow: 4px 4px 0px #8B5CF6;
 }
 
 @keyframes ai-gradient-rotate {
@@ -102,11 +96,10 @@
 
 .bar {
     width: 6px;
-    background: linear-gradient(to top, #3b82f6, #60a5fa);
+    background: #ff4d4d;
     max-height: 22px;
-    border-radius: 3px;
+    border-radius: 3px 4px 3px 5px / 4px 3px 5px 3px;
     min-height: 4px;
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
 }
 
 .recording-overlay.fade-in {
@@ -114,11 +107,10 @@
 }
 
 .transcribing-text {
-    color: rgba(255, 255, 255, 0.95);
-    font-size: 13px;
-    font-weight: 500;
-    font-family:
-        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #2d2d2d;
+    font-size: 15px;
+    font-weight: 400;
+    font-family: 'Patrick Hand', 'Comic Sans MS', cursive;
     animation: transcribing-pulse 1.5s infinite ease-in-out;
     letter-spacing: 0.3px;
 }
@@ -136,8 +128,9 @@
 .cancel-button {
     width: 26px;
     height: 26px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px 13px 16px 14px / 14px 16px 13px 15px;
+    background: #fff9c4;
+    border: 2px solid #2d2d2d;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -150,9 +143,10 @@
 }
 
 .cancel-button:hover {
-    background: rgba(239, 68, 68, 0.3);
+    background: #ff4d4d;
 }
 
 .cancel-button:active {
-    background: rgba(239, 68, 68, 0.4);
+    background: #e03e3e;
+    transform: translateX(2px) translateY(2px);
 }

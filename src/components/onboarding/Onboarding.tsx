@@ -133,20 +133,24 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col inset-0 bg-gradient-to-br from-background via-background to-primary-50/30 dark:to-primary-950/10">
+    <div className="h-screen w-screen flex flex-col inset-0 bg-paper">
       {/* Title bar with window controls */}
-      <div data-tauri-drag-region className="h-8 flex items-center justify-end px-3 shrink-0 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm border-b border-neutral-200 dark:border-neutral-800">
+      <div data-tauri-drag-region className="h-8 flex items-center justify-end px-3 shrink-0 bg-white border-b-3 border-pencil">
         <div className="flex items-center gap-2">
           <button
             onClick={() => getCurrentWindow().minimize()}
-            className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-600 transition-colors"
+            className="w-5 h-5 rounded-wobbly-full bg-post-it border-2 border-pencil hover:bg-old-paper transition-colors flex items-center justify-center font-bold text-pencil text-sm"
             aria-label="Minimize"
-          />
+          >
+            −
+          </button>
           <button
             onClick={() => getCurrentWindow().close()}
-            className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 transition-colors"
+            className="w-5 h-5 rounded-wobbly-full bg-red-marker border-2 border-pencil hover:bg-primary-600 transition-colors flex items-center justify-center font-bold text-white text-xs"
             aria-label="Close"
-          />
+          >
+            ✕
+          </button>
         </div>
       </div>
 
@@ -156,11 +160,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
           className="flex flex-col items-center gap-3 shrink-0"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.3, type: "spring", stiffness: 500 }}
         >
           <LeadrScribeLogo width={200} />
-          <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Welcome to LeadrScribe</h1>
-          <p className="text-neutral-600 dark:text-neutral-400 max-w-md font-medium mx-auto text-center">
+          <h1 className="text-2xl font-kalam font-bold text-pencil">Welcome to LeadrScribe</h1>
+          <p className="text-text-muted max-w-md font-medium mx-auto text-center">
             Choose and download a transcription model to get started
           </p>
         </motion.div>
@@ -168,11 +172,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
       <div className="max-w-3xl w-full mx-auto text-center flex-1 flex flex-col min-h-0">
         {error && (
           <motion.div
-            className="bg-error-500/10 dark:bg-error-500/20 border border-error-500/30 dark:border-error-500/40 rounded-xl p-4 mb-6 shrink-0 shadow-sm"
+            className="bg-red-marker/10 border-3 border-red-marker rounded-wobbly-lg p-4 mb-6 shrink-0 shadow-md"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
           >
-            <p className="text-error-600 dark:text-error-400 text-sm font-medium">
+            <p className="text-red-marker text-sm font-medium">
               {error}
             </p>
           </motion.div>

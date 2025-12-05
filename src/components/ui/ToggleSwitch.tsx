@@ -46,29 +46,29 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
           onChange={(e) => onChange(e.target.checked)}
         />
         <motion.div
-          className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
+          className={`relative w-11 h-6 rounded-wobbly-full border-3 border-pencil transition-colors duration-100 ${
             checked
-              ? "bg-primary-500"
-              : "bg-neutral-300 dark:bg-neutral-700"
+              ? "bg-red-marker"
+              : "bg-old-paper"
           } ${disabled ? "opacity-50" : ""}`}
           whileTap={disabled || isUpdating ? {} : { scale: 0.95 }}
         >
           <motion.div
-            className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md"
+            className="absolute top-0 left-0 w-5 h-5 bg-white border-3 border-pencil rounded-wobbly-full shadow-sm"
             animate={{
               x: checked ? 20 : 0,
             }}
             transition={{
               type: "spring",
-              stiffness: 500,
-              damping: 30,
+              stiffness: 600,
+              damping: 25,
             }}
           />
         </motion.div>
       </label>
       {isUpdating && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-4 h-4 border-2 border-red-marker border-t-transparent rounded-full animate-spin"></div>
         </div>
       )}
     </SettingContainer>
