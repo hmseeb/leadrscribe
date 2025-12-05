@@ -278,8 +278,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             initial={{ opacity: 0, y: -50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -50, scale: 0.9 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className="bg-gradient-to-r from-primary-500 to-purple-500 text-white rounded-xl p-4 text-center font-bold text-lg shadow-xl"
+            transition={{ type: "spring", stiffness: 600, damping: 20 }}
+            className="bg-red-marker text-white rounded-wobbly-lg border-3 border-pencil p-4 text-center font-bold text-lg shadow-md"
           >
             {celebrationMessage}
           </motion.div>
@@ -288,10 +288,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
       {/* Welcome Header */}
       <motion.div variants={itemVariants} className="space-y-2">
-        <h1 className="text-3xl font-bold text-neutral-900 dark:text-white">
+        <h1 className="text-3xl font-kalam font-bold text-pencil">
           Welcome back!
         </h1>
-        <p className="text-neutral-600 dark:text-neutral-400">
+        <p className="text-text-subtle">
           {stats && stats.total_count > 0
             ? `You've captured ${stats.total_count} transcriptions so far. Keep the momentum going!`
             : "Ready to start transcribing? Pick a profile and start recording."}
@@ -339,7 +339,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       {getSetting("output_mode") === "ghostwriter" && (
         <motion.div variants={itemVariants} className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+            <h2 className="text-lg font-kalam font-bold text-pencil">
               Active Profile
             </h2>
             {profiles.length > 6 && (
@@ -358,26 +358,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 key={profile.id}
                 onClick={() => handleProfileSelect(profile)}
                 className={`
-                  flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all cursor-pointer
+                  flex items-center gap-3 px-4 py-3 rounded-wobbly-lg border-3 border-pencil transition-all cursor-pointer shadow-md hover:shadow-lg active:shadow-sm active:translate-x-[2px] active:translate-y-[2px]
                   ${
                     selectedProfile?.id === profile.id
-                      ? "border-primary-500 bg-gradient-to-br from-primary-50 to-primary-100/80 dark:from-primary-900/40 dark:to-primary-800/30 shadow-md shadow-primary-500/10"
-                      : "border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:border-primary-300 dark:hover:border-primary-700 hover:bg-primary-50/50 dark:hover:bg-primary-900/20"
+                      ? "bg-post-it"
+                      : "bg-white hover:bg-old-paper"
                   }
                 `}
               >
                 <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center text-2xl flex-shrink-0"
+                  className="w-10 h-10 rounded-wobbly flex items-center justify-center text-2xl flex-shrink-0 border-2 border-pencil"
                   style={{ backgroundColor: profile.color + "20" }}
                 >
                   {profile.icon}
                 </div>
                 <div className="flex-1 min-w-0 text-left">
-                  <div className="font-medium text-neutral-900 dark:text-white truncate">
+                  <div className="font-medium text-pencil truncate">
                     {profile.name}
                   </div>
                   {profile.description && (
-                    <div className="text-xs text-neutral-600 dark:text-neutral-400 truncate">
+                    <div className="text-xs text-text-subtle truncate">
                       {profile.description}
                     </div>
                   )}
@@ -390,7 +390,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
       {/* Search Bar */}
       <motion.div variants={itemVariants} className="relative">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle">
           <Search className="w-5 h-5" />
         </div>
         <Input
@@ -402,7 +402,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         />
         {isSearching && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-red-marker border-t-transparent rounded-full animate-spin" />
           </div>
         )}
       </motion.div>
@@ -410,7 +410,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       {/* Recent Transcriptions */}
       <motion.div variants={itemVariants} className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+          <h2 className="text-lg font-kalam font-bold text-pencil">
             {searchQuery ? "Search Results" : "Recent Transcriptions"}
           </h2>
           {!searchQuery && recentEntries.length > 0 && (
@@ -425,15 +425,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </div>
 
         {recentEntries.length === 0 ? (
-          <div className="text-center py-12 px-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border-2 border-dashed border-neutral-200 dark:border-neutral-700">
-            <FileText className="w-12 h-12 mx-auto mb-3 text-neutral-400" />
-            <p className="text-neutral-600 dark:text-neutral-400 mb-4">
+          <div className="text-center py-12 px-4 bg-white rounded-wobbly-lg border-3 border-dashed border-pencil shadow-md">
+            <FileText className="w-12 h-12 mx-auto mb-3 text-text-subtle" />
+            <p className="text-text-subtle mb-4">
               {searchQuery
                 ? "No transcriptions found. Try a different search term."
                 : "No transcriptions yet. Start recording to see them here!"}
             </p>
             {!searchQuery && (
-              <p className="text-sm text-neutral-500 dark:text-neutral-500">
+              <p className="text-sm text-text-subtle">
                 Tip: Use your global shortcut to start recording from anywhere
               </p>
             )}
@@ -447,24 +447,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
                 onClick={() => handleEntryClick(entry)}
-                className="group bg-white dark:bg-neutral-800 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700 hover:bg-primary-100/50 dark:hover:bg-primary-950/50 hover:shadow-md transition-all cursor-pointer"
+                className="group bg-white rounded-wobbly-lg p-4 border-3 border-pencil hover:bg-post-it hover:shadow-lg shadow-md transition-all cursor-pointer"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium text-neutral-900 dark:text-white">
+                      <span className="text-sm font-medium text-pencil">
                         {entry.title}
                       </span>
                       {entry.duration_seconds && (
-                        <span className="text-xs text-neutral-500">
+                        <span className="text-xs text-text-subtle">
                           {formatDuration(entry.duration_seconds)}
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-2 mb-2">
+                    <p className="text-sm text-text-subtle line-clamp-2 mb-2">
                       {entry.ghostwritten_text || entry.transcription_text}
                     </p>
-                    <div className="flex items-center gap-3 text-xs text-neutral-500">
+                    <div className="flex items-center gap-3 text-xs text-text-subtle">
                       <span>{formatDate(entry.timestamp)}</span>
                       {entry.word_count && <span>• {entry.word_count} words</span>}
                     </div>
@@ -474,13 +474,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                       e.stopPropagation();
                       toggleSaved(entry);
                     }}
-                    className="flex-shrink-0 p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"
+                    className="shrink-0 p-2 hover:bg-old-paper rounded-wobbly transition-colors"
                   >
                     <Star
                       className={`w-5 h-5 ${
                         entry.saved
-                          ? "fill-amber-400 text-amber-400"
-                          : "text-neutral-400"
+                          ? "fill-red-marker text-red-marker"
+                          : "text-text-subtle"
                       }`}
                     />
                   </button>
@@ -511,23 +511,21 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ icon, label, value, color }) => {
   const colorClasses = {
-    blue: "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400",
-    green: "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400",
-    purple:
-      "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400",
-    amber:
-      "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400",
+    blue: "bg-post-it text-blue-pen",
+    green: "bg-post-it text-blue-pen",
+    purple: "bg-post-it text-blue-pen",
+    amber: "bg-post-it text-blue-pen",
   };
 
   return (
-    <div className="bg-white dark:bg-neutral-800 rounded-xl p-4 border border-neutral-200 dark:border-neutral-700">
-      <div className={`inline-flex p-2 rounded-lg mb-3 ${colorClasses[color]}`}>
+    <div className="bg-white rounded-wobbly-lg p-4 border-3 border-pencil shadow-md transition-transform">
+      <div className={`inline-flex p-2 rounded-wobbly mb-3 border-2 border-pencil ${colorClasses[color]}`}>
         {icon}
       </div>
-      <div className="text-2xl font-bold text-neutral-900 dark:text-white mb-1">
+      <div className="text-2xl font-bold text-pencil mb-1">
         {value}
       </div>
-      <div className="text-sm text-neutral-600 dark:text-neutral-400">
+      <div className="text-sm text-text-subtle">
         {label}
       </div>
     </div>

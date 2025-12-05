@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Minus, Square, X, Maximize2 } from "lucide-react";
 import LeadrScribeIcon from "./icons/LeadrScribeIcon";
 
 export const TitleBar: React.FC = () => {
@@ -62,36 +61,32 @@ export const TitleBar: React.FC = () => {
       </div>
 
       {/* Window Controls */}
-      <div className="flex h-full" style={{ pointerEvents: 'auto' }}>
+      <div className="flex items-center gap-2 pr-3 h-full" style={{ pointerEvents: 'auto' }}>
         {/* Minimize Button */}
         <button
           onMouseDown={handleMinimize}
-          className="h-full px-4 hover:bg-old-paper transition-colors flex items-center justify-center group"
+          className="w-5 h-5 rounded-wobbly-full bg-post-it border-2 border-pencil hover:shadow-md transition-all duration-100 flex items-center justify-center text-pencil text-sm font-bold"
           aria-label="Minimize"
         >
-          <Minus className="w-4 h-4 text-pencil" strokeWidth={2.5} />
+          −
         </button>
 
         {/* Maximize/Restore Button */}
         <button
           onMouseDown={handleMaximize}
-          className="h-full px-4 hover:bg-old-paper transition-colors flex items-center justify-center group"
+          className="w-5 h-5 rounded-wobbly-full bg-old-paper border-2 border-pencil hover:shadow-md transition-all duration-100 flex items-center justify-center text-pencil text-[10px] font-bold"
           aria-label={isMaximized ? "Restore" : "Maximize"}
         >
-          {isMaximized ? (
-            <Maximize2 className="w-3.5 h-3.5 text-pencil" strokeWidth={2.5} />
-          ) : (
-            <Square className="w-3.5 h-3.5 text-pencil" strokeWidth={2.5} />
-          )}
+          {isMaximized ? "◱" : "□"}
         </button>
 
         {/* Close Button */}
         <button
           onMouseDown={handleClose}
-          className="h-full px-4 hover:bg-red-marker transition-colors flex items-center justify-center group"
+          className="w-5 h-5 rounded-wobbly-full bg-red-marker border-2 border-pencil hover:shadow-md transition-all duration-100 flex items-center justify-center text-white text-sm font-bold"
           aria-label="Close"
         >
-          <X className="w-4 h-4 text-pencil group-hover:text-white" strokeWidth={2.5} />
+          ✕
         </button>
       </div>
     </div>

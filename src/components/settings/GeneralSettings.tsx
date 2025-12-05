@@ -30,11 +30,11 @@ export const GeneralSettings: React.FC = () => {
     <div className="max-w-3xl w-full mx-auto space-y-6">
       <div className="space-y-3 relative z-50">
         <div className="px-1">
-          <h2 className="text-sm font-semibold text-text dark:text-neutral-100 tracking-tight">
+          <h2 className="text-sm font-kalam font-bold text-pencil tracking-tight">
             Speech-to-Text Model
           </h2>
         </div>
-        <div className="bg-surface dark:bg-neutral-800/50 border border-border dark:border-neutral-700/50 rounded-xl shadow-sm backdrop-blur-sm overflow-visible">
+        <div className="bg-white border-3 border-pencil rounded-wobbly-lg shadow-md overflow-visible">
           <div className="p-4 overflow-visible">
             <ModelSelector />
           </div>

@@ -25,7 +25,7 @@ export const SettingsGroup: React.FC<SettingsGroupProps> = ({
           )}
         </div>
       )}
-      <div className="bg-white border-3 border-pencil rounded-wobbly-lg overflow-visible shadow-md rotate-slightly-right">
+      <div className="bg-white border-3 border-pencil rounded-wobbly-lg overflow-visible shadow-md">
         <div className="divide-y-2 divide-pencil overflow-visible">
           {children}
         </div>

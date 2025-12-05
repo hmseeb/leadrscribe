@@ -111,15 +111,15 @@ export const TranscriptionDetailModal: React.FC<TranscriptionDetailModalProps> =
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", duration: 0.3 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl max-h-[90vh] bg-white dark:bg-neutral-800 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl max-h-[90vh] bg-white rounded-wobbly-lg shadow-xl border-3 border-pencil z-50 overflow-hidden flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-start justify-between p-6 border-b border-neutral-200 dark:border-neutral-700">
+            <div className="flex items-start justify-between p-6 border-b-3 border-pencil">
               <div className="flex-1 min-w-0">
-                <h2 className="text-2xl font-bold text-neutral-900 dark:text-white mb-2">
+                <h2 className="text-2xl font-kalam font-bold text-pencil mb-2">
                   {entry.title}
                 </h2>
-                <div className="flex items-center gap-4 text-sm text-neutral-600 dark:text-neutral-400">
+                <div className="flex items-center gap-4 text-sm text-text-subtle">
                   <span className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
                     {formatDate(entry.timestamp)}
@@ -140,22 +140,22 @@ export const TranscriptionDetailModal: React.FC<TranscriptionDetailModalProps> =
               <div className="flex items-center gap-2">
                 <button
                   onClick={onToggleSaved}
-                  className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"
+                  className="p-2 hover:bg-post-it rounded-wobbly transition-colors"
                   title={entry.saved ? "Remove from saved" : "Save transcription"}
                 >
                   <Star
                     className={`w-5 h-5 ${
                       entry.saved
-                        ? "fill-amber-400 text-amber-400"
-                        : "text-neutral-400"
+                        ? "fill-red-marker text-red-marker"
+                        : "text-text-subtle"
                     }`}
                   />
                 </button>
                 <button
                   onClick={onClose}
-                  className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-lg transition-colors"
+                  className="p-2 hover:bg-old-paper rounded-wobbly transition-colors"
                 >
-                  <X className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+                  <X className="w-5 h-5 text-pencil" />
                 </button>
               </div>
             </div>
@@ -165,7 +165,7 @@ export const TranscriptionDetailModal: React.FC<TranscriptionDetailModalProps> =
               {/* Audio Player */}
               {audioUrl && (
                 <div>
-                  <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wide mb-3">
+                  <h3 className="text-sm font-semibold text-pencil uppercase tracking-wide mb-3">
                     Recording
                   </h3>
                   <AudioPlayer src={audioUrl} className="w-full" />
@@ -175,7 +175,7 @@ export const TranscriptionDetailModal: React.FC<TranscriptionDetailModalProps> =
               {/* Original Transcription */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wide">
+                  <h3 className="text-sm font-semibold text-pencil uppercase tracking-wide">
                     {hasGhostwritten ? "Original Transcription" : "Transcription"}
                   </h3>
                   <Button
@@ -197,8 +197,8 @@ export const TranscriptionDetailModal: React.FC<TranscriptionDetailModalProps> =
                     )}
                   </Button>
                 </div>
-                <div className="bg-neutral-50 dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
-                  <p className="text-neutral-900 dark:text-neutral-100 whitespace-pre-wrap leading-relaxed">
+                <div className="bg-old-paper rounded-wobbly-lg p-4 border-3 border-pencil">
+                  <p className="text-pencil whitespace-pre-wrap leading-relaxed">
                     {entry.transcription_text}
                   </p>
                 </div>
@@ -208,7 +208,7 @@ export const TranscriptionDetailModal: React.FC<TranscriptionDetailModalProps> =
               {hasGhostwritten && (
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wide">
+                    <h3 className="text-sm font-semibold text-pencil uppercase tracking-wide">
                       Ghostwritten Version
                     </h3>
                     <Button
@@ -230,8 +230,8 @@ export const TranscriptionDetailModal: React.FC<TranscriptionDetailModalProps> =
                       )}
                     </Button>
                   </div>
-                  <div className="bg-primary-50 dark:bg-primary-950/30 rounded-lg p-4 border border-primary-200 dark:border-primary-900">
-                    <p className="text-neutral-900 dark:text-neutral-100 whitespace-pre-wrap leading-relaxed">
+                  <div className="bg-post-it rounded-wobbly-lg p-4 border-3 border-blue-pen">
+                    <p className="text-pencil whitespace-pre-wrap leading-relaxed">
                       {entry.ghostwritten_text}
                     </p>
                   </div>
@@ -241,23 +241,16 @@ export const TranscriptionDetailModal: React.FC<TranscriptionDetailModalProps> =
               {/* Notes */}
               {entry.notes && (
                 <div>
-                  <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wide mb-3">
+                  <h3 className="text-sm font-semibold text-pencil uppercase tracking-wide mb-3">
                     Notes
                   </h3>
-                  <div className="bg-neutral-50 dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
-                    <p className="text-neutral-900 dark:text-neutral-100 whitespace-pre-wrap leading-relaxed">
+                  <div className="bg-old-paper rounded-wobbly-lg p-4 border-3 border-pencil">
+                    <p className="text-pencil whitespace-pre-wrap leading-relaxed">
                       {entry.notes}
                     </p>
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* Footer */}
-            <div className="flex items-center justify-end gap-2 p-6 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900">
-              <Button variant="secondary" onClick={onClose}>
-                Close
-              </Button>
             </div>
           </motion.div>
         </>

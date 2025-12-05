@@ -123,20 +123,20 @@ export const TagInput: React.FC<TagInputProps> = ({
 
   return (
     <div ref={containerRef} className="relative">
-      <div className="flex flex-wrap gap-2 p-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-900 focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500 transition-all">
+      <div className="flex flex-wrap gap-2 p-2 border-3 border-pencil rounded-wobbly-lg bg-white focus-within:ring-2 focus-within:ring-blue-pen focus-within:border-blue-pen transition-all">
         {selectedTags.map((tag) => (
           <motion.div
             key={tag.id}
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             exit={{ scale: 0 }}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-sm font-medium text-white"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-wobbly text-sm font-medium text-white border-2 border-pencil"
             style={{ backgroundColor: tag.color }}
           >
             {tag.name}
             <button
               onClick={() => removeTag(tag.id)}
-              className="hover:bg-black/20 rounded p-0.5 transition-colors"
+              className="hover:bg-black/20 rounded-wobbly p-0.5 transition-colors"
             >
               <X className="w-3 h-3" />
             </button>
@@ -150,7 +150,7 @@ export const TagInput: React.FC<TagInputProps> = ({
           onKeyDown={handleKeyDown}
           onFocus={() => inputValue && setShowSuggestions(true)}
           placeholder={selectedTags.length === 0 ? placeholder : ""}
-          className="flex-1 min-w-[120px] outline-none bg-transparent text-neutral-900 dark:text-white"
+          className="flex-1 min-w-[120px] outline-none bg-transparent text-pencil"
         />
       </div>
 
@@ -161,19 +161,19 @@ export const TagInput: React.FC<TagInputProps> = ({
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute z-50 w-full mt-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg shadow-lg overflow-hidden"
+            className="absolute z-50 w-full mt-1 bg-white border-3 border-pencil rounded-wobbly-lg shadow-lg overflow-hidden"
           >
             {suggestions.map((tag) => (
               <button
                 key={tag.id}
                 onClick={() => selectTag(tag)}
-                className="w-full px-3 py-2 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors flex items-center gap-2"
+                className="w-full px-3 py-2 text-left hover:bg-post-it transition-colors flex items-center gap-2"
               >
                 <div
-                  className="w-3 h-3 rounded-full"
+                  className="w-3 h-3 rounded-full border-2 border-pencil"
                   style={{ backgroundColor: tag.color }}
                 />
-                <span className="text-neutral-900 dark:text-white">{tag.name}</span>
+                <span className="text-pencil">{tag.name}</span>
               </button>
             ))}
 
@@ -181,7 +181,7 @@ export const TagInput: React.FC<TagInputProps> = ({
               <button
                 onClick={createNewTag}
                 disabled={isCreating}
-                className="w-full px-3 py-2 text-left border-t border-neutral-200 dark:border-neutral-700 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors flex items-center gap-2 text-primary-600 dark:text-primary-400"
+                className="w-full px-3 py-2 text-left border-t-2 border-pencil hover:bg-old-paper transition-colors flex items-center gap-2 text-red-marker"
               >
                 <Plus className="w-4 h-4" />
                 <span>Create "{inputValue}"</span>

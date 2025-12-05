@@ -119,15 +119,15 @@ const RecordingOverlay: React.FC = () => {
   const getStateColor = () => {
     switch (state) {
       case "recording":
-        return "rgba(239, 68, 68, 0.8)"; // Red
+        return "#ff4d4d"; // Red marker
       case "transcribing":
-        return "rgba(59, 130, 246, 0.8)"; // Blue
+        return "#2d5da1"; // Blue pen
       case "ghostwriting":
-        return "rgba(168, 85, 247, 0.8)"; // Purple
+        return "#8B5CF6"; // Purple
       case "error":
-        return "rgba(239, 68, 68, 0.9)"; // Bright Red for errors
+        return "#ff4d4d"; // Red marker for errors
       default:
-        return "rgba(59, 130, 246, 0.8)";
+        return "#2d5da1"; // Blue pen
     }
   };
 
@@ -136,28 +136,8 @@ const RecordingOverlay: React.FC = () => {
   }
 
   const getPulseAnimation = () => {
-    if (state === "ghostwriting") {
-      // Full AI vibe - no pulse, handled by CSS gradient animation
-      return {};
-    } else if (state === "transcribing") {
-      // Subtle pulse for transcribing
-      return {
-        boxShadow: [
-          `0 0 0 0 ${getStateColor().replace('0.8', '0')}`,
-          `0 0 0 2px ${getStateColor().replace('0.8', '0.2')}`,
-          `0 0 0 0 ${getStateColor().replace('0.8', '0')}`,
-        ],
-      };
-    } else {
-      // Normal pulse for recording
-      return {
-        boxShadow: [
-          `0 0 0 0 ${getStateColor()}`,
-          `0 0 0 4px ${getStateColor().replace('0.8', '0.3')}`,
-          `0 0 0 0 ${getStateColor()}`,
-        ],
-      };
-    }
+    // No pulse animation needed for hand-drawn design
+    return {};
   };
 
   return (
@@ -196,9 +176,6 @@ const RecordingOverlay: React.FC = () => {
               <motion.div
                 key={i}
                 className="bar"
-                style={{
-                  background: `linear-gradient(to top, ${getStateColor()}, ${getStateColor().replace('0.8', '0.5')})`
-                }}
                 animate={{
                   height: `${Math.min(20, 4 + Math.pow(v, 0.7) * 16)}px`,
                   opacity: Math.max(0.3, v * 1.7),
