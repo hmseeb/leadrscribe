@@ -1,5 +1,4 @@
 use std::{
-    io::Error,
     sync::{mpsc, Arc, Mutex},
     time::Duration,
 };
@@ -21,6 +20,32 @@ enum Cmd {
     Stop(mpsc::Sender<Vec<f32>>),
     Shutdown,
 }
+
+/// Error type for audio recorder operations
+#[derive(Debug)]
+pub enum RecorderError {
+    NoInputDevice,
+    ConfigError(String),
+    StreamError(String),
+    UnsupportedFormat(String),
+    Other(String),
+}
+
+impl std::fmt::Display for RecorderError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RecorderError::NoInputDevice => write!(f, "No input device found"),
+            RecorderError::ConfigError(msg) => write!(f, "Audio config error: {}", msg),
+            RecorderError::StreamError(msg) => write!(f, "Audio stream error: {}", msg),
+            RecorderError::UnsupportedFormat(fmt) => {
+                write!(f, "Unsupported audio sample format: {}", fmt)
+            }
+            RecorderError::Other(msg) => write!(f, "Audio error: {}", msg),
+        }
+    }
+}
+
+impl std::error::Error for RecorderError {}
 
 pub struct AudioRecorder {
     device: Option<Device>,
@@ -71,13 +96,15 @@ impl AudioRecorder {
 
         let (sample_tx, sample_rx) = mpsc::channel::<Vec<f32>>();
         let (cmd_tx, cmd_rx) = mpsc::channel::<Cmd>();
+        // Channel for worker thread to report initialization errors
+        let (init_tx, init_rx) = mpsc::channel::<Result<(), RecorderError>>();
 
         let host = crate::audio_toolkit::get_cpal_host();
         let device = match device {
             Some(dev) => dev,
             None => host
                 .default_input_device()
-                .ok_or_else(|| Error::new(std::io::ErrorKind::NotFound, "No input device found"))?,
+                .ok_or_else(|| RecorderError::NoInputDevice)?,
         };
 
         let thread_device = device.clone();
@@ -87,8 +114,14 @@ impl AudioRecorder {
         let segment_cb = self.segment_cb.clone();
 
         let worker = std::thread::spawn(move || {
-            let config = AudioRecorder::get_preferred_config(&thread_device)
-                .expect("failed to fetch preferred config");
+            // Get preferred config, report error if it fails
+            let config = match AudioRecorder::get_preferred_config(&thread_device) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = init_tx.send(Err(RecorderError::ConfigError(e.to_string())));
+                    return;
+                }
+            };
 
             let sample_rate = config.sample_rate().0;
             let channels = config.channels() as usize;
@@ -101,42 +134,76 @@ impl AudioRecorder {
                 config.sample_format()
             );
 
-            let stream = match config.sample_format() {
+            // Build stream with proper error handling for all formats
+            let stream_result = match config.sample_format() {
                 cpal::SampleFormat::U8 => {
                     AudioRecorder::build_stream::<u8>(&thread_device, &config, sample_tx, channels)
-                        .unwrap()
                 }
                 cpal::SampleFormat::I8 => {
                     AudioRecorder::build_stream::<i8>(&thread_device, &config, sample_tx, channels)
-                        .unwrap()
                 }
                 cpal::SampleFormat::I16 => {
                     AudioRecorder::build_stream::<i16>(&thread_device, &config, sample_tx, channels)
-                        .unwrap()
                 }
                 cpal::SampleFormat::I32 => {
                     AudioRecorder::build_stream::<i32>(&thread_device, &config, sample_tx, channels)
-                        .unwrap()
                 }
                 cpal::SampleFormat::F32 => {
                     AudioRecorder::build_stream::<f32>(&thread_device, &config, sample_tx, channels)
-                        .unwrap()
                 }
-                _ => panic!("unsupported sample format"),
+                other => {
+                    let _ = init_tx.send(Err(RecorderError::UnsupportedFormat(format!(
+                        "{:?}",
+                        other
+                    ))));
+                    return;
+                }
             };
 
-            stream.play().expect("failed to start stream");
+            let stream = match stream_result {
+                Ok(s) => s,
+                Err(e) => {
+                    let _ = init_tx.send(Err(RecorderError::StreamError(e.to_string())));
+                    return;
+                }
+            };
+
+            // Start playing the stream
+            if let Err(e) = stream.play() {
+                let _ = init_tx.send(Err(RecorderError::StreamError(e.to_string())));
+                return;
+            }
+
+            // Signal successful initialization
+            let _ = init_tx.send(Ok(()));
 
             // keep the stream alive while we process samples
             run_consumer(sample_rate, vad, sample_rx, cmd_rx, level_cb, segment_cb);
             // stream is dropped here, after run_consumer returns
         });
 
-        self.device = Some(device);
-        self.cmd_tx = Some(cmd_tx);
-        self.worker_handle = Some(worker);
-
-        Ok(())
+        // Wait for initialization result from worker thread (with timeout)
+        match init_rx.recv_timeout(Duration::from_secs(5)) {
+            Ok(Ok(())) => {
+                // Initialization succeeded
+                self.device = Some(device);
+                self.cmd_tx = Some(cmd_tx);
+                self.worker_handle = Some(worker);
+                Ok(())
+            }
+            Ok(Err(e)) => {
+                // Initialization failed with a known error
+                let _ = worker.join();
+                Err(Box::new(e))
+            }
+            Err(_) => {
+                // Timeout or channel closed unexpectedly
+                let _ = worker.join();
+                Err(Box::new(RecorderError::Other(
+                    "Audio initialization timed out or failed unexpectedly".to_string(),
+                )))
+            }
+        }
     }
 
     pub fn start(&self) -> Result<(), Box<dyn std::error::Error>> {

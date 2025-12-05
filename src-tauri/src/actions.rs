@@ -229,8 +229,10 @@ impl ShortcutAction for TranscribeAction {
 
                 let samples_clone = samples.clone(); // Clone for history saving
 
-                // Wait a short time for any remaining segments to finish transcribing
-                tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+                // Wait for any remaining segments to finish transcribing
+                // Each segment can take 500ms-2s to transcribe, so we need sufficient time
+                // for long recordings with multiple segments
+                tokio::time::sleep(tokio::time::Duration::from_millis(5000)).await;
 
                 // Get accumulated streaming transcriptions
                 let accumulated_text = STREAMING_STATE.get_accumulated_text();

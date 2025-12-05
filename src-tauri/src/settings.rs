@@ -66,7 +66,7 @@ impl Default for PasteMethod {
 
 impl Default for ClipboardHandling {
     fn default() -> Self {
-        ClipboardHandling::DontModify
+        ClipboardHandling::CopyToClipboard
     }
 }
 

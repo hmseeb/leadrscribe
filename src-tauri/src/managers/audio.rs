@@ -1,4 +1,5 @@
 use crate::audio_toolkit::{list_input_devices, vad::SmoothedVad, AudioRecorder, SileroVad};
+use crate::cpu_features;
 use crate::settings::get_settings;
 use crate::utils;
 use log::{debug, info};
@@ -128,6 +129,16 @@ impl AudioRecordingManager {
             *initial_volume_guard = None;
         }
 
+        // Check CPU capabilities before initializing VAD (which uses ONNX Runtime)
+        // ONNX Runtime requires AVX2 instructions - without them, the process crashes
+        if !cpu_features::supports_parakeet() {
+            let _ = self.app_handle.emit("cpu-incompatible-vad", ());
+            return Err(anyhow::anyhow!(
+                "Your CPU does not support the required AVX2 instructions for voice activity detection. \
+                 LeadrScribe requires a CPU with AVX2 support (most processors from 2013 or later)."
+            ));
+        }
+
         let vad_path = self
             .app_handle
             .path()
@@ -139,10 +150,10 @@ impl AudioRecordingManager {
         let mut recorder_opt = self.recorder.lock().unwrap();
 
         if recorder_opt.is_none() {
-            *recorder_opt = Some(create_audio_recorder(
-                vad_path.to_str().unwrap(),
-                &self.app_handle,
-            )?);
+            let vad_path_str = vad_path
+                .to_str()
+                .ok_or_else(|| anyhow::anyhow!("VAD path contains invalid UTF-8 characters"))?;
+            *recorder_opt = Some(create_audio_recorder(vad_path_str, &self.app_handle)?);
         }
 
         // Get the selected device from settings
