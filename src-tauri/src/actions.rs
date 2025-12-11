@@ -1,4 +1,4 @@
-use crate::audio_feedback::{SoundType, play_feedback_sound};
+use crate::audio_feedback::{play_feedback_sound, SoundType};
 use crate::ghostwriter;
 use crate::managers::audio::{AudioRecordingManager, AudioSegmentEvent};
 use crate::managers::history::HistoryManager;
@@ -81,7 +81,8 @@ impl StreamingState {
 
     fn get_accumulated_text(&self) -> String {
         let segments = self.segments.lock().unwrap();
-        segments.iter()
+        segments
+            .iter()
             .filter(|s| !s.is_empty())
             .cloned()
             .collect::<Vec<_>>()
@@ -106,7 +107,10 @@ pub fn setup_segment_listener(app: &AppHandle) {
             }
 
             if let Ok(segment_event) = serde_json::from_str::<AudioSegmentEvent>(event.payload()) {
-                debug!("Received audio segment with {} samples", segment_event.samples.len());
+                debug!(
+                    "Received audio segment with {} samples",
+                    segment_event.samples.len()
+                );
 
                 let segment_index = {
                     let mut count = STREAMING_STATE.segment_count.lock().unwrap();
@@ -269,54 +273,62 @@ impl ShortcutAction for TranscribeAction {
 
                 if !transcription.is_empty() {
                     // Apply ghostwriting if enabled
-                            let settings = get_settings(&ah);
-                            debug!("Output mode: {:?}, Checking if ghostwriting should run", settings.output_mode);
-                            let (final_text, ghostwritten_text) = if settings.output_mode == OutputMode::Ghostwriter {
-                                debug!("Ghostwriter mode enabled, processing transcription");
+                    let settings = get_settings(&ah);
+                    debug!(
+                        "Output mode: {:?}, Checking if ghostwriting should run",
+                        settings.output_mode
+                    );
+                    let (final_text, ghostwritten_text) = if settings.output_mode
+                        == OutputMode::Ghostwriter
+                    {
+                        debug!("Ghostwriter mode enabled, processing transcription");
 
-                                // Update overlay to show "Ghostwriting..." now that transcription is done
-                                if let Some(overlay_window) = ah.get_webview_window("recording_overlay") {
-                                    let _ = overlay_window.emit("show-overlay", "ghostwriting");
-                                }
+                        // Update overlay to show "Ghostwriting..." now that transcription is done
+                        if let Some(overlay_window) = ah.get_webview_window("recording_overlay") {
+                            let _ = overlay_window.emit("show-overlay", "ghostwriting");
+                        }
 
-                                // Get active profile's custom instructions if available
-                                // Skip if "None" profile (ID 1) is selected
-                                let profile_instructions = if let Some(profile_id) = settings.active_profile_id {
-                                    if profile_id == 1 {
-                                        debug!("'None' profile selected - skipping profile instructions");
-                                        None
-                                    } else {
-                                        use crate::managers::profile::ProfileManager;
-                                        match ProfileManager::new(&ah) {
-                                            Ok(pm) => {
-                                                match pm.get_profile(profile_id).await {
-                                                    Ok(Some(profile)) => {
-                                                        debug!("Using profile '{}' custom instructions", profile.name);
-                                                        profile.custom_instructions
-                                                    }
-                                                    Ok(None) => {
-                                                        debug!("Active profile ID {} not found", profile_id);
-                                                        None
-                                                    }
-                                                    Err(e) => {
-                                                        error!("Failed to get profile: {}", e);
-                                                        None
-                                                    }
-                                                }
-                                            }
-                                            Err(e) => {
-                                                error!("Failed to create ProfileManager: {}", e);
-                                                None
-                                            }
+                        // Get active profile's custom instructions if available
+                        // Skip if "None" profile (ID 1) is selected
+                        let profile_instructions = if let Some(profile_id) =
+                            settings.active_profile_id
+                        {
+                            if profile_id == 1 {
+                                debug!("'None' profile selected - skipping profile instructions");
+                                None
+                            } else {
+                                use crate::managers::profile::ProfileManager;
+                                match ProfileManager::new(&ah) {
+                                    Ok(pm) => match pm.get_profile(profile_id).await {
+                                        Ok(Some(profile)) => {
+                                            debug!(
+                                                "Using profile '{}' custom instructions",
+                                                profile.name
+                                            );
+                                            profile.custom_instructions
                                         }
+                                        Ok(None) => {
+                                            debug!("Active profile ID {} not found", profile_id);
+                                            None
+                                        }
+                                        Err(e) => {
+                                            error!("Failed to get profile: {}", e);
+                                            None
+                                        }
+                                    },
+                                    Err(e) => {
+                                        error!("Failed to create ProfileManager: {}", e);
+                                        None
                                     }
-                                } else {
-                                    debug!("No active profile selected");
-                                    None
-                                };
+                                }
+                            }
+                        } else {
+                            debug!("No active profile selected");
+                            None
+                        };
 
-                                // Combine global and profile-specific instructions
-                                let combined_instructions = match (settings.custom_instructions.as_str(), profile_instructions.as_deref()) {
+                        // Combine global and profile-specific instructions
+                        let combined_instructions = match (settings.custom_instructions.as_str(), profile_instructions.as_deref()) {
                                     ("", None) => "Improve grammar, clarity, and professionalism while maintaining the original meaning.".to_string(),
                                     ("", Some(profile_inst)) => profile_inst.to_string(),
                                     (global_inst, None) => global_inst.to_string(),
@@ -325,89 +337,94 @@ impl ShortcutAction for TranscribeAction {
                                     }
                                 };
 
-                                debug!("Using combined instructions: {}", combined_instructions);
+                        debug!("Using combined instructions: {}", combined_instructions);
 
-                                match ghostwriter::process_text(
-                                    &transcription,
-                                    &settings.openrouter_api_key,
-                                    &settings.openrouter_model,
-                                    &combined_instructions,
-                                )
-                                .await
+                        match ghostwriter::process_text(
+                            &transcription,
+                            &settings.openrouter_api_key,
+                            &settings.openrouter_model,
+                            &combined_instructions,
+                        )
+                        .await
+                        {
+                            Ok(ghostwritten) => {
+                                debug!(
+                                    "Ghostwriting successful. Original: '{}', Ghostwritten: '{}'",
+                                    transcription, ghostwritten
+                                );
+                                (ghostwritten.clone(), Some(ghostwritten))
+                            }
+                            Err(e) => {
+                                error!("Ghostwriting failed, using original transcription: {}", e);
+
+                                // Emit error event to overlay for immediate feedback
+                                if let Some(overlay_window) =
+                                    ah.get_webview_window("recording_overlay")
                                 {
-                                    Ok(ghostwritten) => {
-                                        debug!("Ghostwriting successful. Original: '{}', Ghostwritten: '{}'", transcription, ghostwritten);
-                                        (ghostwritten.clone(), Some(ghostwritten))
-                                    }
-                                    Err(e) => {
-                                        error!("Ghostwriting failed, using original transcription: {}", e);
-
-                                        // Emit error event to overlay for immediate feedback
-                                        if let Some(overlay_window) = ah.get_webview_window("recording_overlay") {
-                                            let error_message = e.to_string();
-                                            let _ = overlay_window.emit("ghostwriter-error", error_message);
-                                        }
-
-                                        // Emit notification event to main window for persistent alert
-                                        if let Some(main_window) = ah.get_webview_window("main") {
-                                            let notification_data = serde_json::json!({
-                                                "title": "Ghostwriter Failed",
-                                                "message": format!("{}\n\nOriginal transcription was pasted instead.\n\nPlease check your OpenRouter API key in settings.", e),
-                                                "type": "error"
-                                            });
-                                            let _ = main_window.emit("show-notification", notification_data);
-                                        }
-
-                                        (transcription.clone(), None)
-                                    }
+                                    let error_message = e.to_string();
+                                    let _ = overlay_window.emit("ghostwriter-error", error_message);
                                 }
-                            } else {
+
+                                // Emit notification event to main window for persistent alert
+                                if let Some(main_window) = ah.get_webview_window("main") {
+                                    let notification_data = serde_json::json!({
+                                        "title": "Ghostwriter Failed",
+                                        "message": format!("{}\n\nOriginal transcription was pasted instead.\n\nPlease check your OpenRouter config in settings.", e),
+                                        "type": "error"
+                                    });
+                                    let _ =
+                                        main_window.emit("show-notification", notification_data);
+                                }
+
                                 (transcription.clone(), None)
-                            };
+                            }
+                        }
+                    } else {
+                        (transcription.clone(), None)
+                    };
 
-                            // Save to history with both original and ghostwritten text
-                            let hm_clone = Arc::clone(&hm);
-                            let transcription_for_history = transcription.clone();
-                            tauri::async_runtime::spawn(async move {
-                                if let Err(e) = hm_clone
-                                    .save_transcription(
-                                        samples_clone,
-                                        transcription_for_history,
-                                        ghostwritten_text,
-                                        None, // TODO: Get active profile_id from settings
-                                        Some(duration_seconds),
-                                    )
-                                    .await
-                                {
-                                    error!("Failed to save transcription to history: {}", e);
-                                }
-                            });
+                    // Save to history with both original and ghostwritten text
+                    let hm_clone = Arc::clone(&hm);
+                    let transcription_for_history = transcription.clone();
+                    tauri::async_runtime::spawn(async move {
+                        if let Err(e) = hm_clone
+                            .save_transcription(
+                                samples_clone,
+                                transcription_for_history,
+                                ghostwritten_text,
+                                None, // TODO: Get active profile_id from settings
+                                Some(duration_seconds),
+                            )
+                            .await
+                        {
+                            error!("Failed to save transcription to history: {}", e);
+                        }
+                    });
 
-                            let transcription_clone = final_text.clone();
-                            let ah_clone = ah.clone();
-                            let paste_time = Instant::now();
-                            ah.run_on_main_thread(move || {
-                                // Hide the overlay BEFORE pasting to prevent it from stealing focus
-                                utils::hide_recording_overlay(&ah_clone);
+                    let transcription_clone = final_text.clone();
+                    let ah_clone = ah.clone();
+                    let paste_time = Instant::now();
+                    ah.run_on_main_thread(move || {
+                        // Hide the overlay BEFORE pasting to prevent it from stealing focus
+                        utils::hide_recording_overlay(&ah_clone);
 
-                                // Small delay to ensure overlay is fully hidden before pasting
-                                std::thread::sleep(std::time::Duration::from_millis(50));
+                        // Small delay to ensure overlay is fully hidden before pasting
+                        std::thread::sleep(std::time::Duration::from_millis(50));
 
-                                debug!("Pasting text on main thread: '{}'", transcription_clone);
-                                match utils::paste(transcription_clone, ah_clone.clone()) {
-                                    Ok(()) => debug!(
-                                        "Text pasted successfully in {:?}",
-                                        paste_time.elapsed()
-                                    ),
-                                    Err(e) => eprintln!("Failed to paste transcription: {}", e),
-                                }
-                                change_tray_icon(&ah_clone, TrayIconState::Idle);
-                            })
-                            .unwrap_or_else(|e| {
-                                eprintln!("Failed to run paste on main thread: {:?}", e);
-                                utils::hide_recording_overlay(&ah);
-                                change_tray_icon(&ah, TrayIconState::Idle);
-                            });
+                        debug!("Pasting text on main thread: '{}'", transcription_clone);
+                        match utils::paste(transcription_clone, ah_clone.clone()) {
+                            Ok(()) => {
+                                debug!("Text pasted successfully in {:?}", paste_time.elapsed())
+                            }
+                            Err(e) => eprintln!("Failed to paste transcription: {}", e),
+                        }
+                        change_tray_icon(&ah_clone, TrayIconState::Idle);
+                    })
+                    .unwrap_or_else(|e| {
+                        eprintln!("Failed to run paste on main thread: {:?}", e);
+                        utils::hide_recording_overlay(&ah);
+                        change_tray_icon(&ah, TrayIconState::Idle);
+                    });
                 } else {
                     utils::hide_recording_overlay(&ah);
                     change_tray_icon(&ah, TrayIconState::Idle);

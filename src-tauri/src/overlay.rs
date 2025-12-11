@@ -2,6 +2,11 @@ use crate::settings;
 use crate::settings::OverlayPosition;
 use log::debug;
 use enigo::{Enigo, Mouse};
+use std::sync::atomic::{AtomicBool, Ordering};
+
+/// Atomic flag to track if a hide operation is pending.
+/// This prevents race conditions where a delayed hide() executes after a new show().
+static HIDE_PENDING: AtomicBool = AtomicBool::new(false);
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewWindowBuilder};
 
 const OVERLAY_WIDTH: f64 = 220.0;
@@ -111,8 +116,48 @@ pub fn create_recording_overlay(app_handle: &AppHandle) {
     }
 }
 
+/// Attempts to show overlay window and verify it actually became visible.
+/// Returns true if show succeeded, false if window appears broken.
+fn try_show_overlay(window: &tauri::WebviewWindow) -> bool {
+    // First check if window handle is valid at all
+    if window.is_visible().is_err() {
+        debug!("Overlay window handle is stale (is_visible failed)");
+        return false;
+    }
+
+    // Try to show the window
+    if window.show().is_err() {
+        debug!("Overlay window show() call failed");
+        return false;
+    }
+
+    // Give the window a moment to actually become visible
+    std::thread::sleep(std::time::Duration::from_millis(10));
+
+    // Verify the window is actually visible now
+    match window.is_visible() {
+        Ok(true) => {
+            let _ = window.emit("show-overlay", "recording");
+            true
+        }
+        Ok(false) => {
+            // show() succeeded but window isn't visible - broken state (common after Windows sleep)
+            debug!("Overlay window show() succeeded but is_visible() returns false - window is broken");
+            false
+        }
+        Err(_) => {
+            debug!("Overlay window became invalid after show()");
+            false
+        }
+    }
+}
+
 /// Shows the recording overlay window with fade-in animation
 pub fn show_recording_overlay(app_handle: &AppHandle) {
+    // Cancel any pending hide operation to prevent race condition
+    // where a delayed hide() from a previous call would hide this new show()
+    HIDE_PENDING.store(false, Ordering::SeqCst);
+
     // Check if overlay should be shown based on position setting
     let settings = settings::get_settings(app_handle);
     if settings.overlay_position == OverlayPosition::None {
@@ -124,31 +169,31 @@ pub fn show_recording_overlay(app_handle: &AppHandle) {
 
     update_overlay_position(app_handle);
 
-    if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
-        // Verify the window is actually valid before showing
-        if overlay_window.is_visible().is_err() {
-            // Window handle is stale, recreate it
-            debug!("Overlay window handle is invalid, recreating...");
+    // Try to show existing window, with retry after recreation if it fails
+    for attempt in 0..2 {
+        if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
+            if try_show_overlay(&overlay_window) {
+                return; // Success!
+            }
+
+            // Show failed - destroy and recreate
+            debug!(
+                "Overlay show attempt {} failed, recreating window...",
+                attempt + 1
+            );
             let _ = overlay_window.destroy();
             create_recording_overlay(app_handle);
-
-            // Try again with the new window
-            if let Some(new_window) = app_handle.get_webview_window("recording_overlay") {
-                let _ = new_window.show();
-                let _ = new_window.emit("show-overlay", "recording");
-            }
         } else {
-            let _ = overlay_window.show();
-            // Emit event to trigger fade-in animation with recording state
-            let _ = overlay_window.emit("show-overlay", "recording");
+            // Window doesn't exist, create it
+            debug!("Overlay window not found, creating...");
+            create_recording_overlay(app_handle);
         }
-    } else {
-        // Window doesn't exist, create it and show
-        debug!("Overlay window not found, creating...");
-        create_recording_overlay(app_handle);
-        if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
-            let _ = overlay_window.show();
-            let _ = overlay_window.emit("show-overlay", "recording");
+    }
+
+    // Final attempt after recreation
+    if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
+        if !try_show_overlay(&overlay_window) {
+            debug!("Overlay failed to show after recreation - giving up");
         }
     }
 }
@@ -170,11 +215,18 @@ pub fn hide_recording_overlay(app_handle: &AppHandle) {
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
         // Emit event to trigger fade-out animation
         let _ = overlay_window.emit("hide-overlay", ());
+        // Mark that a hide operation is pending
+        HIDE_PENDING.store(true, Ordering::SeqCst);
         // Hide the window after a short delay to allow animation to complete
         let window_clone = overlay_window.clone();
         std::thread::spawn(move || {
             std::thread::sleep(std::time::Duration::from_millis(300));
-            let _ = window_clone.hide();
+            // Only hide if no show() was called since we started hiding
+            // This prevents the race condition where hide() fires after a new show()
+            if HIDE_PENDING.load(Ordering::SeqCst) {
+                let _ = window_clone.hide();
+                HIDE_PENDING.store(false, Ordering::SeqCst);
+            }
         });
     }
 }
