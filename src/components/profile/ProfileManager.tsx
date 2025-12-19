@@ -176,10 +176,10 @@ export const ProfileManager: React.FC = () => {
     <div className="w-full max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-kalam font-bold text-pencil">
+          <h1 className="text-3xl font-sans font-bold text-foreground">
             Voice Profiles
           </h1>
-          <p className="text-sm text-text-subtle mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Customize AI behavior for different contexts
           </p>
         </div>
@@ -201,16 +201,16 @@ export const ProfileManager: React.FC = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="bg-white rounded-wobbly-lg p-6 border-3 border-pencil shadow-md"
+            className="bg-card  p-6 border-2 border-border shadow-md"
           >
-            <h3 className="text-lg font-kalam font-bold text-pencil mb-4">
+            <h3 className="text-lg font-sans font-bold text-foreground mb-4">
               {editingId ? "Edit Profile" : "Create New Profile"}
             </h3>
 
             <div className="space-y-4">
               {/* Icon Selector */}
               <div>
-                <label className="block text-sm font-medium text-pencil mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Icon
                 </label>
                 <div className="flex gap-2 flex-wrap">
@@ -219,11 +219,11 @@ export const ProfileManager: React.FC = () => {
                       key={icon}
                       onClick={() => setFormData({ ...formData, icon })}
                       className={`
-                        w-12 h-12 text-2xl rounded-wobbly border-2 border-pencil transition-all
+                        w-12 h-12 text-2xl  border-2 border-border transition-all
                         ${
                           formData.icon === icon
-                            ? "bg-post-it"
-                            : "bg-white hover:bg-old-paper"
+                            ? "bg-secondary"
+                            : "bg-card hover:bg-muted"
                         }
                       `}
                     >
@@ -235,7 +235,7 @@ export const ProfileManager: React.FC = () => {
 
               {/* Color Selector */}
               <div>
-                <label className="block text-sm font-medium text-pencil mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Color
                 </label>
                 <div className="flex gap-2">
@@ -244,10 +244,10 @@ export const ProfileManager: React.FC = () => {
                       key={color}
                       onClick={() => setFormData({ ...formData, color })}
                       className={`
-                        w-10 h-10 rounded-wobbly border-2 transition-all
+                        w-10 h-10  border-2 transition-all
                         ${
                           formData.color === color
-                            ? "border-pencil scale-110"
+                            ? "border-border scale-110"
                             : "border-transparent hover:scale-105"
                         }
                       `}
@@ -259,7 +259,7 @@ export const ProfileManager: React.FC = () => {
 
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium text-pencil mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Name *
                 </label>
                 <Input
@@ -274,7 +274,7 @@ export const ProfileManager: React.FC = () => {
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-pencil mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Description
                 </label>
                 <Input
@@ -289,7 +289,7 @@ export const ProfileManager: React.FC = () => {
 
               {/* Custom Instructions */}
               <div>
-                <label className="block text-sm font-medium text-pencil mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Custom AI Instructions *
                 </label>
                 <textarea
@@ -301,17 +301,17 @@ export const ProfileManager: React.FC = () => {
                     })
                   }
                   placeholder="Tell the AI how to format your transcriptions for this context... (20-10,000 characters)"
-                  className="w-full px-3 py-2 border-3 border-pencil rounded-wobbly-lg bg-white text-pencil focus:outline-none focus:ring-2 focus:ring-blue-pen"
+                  className="w-full px-3 py-2 border-2 border-border  bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
                   rows={4}
                   maxLength={10000}
                 />
-                <div className="mt-1 text-xs text-text-subtle">
+                <div className="mt-1 text-xs text-muted-foreground">
                   {formData.custom_instructions.trim().length} / 10,000 characters
                   {formData.custom_instructions.trim().length < 20 && formData.custom_instructions.trim().length > 0 &&
-                    <span className="text-red-marker ml-2">(minimum 20 characters required)</span>
+                    <span className="text-destructive ml-2">(minimum 20 characters required)</span>
                   }
                   {formData.custom_instructions.trim().length > 10000 &&
-                    <span className="text-red-marker ml-2">(exceeds maximum)</span>
+                    <span className="text-destructive ml-2">(exceeds maximum)</span>
                   }
                 </div>
               </div>
@@ -352,11 +352,11 @@ export const ProfileManager: React.FC = () => {
             layout
             onClick={() => handleProfileActivate(profile.id)}
             className={`
-              rounded-wobbly-lg p-4 border-3 transition-all cursor-pointer
+               p-4 border-2 transition-all cursor-pointer
               ${
                 activeProfileId === profile.id
-                  ? "border-blue-pen bg-post-it shadow-md"
-                  : "bg-white border-pencil hover:bg-old-paper"
+                  ? "border-accent bg-secondary shadow-md"
+                  : "bg-card border-border hover:bg-muted"
               }
             `}
           >
@@ -370,22 +370,22 @@ export const ProfileManager: React.FC = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-pencil">
+                    <h3 className={`font-semibold ${activeProfileId === profile.id ? "text-secondary-foreground" : "text-foreground"}`}>
                       {profile.name}
                     </h3>
                     {activeProfileId === profile.id && (
-                      <span className="px-2 py-0.5 bg-blue-pen text-white text-xs rounded-wobbly">
+                      <span className="px-2 py-0.5 bg-accent text-white text-xs ">
                         Active
                       </span>
                     )}
                   </div>
                   {profile.description && (
-                    <p className="text-sm text-text-subtle mt-1">
+                    <p className={`text-sm mt-1 ${activeProfileId === profile.id ? "text-secondary-foreground/80" : "text-muted-foreground"}`}>
                       {profile.description}
                     </p>
                   )}
                   {profile.custom_instructions && (
-                    <p className="text-xs text-text-subtle mt-2 line-clamp-2">
+                    <p className={`text-xs mt-2 line-clamp-2 ${activeProfileId === profile.id ? "text-secondary-foreground/70" : "text-muted-foreground"}`}>
                       {profile.custom_instructions}
                     </p>
                   )}
@@ -394,15 +394,15 @@ export const ProfileManager: React.FC = () => {
               <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => startEdit(profile)}
-                  className="p-2 hover:bg-old-paper rounded-wobbly transition-colors"
+                  className="p-2 hover:bg-muted  transition-colors"
                 >
-                  <Edit2 className="w-4 h-4 text-pencil" />
+                  <Edit2 className={`w-4 h-4 ${activeProfileId === profile.id ? "text-secondary-foreground" : "text-foreground"}`} />
                 </button>
                 <button
                   onClick={() => handleDelete(profile.id)}
-                  className="p-2 hover:bg-red-marker/20 rounded-wobbly transition-colors"
+                  className="p-2 hover:bg-destructive/20  transition-colors"
                 >
-                  <Trash2 className="w-4 h-4 text-red-marker" />
+                  <Trash2 className="w-4 h-4 text-destructive" />
                 </button>
               </div>
             </div>
@@ -411,9 +411,9 @@ export const ProfileManager: React.FC = () => {
       </div>
 
       {profiles.length === 0 && !isCreating && (
-        <div className="text-center py-12 px-4 bg-white rounded-wobbly-lg border-3 border-dashed border-pencil shadow-md">
+        <div className="text-center py-12 px-4 bg-card  border-2 border-dashed border-border shadow-md">
           <div className="text-4xl mb-3">📊</div>
-          <p className="text-text-subtle mb-4">
+          <p className="text-muted-foreground mb-4">
             No profiles yet. Create your first profile to get started!
           </p>
           <Button

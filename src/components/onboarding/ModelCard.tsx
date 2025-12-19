@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Download, ArrowDown, Loader2 } from "lucide-react";
+import { ArrowDown, Loader2 } from "lucide-react";
 import { ModelInfo } from "../../lib/types";
 import { formatModelSize } from "../../lib/utils/format";
 import Badge from "../ui/Badge";
@@ -45,100 +45,60 @@ const ModelCard: React.FC<ModelCardProps> = ({
 
   return (
     <motion.div
-      className={`w-full rounded-wobbly-lg border-3 border-pencil p-5 transition-all duration-100 rotate-slightly-left hover:rotate-0 ${
-        isFeatured
-          ? "bg-post-it shadow-lg"
-          : "bg-white shadow-md"
+      className={`w-full border-2 border-border p-4 bg-card shadow-sm ${
+        isFeatured ? "border-l-4 border-l-secondary" : ""
       } ${className}`}
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2, type: "spring", stiffness: 500 }}
+      transition={{ duration: 0.2 }}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <h3 className={`text-xl font-kalam font-bold text-pencil`}>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1 min-w-0 text-left">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="text-base font-sans font-bold text-foreground">
               {model.name}
             </h3>
             {isFeatured && (
-              <Badge variant="primary">
-                <span className="text-xs font-semibold">Recommended</span>
+              <Badge variant="secondary">
+                <span className="text-xs font-medium">Recommended</span>
               </Badge>
             )}
           </div>
 
-          <p className="text-pencil text-sm mb-4">
+          <p className="text-sm text-muted-foreground mb-1 text-left">
             {model.description}
           </p>
 
-          <div className="flex items-center gap-1.5 text-sm text-text-muted mb-4">
-            <Download className="w-4 h-4" strokeWidth={2.5} />
-            <span className="font-medium">{formatModelSize(model.size_mb)}</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-text-muted font-medium uppercase tracking-wide">Accuracy</span>
-                <span className="text-pencil font-bold">{Math.round(model.accuracy_score * 100)}%</span>
-              </div>
-              <div className="h-2 bg-old-paper border-2 border-pencil rounded-wobbly overflow-hidden">
-                <motion.div
-                  className="h-full bg-red-marker"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${model.accuracy_score * 100}%` }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-text-muted font-medium uppercase tracking-wide">Speed</span>
-                <span className="text-pencil font-bold">{Math.round(model.speed_score * 100)}%</span>
-              </div>
-              <div className="h-2 bg-old-paper border-2 border-pencil rounded-wobbly overflow-hidden">
-                <motion.div
-                  className="h-full bg-red-marker"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${model.speed_score * 100}%` }}
-                  transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
-                />
-              </div>
-            </div>
-          </div>
+          <span className="text-xs text-muted-foreground">
+            ~{formatModelSize(model.size_mb)}
+          </span>
         </div>
 
         {isDownloading ? (
-          <div className="flex flex-col gap-2 min-w-[200px] items-end">
+          <div className="flex flex-col gap-1.5 min-w-[160px] items-end">
             {isExtracting ? (
-              <div className="flex items-center gap-2 text-red-marker">
-                <Loader2 className="w-5 h-5 animate-spin" strokeWidth={2.5} />
-                <span className="font-semibold text-sm">Extracting...</span>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2.5} />
+                <span className="font-medium text-sm">Extracting...</span>
               </div>
             ) : (
               <>
                 <div className="flex items-center justify-between text-sm w-full">
-                  <span className="text-text-muted font-medium">Downloading...</span>
-                  <span className="text-pencil font-bold">
+                  <span className="text-muted-foreground text-xs">
                     {downloadProgress ? `${Math.round(downloadProgress.percentage)}%` : '0%'}
                   </span>
+                  <span className="text-xs text-muted-foreground">
+                    {downloadProgress && `${formatBytes(downloadProgress.downloaded)} / ${formatBytes(downloadProgress.total)}`}
+                  </span>
                 </div>
-                <div className="h-2 bg-old-paper border-2 border-pencil rounded-wobbly overflow-hidden w-full">
+                <div className="h-1.5 bg-muted border border-border overflow-hidden w-full">
                   <motion.div
-                    className="h-full bg-red-marker"
+                    className="h-full bg-primary"
                     initial={{ width: 0 }}
                     animate={{ width: `${downloadProgress?.percentage || 0}%` }}
                     transition={{ duration: 0.3, ease: "easeOut" }}
                   />
                 </div>
-                {downloadProgress && (
-                  <div className="flex items-center gap-1 text-xs text-text-muted">
-                    <span>{formatBytes(downloadProgress.downloaded)}</span>
-                    <span>/</span>
-                    <span>{formatBytes(downloadProgress.total)}</span>
-                  </div>
-                )}
               </>
             )}
           </div>
@@ -146,13 +106,12 @@ const ModelCard: React.FC<ModelCardProps> = ({
           <motion.button
             onClick={() => onSelect(model.id)}
             disabled={disabled}
-            className={`px-6 py-3 rounded-wobbly-md border-3 border-pencil font-bold text-sm transition-all duration-100 flex items-center gap-2 ${
+            className={`px-4 py-2 border-2 border-border font-semibold text-sm transition-all duration-100 flex items-center gap-2 ${
               isFeatured
-                ? "bg-red-marker text-white shadow-lg hover:shadow-md hover:translate-x-[2px] hover:translate-y-[2px]"
-                : "bg-white text-pencil shadow-md hover:bg-red-marker hover:text-white"
-            } disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex-shrink-0`}
-            whileHover={disabled ? {} : { scale: 1.02 }}
-            whileTap={disabled ? {} : { scale: 0.96, rotate: Math.random() * 4 - 2 }}
+                ? "bg-secondary text-secondary-foreground hover:shadow-md"
+                : "bg-card text-foreground hover:bg-muted"
+            } disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer`}
+            whileTap={disabled ? {} : { scale: 0.98 }}
             type="button"
           >
             <ArrowDown className="w-4 h-4" strokeWidth={2.5} />

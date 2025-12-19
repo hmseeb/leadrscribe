@@ -2,13 +2,14 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
 import { toast, Toaster } from "sonner";
-import "./App.css";
+import "./index.css";
 import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import CommandPalette from "./components/command-palette";
 import Onboarding from "./components/onboarding";
 import { Sidebar, SidebarSection, SECTIONS_CONFIG } from "./components/Sidebar";
 import TitleBar from "./components/TitleBar";
 import { useSettings } from "./hooks/useSettings";
+import { useTheme } from "./hooks/useTheme";
 
 const renderSettingsContent = (
   section: SidebarSection,
@@ -25,6 +26,9 @@ function App() {
     useState<SidebarSection>("dashboard");
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const { settings, updateSetting } = useSettings();
+
+  // Initialize and manage theme
+  useTheme();
 
   useEffect(() => {
     checkOnboardingStatus();

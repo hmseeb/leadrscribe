@@ -4,6 +4,7 @@ import { Cog, FlaskConical, History, Info, Users } from "lucide-react";
 import LeadrScribeLogo from "./icons/LeadrScribeLogo";
 import LeadrScribeIcon from "./icons/LeadrScribeIcon";
 import { useSettings } from "../hooks/useSettings";
+import { cn } from "../lib/utils";
 import {
   GeneralSettings,
   HistorySettings,
@@ -85,9 +86,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     .map(([id, config]) => ({ id: id as SidebarSection, ...config }));
 
   return (
-    <div className="flex flex-col w-[220px] h-full border-r-3 border-pencil bg-white items-center px-3 py-3">
+    <div className="flex flex-col w-[220px] h-full border-r-2 border-border bg-sidebar items-center px-3 py-3">
       <LeadrScribeLogo className="mb-3" />
-      <div className="flex flex-col w-full items-center gap-1.5 pt-3 border-t-3 border-pencil">
+      <div className="flex flex-col w-full items-center gap-1.5 pt-3 border-t-2 border-sidebar-border">
         {availableSections.map((section) => {
           const Icon = section.icon;
           const isActive = activeSection === section.id;
@@ -95,11 +96,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           return (
             <motion.div
               key={section.id}
-              className={`flex gap-3 items-center px-3 py-2.5 w-full rounded-wobbly cursor-pointer transition-all duration-100 relative border-2 ${
+              className={cn(
+                "flex gap-3 items-center px-3 py-2.5 w-full cursor-pointer transition-all duration-100 relative border-2",
                 isActive
-                  ? "text-red-marker bg-post-it border-pencil shadow-md rotate-slightly-left"
-                  : "text-pencil border-transparent hover:bg-old-paper hover:border-pencil hover:shadow-sm"
-              }`}
+                  ? "text-secondary-foreground bg-secondary border-border shadow-md"
+                  : "text-sidebar-foreground border-transparent hover:bg-muted hover:border-border hover:shadow-sm"
+              )}
               onClick={() => onSectionChange(section.id)}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -108,17 +110,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {isActive && (
                 <motion.div
                   layoutId="activeSection"
-                  className="absolute left-0 w-1 h-full bg-red-marker rounded-r-full"
-                  transition={{ type: "spring", stiffness: 600, damping: 30 }}
+                  className="absolute left-0 w-1 h-full bg-sidebar-primary"
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 />
               )}
               <Icon
                 width={20}
                 height={20}
                 strokeWidth={2.5}
-                className={isActive ? "text-red-marker" : ""}
+                className={isActive ? "text-secondary-foreground" : ""}
               />
-              <p className={`text-sm ${isActive ? "font-bold" : "font-medium"}`}>
+              <p className={cn("text-sm", isActive ? "font-bold" : "font-medium")}>
                 {section.label}
               </p>
             </motion.div>

@@ -72,7 +72,7 @@ export const OpenRouterApiKey: React.FC<OpenRouterApiKeyProps> = React.memo(
           <button
             type="button"
             onClick={() => setShowKey(!showKey)}
-            className="p-2 text-mid-gray hover:text-logo-primary transition-colors"
+            className="p-2 text-muted-foreground hover:text-primary transition-colors"
             title={showKey ? "Hide API key" : "Show API key"}
           >
             {showKey ? <EyeOff size={18} /> : <Eye size={18} />}

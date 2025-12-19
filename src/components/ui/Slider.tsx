@@ -1,5 +1,7 @@
-import React from "react";
+import * as React from "react";
+import * as SliderPrimitive from "@radix-ui/react-slider";
 import { SettingContainer } from "./SettingContainer";
+import { cn } from "../../lib/utils";
 
 interface SliderProps {
   value: number;
@@ -30,10 +32,6 @@ export const Slider: React.FC<SliderProps> = ({
   showValue = true,
   formatValue = (v) => v.toFixed(2),
 }) => {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(parseFloat(e.target.value));
-  };
-
   return (
     <SettingContainer
       title={label}
@@ -44,26 +42,26 @@ export const Slider: React.FC<SliderProps> = ({
       disabled={disabled}
     >
       <div className="w-full">
-        <div className="flex items-center space-x-1 h-6">
-          <input
-            type="range"
+        <div className="flex items-center gap-3">
+          <SliderPrimitive.Root
+            className={cn(
+              "relative flex w-full touch-none select-none items-center",
+              disabled && "opacity-50"
+            )}
+            value={[value]}
+            onValueChange={([v]) => onChange(v)}
             min={min}
             max={max}
             step={step}
-            value={value}
-            onChange={handleChange}
             disabled={disabled}
-            className="flex-grow h-2 rounded-wobbly appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-marker disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              background: `linear-gradient(to right, var(--color-red-marker) ${
-                ((value - min) / (max - min)) * 100
-              }%, var(--color-old-paper) ${
-                ((value - min) / (max - min)) * 100
-              }%)`,
-            }}
-          />
+          >
+            <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden bg-muted border border-border">
+              <SliderPrimitive.Range className="absolute h-full bg-primary" />
+            </SliderPrimitive.Track>
+            <SliderPrimitive.Thumb className="block h-4 w-4 border-2 border-border bg-background shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50" />
+          </SliderPrimitive.Root>
           {showValue && (
-            <span className="text-sm font-bold text-pencil min-w-10 text-right">
+            <span className="text-sm font-semibold text-foreground min-w-10 text-right">
               {formatValue(value)}
             </span>
           )}
@@ -72,3 +70,26 @@ export const Slider: React.FC<SliderProps> = ({
     </SettingContainer>
   );
 };
+
+// Also export a standalone Slider component for use outside of settings
+const StandaloneSlider = React.forwardRef<
+  React.ElementRef<typeof SliderPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root>
+>(({ className, ...props }, ref) => (
+  <SliderPrimitive.Root
+    ref={ref}
+    className={cn(
+      "relative flex w-full touch-none select-none items-center",
+      className
+    )}
+    {...props}
+  >
+    <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden bg-muted border border-border">
+      <SliderPrimitive.Range className="absolute h-full bg-primary" />
+    </SliderPrimitive.Track>
+    <SliderPrimitive.Thumb className="block h-4 w-4 border-2 border-border bg-background shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50" />
+  </SliderPrimitive.Root>
+));
+StandaloneSlider.displayName = SliderPrimitive.Root.displayName;
+
+export { StandaloneSlider };

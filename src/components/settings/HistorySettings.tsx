@@ -236,7 +236,7 @@ export const HistorySettings: React.FC = () => {
   if (loading) {
     return (
       <div className="max-w-4xl w-full mx-auto space-y-6">
-        <div className="px-4 py-3 text-center text-text/60">
+        <div className="px-4 py-3 text-center text-muted-foreground">
           Loading history...
         </div>
       </div>
@@ -247,10 +247,10 @@ export const HistorySettings: React.FC = () => {
     <div className="max-w-4xl w-full mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-kalam font-bold text-pencil">
+        <h1 className="text-3xl font-sans font-bold text-foreground">
           Transcription History
         </h1>
-        <p className="text-sm text-text-subtle mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           View, search, and manage your transcriptions
         </p>
       </div>
@@ -293,10 +293,10 @@ export const HistorySettings: React.FC = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="bg-white rounded-wobbly-lg p-4 space-y-4 border-3 border-pencil shadow-md"
+            className="bg-card  p-4 space-y-4 border-2 border-border shadow-md"
           >
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-pencil">
+              <h3 className="font-semibold text-foreground">
                 Filters
               </h3>
               {hasActiveFilters && (
@@ -310,14 +310,14 @@ export const HistorySettings: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Date Filter */}
               <div>
-                <label className="block text-sm font-medium text-pencil mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   <Calendar className="w-4 h-4 inline mr-1" />
                   Date Range
                 </label>
                 <select
                   value={dateFilter}
                   onChange={(e) => setDateFilter(e.target.value as DateFilter)}
-                  className="w-full px-3 py-2 border-3 border-pencil rounded-wobbly-lg bg-white text-pencil"
+                  className="w-full px-3 py-2 border-2 border-border  bg-card text-foreground"
                 >
                   <option value="all">All Time</option>
                   <option value="today">Today</option>
@@ -347,7 +347,7 @@ export const HistorySettings: React.FC = () => {
               {/* Profile Filter - Only show in ghostwriter mode */}
               {getSetting("output_mode") === "ghostwriter" && (
                 <div>
-                  <label className="block text-sm font-medium text-pencil mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Profile
                   </label>
                   <select
@@ -355,7 +355,7 @@ export const HistorySettings: React.FC = () => {
                     onChange={(e) =>
                       setSelectedProfile(e.target.value ? Number(e.target.value) : null)
                     }
-                    className="w-full px-3 py-2 border-3 border-pencil rounded-wobbly-lg bg-white text-pencil"
+                    className="w-full px-3 py-2 border-2 border-border  bg-card text-foreground"
                   >
                     <option value="">All Profiles</option>
                     {profiles.map((profile) => (
@@ -377,7 +377,7 @@ export const HistorySettings: React.FC = () => {
                 className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
               />
               <Star className="w-4 h-4 text-amber-500" />
-              <span className="text-sm text-pencil">
+              <span className="text-sm text-foreground">
                 Show saved only
               </span>
             </label>
@@ -386,7 +386,7 @@ export const HistorySettings: React.FC = () => {
       </AnimatePresence>
 
       {/* Results Count */}
-      <div className="text-sm text-text-subtle">
+      <div className="text-sm text-muted-foreground">
         {historyEntries.length} {historyEntries.length === 1 ? "result" : "results"} found
       </div>
 
@@ -394,8 +394,8 @@ export const HistorySettings: React.FC = () => {
       <SettingsGroup title="">
         {historyEntries.length === 0 ? (
           <div className="px-4 py-12 text-center">
-            <Search className="w-12 h-12 mx-auto mb-3 text-pencil" />
-            <p className="text-text-subtle">
+            <Search className="w-12 h-12 mx-auto mb-3 text-foreground" />
+            <p className="text-muted-foreground">
               {searchQuery || hasActiveFilters
                 ? "No transcriptions found. Try adjusting your filters."
                 : "No transcriptions yet. Start recording to build your history!"}
@@ -483,10 +483,10 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   const hasGhostwritten = entry.ghostwritten_text && entry.ghostwritten_text.trim().length > 0;
 
   return (
-    <div className="px-4 py-2 pb-5 flex flex-col gap-3 border-b border-pencil last:border-b-0">
+    <div className="px-4 py-2 pb-5 flex flex-col gap-3 border-b border-border last:border-b-0">
       <div className="flex justify-between items-start">
         <div className="flex-1">
-          <p className="text-sm font-medium text-pencil">{entry.title}</p>
+          <p className="text-sm font-medium text-foreground">{entry.title}</p>
           <div className="flex items-center gap-3 text-xs text-neutral-500 mt-1">
             <span>{formatDate(entry.timestamp)}</span>
             {entry.word_count && <span>• {entry.word_count} words</span>}
@@ -504,7 +504,7 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
             className={`p-2 rounded transition-colors cursor-pointer ${
               entry.saved
                 ? "text-amber-500 hover:text-amber-600"
-                : "text-text/50 hover:text-amber-500"
+                : "text-muted-foreground hover:text-amber-500"
             }`}
             title={entry.saved ? "Remove from saved" : "Save transcription"}
           >
@@ -516,7 +516,7 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
           </button>
           <button
             onClick={handleDeleteEntry}
-            className="text-text/50 hover:text-red-500 transition-colors cursor-pointer p-2 rounded"
+            className="text-muted-foreground hover:text-red-500 transition-colors cursor-pointer p-2 rounded"
             title="Delete entry"
           >
             <Trash2 width={16} height={16} />
@@ -527,12 +527,12 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
       {/* Original Transcription */}
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
-          <p className="text-xs text-text/60 font-medium">
+          <p className="text-xs text-muted-foreground font-medium">
             {hasGhostwritten ? "Original Transcription" : "Transcription"}
           </p>
           <button
             onClick={handleCopyOriginal}
-            className="text-text/50 hover:text-primary-500 transition-colors cursor-pointer"
+            className="text-muted-foreground hover:text-primary-500 transition-colors cursor-pointer"
             title="Copy original transcription to clipboard"
           >
             {showCopiedOriginal ? (
@@ -542,19 +542,19 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
             )}
           </button>
         </div>
-        <p className="italic text-text/90 text-sm">
+        <p className="italic text-foreground/90 text-sm">
           {entry.transcription_text}
         </p>
       </div>
 
       {/* Ghostwritten Version */}
       {hasGhostwritten && (
-        <div className="flex flex-col gap-1 pt-2 border-t border-pencil">
+        <div className="flex flex-col gap-1 pt-2 border-t border-border">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-text/60 font-medium">Ghostwritten</p>
+            <p className="text-xs text-muted-foreground font-medium">Ghostwritten</p>
             <button
               onClick={handleCopyGhostwritten}
-              className="text-text/50 hover:text-primary-500 transition-colors cursor-pointer"
+              className="text-muted-foreground hover:text-primary-500 transition-colors cursor-pointer"
               title="Copy ghostwritten version to clipboard"
             >
               {showCopiedGhostwritten ? (
@@ -564,7 +564,7 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
               )}
             </button>
           </div>
-          <p className="italic text-text/90 text-sm">
+          <p className="italic text-foreground/90 text-sm">
             {entry.ghostwritten_text}
           </p>
         </div>

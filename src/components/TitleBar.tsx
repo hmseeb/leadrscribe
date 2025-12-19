@@ -14,7 +14,6 @@ export const TitleBar: React.FC = () => {
 
     checkMaximized();
 
-    // Listen for window resize events to update maximize state
     const unlisten = appWindow.onResized(() => {
       checkMaximized();
     });
@@ -27,14 +26,12 @@ export const TitleBar: React.FC = () => {
   const handleMinimize = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('Minimize clicked');
     appWindow.minimize().catch(err => console.error('Minimize error:', err));
   };
 
   const handleMaximize = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('Maximize clicked');
     appWindow.toggleMaximize()
       .then(() => appWindow.isMaximized())
       .then(setIsMaximized)
@@ -44,28 +41,25 @@ export const TitleBar: React.FC = () => {
   const handleClose = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('Close clicked');
     appWindow.close().catch(err => console.error('Close error:', err));
   };
 
   return (
-    <div
-      className="flex items-center justify-between h-10 bg-white border-b-3 border-pencil select-none"
-    >
+    <div className="flex items-center justify-between h-10 bg-background border-b-2 border-border select-none">
       {/* Logo - Draggable Area */}
       <div
         data-tauri-drag-region
         className="flex items-center gap-2 px-3 flex-1 h-full"
       >
-        <LeadrScribeIcon width={20} height={20} className="text-red-marker" />
+        <LeadrScribeIcon width={20} height={20} className="text-primary" />
       </div>
 
       {/* Window Controls */}
-      <div className="flex items-center gap-2 pr-3 h-full" style={{ pointerEvents: 'auto' }}>
+      <div className="flex items-center gap-2 pr-3 h-full">
         {/* Minimize Button */}
         <button
           onMouseDown={handleMinimize}
-          className="w-5 h-5 rounded-wobbly-full bg-post-it border-2 border-pencil hover:shadow-md transition-all duration-100 flex items-center justify-center text-pencil text-sm font-bold"
+          className="w-5 h-5 bg-secondary border-2 border-border hover:shadow-md transition-all duration-100 flex items-center justify-center text-secondary-foreground text-sm font-bold"
           aria-label="Minimize"
         >
           −
@@ -74,7 +68,7 @@ export const TitleBar: React.FC = () => {
         {/* Maximize/Restore Button */}
         <button
           onMouseDown={handleMaximize}
-          className="w-5 h-5 rounded-wobbly-full bg-old-paper border-2 border-pencil hover:shadow-md transition-all duration-100 flex items-center justify-center text-pencil text-[10px] font-bold"
+          className="w-5 h-5 bg-muted border-2 border-border hover:shadow-md transition-all duration-100 flex items-center justify-center text-foreground text-[10px] font-bold"
           aria-label={isMaximized ? "Restore" : "Maximize"}
         >
           {isMaximized ? "◱" : "□"}
@@ -83,7 +77,7 @@ export const TitleBar: React.FC = () => {
         {/* Close Button */}
         <button
           onMouseDown={handleClose}
-          className="w-5 h-5 rounded-wobbly-full bg-red-marker border-2 border-pencil hover:shadow-md transition-all duration-100 flex items-center justify-center text-white text-sm font-bold"
+          className="w-5 h-5 bg-primary border-2 border-border hover:shadow-md transition-all duration-100 flex items-center justify-center text-primary-foreground text-sm font-bold"
           aria-label="Close"
         >
           ✕

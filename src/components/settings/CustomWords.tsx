@@ -54,12 +54,11 @@ export const CustomWords: React.FC<CustomWordsProps> = React.memo(
           <div className="flex items-center gap-2">
             <Input
               type="text"
-              className="max-w-40"
+              className="max-w-40 h-8"
               value={newWord}
               onChange={(e) => setNewWord(e.target.value)}
               onKeyDown={handleKeyPress}
               placeholder="Add a word"
-              variant="compact"
               disabled={isUpdating("custom_words")}
             />
             <Button
@@ -79,7 +78,7 @@ export const CustomWords: React.FC<CustomWordsProps> = React.memo(
         </SettingContainer>
         {customWords.length > 0 && (
           <div
-            className={`px-4 p-2 ${grouped ? "" : "rounded-lg border border-mid-gray/20"} flex flex-wrap gap-1`}
+            className={`px-4 p-2 ${grouped ? "" : "rounded-lg border border-border"} flex flex-wrap gap-1`}
           >
             {customWords.map((word) => (
               <Button

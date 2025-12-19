@@ -256,7 +256,7 @@ export const LeadrScribeShortcut: React.FC<LeadrScribeShortcutProps> = ({
         descriptionMode={descriptionMode}
         grouped={grouped}
       >
-        <div className="text-sm text-mid-gray">Loading shortcuts...</div>
+        <div className="text-sm text-muted-foreground">Loading shortcuts...</div>
       </SettingContainer>
     );
   }
@@ -289,7 +289,7 @@ export const LeadrScribeShortcut: React.FC<LeadrScribeShortcutProps> = ({
 
         if (!primaryBinding) {
           return (
-            <div className="text-sm text-mid-gray">No shortcuts configured</div>
+            <div className="text-sm text-muted-foreground">No shortcuts configured</div>
           );
         }
 
@@ -298,13 +298,13 @@ export const LeadrScribeShortcut: React.FC<LeadrScribeShortcutProps> = ({
             {editingShortcutId === primaryId ? (
               <div
                 ref={(ref) => setShortcutRef(primaryId, ref)}
-                className="px-2 py-1 text-sm font-semibold border border-logo-primary bg-logo-primary/30 rounded min-w-[120px] text-center"
+                className="px-2 py-1 text-sm font-semibold border border-primary bg-primary/30 rounded min-w-[120px] text-center"
               >
                 {formatCurrentKeys()}
               </div>
             ) : (
               <div
-                className="px-2 py-1 text-sm font-semibold bg-mid-gray/10 border border-mid-gray/80 hover:bg-logo-primary/10 rounded cursor-pointer hover:border-logo-primary"
+                className="px-2 py-1 text-sm font-semibold bg-muted border border-border hover:bg-primary/10 rounded cursor-pointer hover:border-primary"
                 onClick={() => startRecording(primaryId)}
               >
                 {formatKeyCombination(primaryBinding.current_binding, osType)}

@@ -7,7 +7,7 @@ import {
   TranscriptionIcon,
   CancelIcon,
 } from "../components/icons";
-import "./RecordingOverlay.css";
+import { cn } from "../lib/utils";
 
 type OverlayState = "recording" | "transcribing" | "ghostwriting" | "error";
 
@@ -20,56 +20,40 @@ const RecordingOverlay: React.FC = () => {
 
   useEffect(() => {
     const setupEventListeners = async () => {
-      // Listen for show-overlay event from Rust
       const unlistenShow = await listen("show-overlay", (event) => {
         const overlayState = event.payload as OverlayState;
         setState(overlayState);
         setIsVisible(true);
       });
 
-      // Listen for hide-overlay event from Rust
       const unlistenHide = await listen("hide-overlay", () => {
         setIsVisible(false);
       });
 
-      // Listen for mic-level updates
       const unlistenLevel = await listen<number[]>("mic-level", (event) => {
         const newLevels = event.payload as number[];
-
-        // Apply smoothing to reduce jitter
         const smoothed = smoothedLevelsRef.current.map((prev, i) => {
           const target = newLevels[i] || 0;
-          return prev * 0.7 + target * 0.3; // Smooth transition
+          return prev * 0.7 + target * 0.3;
         });
-
         smoothedLevelsRef.current = smoothed;
         setLevels(smoothed.slice(0, 9));
       });
 
-      // Listen for ghostwriter chunks (we don't display text, but keep listener for compatibility)
-      const unlistenChunk = await listen<string>("ghostwriter-chunk", () => {
-        // Not displaying ghostwriter text in overlay anymore
-      });
+      const unlistenChunk = await listen<string>("ghostwriter-chunk", () => {});
 
-      // Listen for ghostwriter completion
-      const unlistenComplete = await listen("ghostwriter-complete", () => {
-        // Not displaying ghostwriter text in overlay anymore
-      });
+      const unlistenComplete = await listen("ghostwriter-complete", () => {});
 
-      // Listen for ghostwriter errors
       const unlistenError = await listen<string>("ghostwriter-error", (event) => {
         const error = event.payload as string;
         setErrorMessage(error);
         setState("error");
-
-        // Auto-hide error after 10 seconds (increased from 5 for better visibility)
         setTimeout(() => {
           setIsVisible(false);
           setErrorMessage("");
         }, 10000);
       });
 
-      // Cleanup function
       return () => {
         unlistenShow();
         unlistenHide();
@@ -83,7 +67,6 @@ const RecordingOverlay: React.FC = () => {
     setupEventListeners();
   }, []);
 
-  // Handle ESC key to dismiss overlay
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && isVisible) {
@@ -102,7 +85,7 @@ const RecordingOverlay: React.FC = () => {
       case "transcribing":
         return <TranscriptionIcon />;
       case "ghostwriting":
-        return <TranscriptionIcon />; // Using transcription icon for ghostwriting too
+        return <TranscriptionIcon />;
       case "error":
         return (
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -116,42 +99,21 @@ const RecordingOverlay: React.FC = () => {
     }
   };
 
-  const getStateColor = () => {
-    switch (state) {
-      case "recording":
-        return "#ff4d4d"; // Red marker
-      case "transcribing":
-        return "#2d5da1"; // Blue pen
-      case "ghostwriting":
-        return "#8B5CF6"; // Purple
-      case "error":
-        return "#ff4d4d"; // Red marker for errors
-      default:
-        return "#2d5da1"; // Blue pen
-    }
-  };
-
   if (!isVisible) {
     return null;
   }
 
-  const getPulseAnimation = () => {
-    // No pulse animation needed for hand-drawn design
-    return {};
-  };
-
   return (
     <motion.div
-      className={`recording-overlay fade-in overlay-state-${state}`}
+      className={cn(
+        "recording-overlay",
+        isVisible && "fade-in",
+        `overlay-state-${state}`
+      )}
       initial={{ scale: 0.8, opacity: 0 }}
-      animate={{
-        scale: 1,
-        opacity: 1,
-        ...getPulseAnimation(),
-      }}
+      animate={{ scale: 1, opacity: 1 }}
       transition={{
         scale: { type: "spring", stiffness: 300, damping: 25 },
-        boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" }
       }}
     >
       <div className="overlay-left">
@@ -212,20 +174,13 @@ const RecordingOverlay: React.FC = () => {
           )}
           {state === "error" && (
             <motion.div
-              className="transcribing-text"
+              className="transcribing-text max-w-[400px] text-sm font-semibold leading-relaxed text-center"
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 5 }}
-              style={{
-                maxWidth: "400px",
-                fontSize: "14px",
-                fontWeight: "600",
-                lineHeight: "1.4",
-                textAlign: "center"
-              }}
             >
-              <div>⚠️ {errorMessage}</div>
-              <div style={{ fontSize: "12px", marginTop: "4px", fontWeight: "400" }}>
+              <div>Warning: {errorMessage}</div>
+              <div className="text-xs mt-1 font-normal">
                 Original transcription pasted
               </div>
             </motion.div>
