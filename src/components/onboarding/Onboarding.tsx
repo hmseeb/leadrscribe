@@ -133,20 +133,20 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col inset-0 bg-paper">
+    <div className="h-screen w-screen flex flex-col inset-0 bg-background">
       {/* Title bar with window controls */}
-      <div data-tauri-drag-region className="h-8 flex items-center justify-end px-3 shrink-0 bg-white border-b-3 border-pencil">
+      <div data-tauri-drag-region className="h-10 flex items-center justify-end px-3 shrink-0 bg-background border-b-2 border-border select-none">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => getCurrentWindow().minimize()}
-            className="w-5 h-5 rounded-wobbly-full bg-post-it border-2 border-pencil hover:bg-old-paper transition-colors flex items-center justify-center font-bold text-pencil text-sm"
+            onMouseDown={() => getCurrentWindow().minimize()}
+            className="w-5 h-5 bg-secondary border-2 border-border hover:shadow-md transition-all duration-100 flex items-center justify-center text-secondary-foreground text-sm font-bold"
             aria-label="Minimize"
           >
             −
           </button>
           <button
-            onClick={() => getCurrentWindow().close()}
-            className="w-5 h-5 rounded-wobbly-full bg-red-marker border-2 border-pencil hover:bg-primary-600 transition-colors flex items-center justify-center font-bold text-white text-xs"
+            onMouseDown={() => getCurrentWindow().close()}
+            className="w-5 h-5 bg-primary border-2 border-border hover:shadow-md transition-all duration-100 flex items-center justify-center text-primary-foreground text-sm font-bold"
             aria-label="Close"
           >
             ✕
@@ -163,20 +163,19 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
           transition={{ duration: 0.3, type: "spring", stiffness: 500 }}
         >
           <LeadrScribeLogo width={200} />
-          <h1 className="text-2xl font-kalam font-bold text-pencil">Welcome to LeadrScribe</h1>
-          <p className="text-text-muted max-w-md font-medium mx-auto text-center">
+          <p className="text-muted-foreground max-w-md font-medium mx-auto text-center">
             Choose and download a transcription model to get started
           </p>
         </motion.div>
 
-      <div className="max-w-3xl w-full mx-auto text-center flex-1 flex flex-col min-h-0">
+      <div className="max-w-3xl w-full mx-auto flex-1 flex flex-col min-h-0">
         {error && (
           <motion.div
-            className="bg-red-marker/10 border-3 border-red-marker rounded-wobbly-lg p-4 mb-6 shrink-0 shadow-md"
+            className="bg-destructive/10 border-2 border-destructive  p-4 mb-6 shrink-0 shadow-md"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
           >
-            <p className="text-red-marker text-sm font-medium">
+            <p className="text-destructive text-sm font-medium">
               {error}
             </p>
           </motion.div>

@@ -279,7 +279,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -50, scale: 0.9 }}
             transition={{ type: "spring", stiffness: 600, damping: 20 }}
-            className="bg-red-marker text-white rounded-wobbly-lg border-3 border-pencil p-4 text-center font-bold text-lg shadow-md"
+            className="bg-destructive text-destructive-foreground border-2 border-border p-4 text-center font-bold text-lg shadow-md"
           >
             {celebrationMessage}
           </motion.div>
@@ -288,10 +288,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
       {/* Welcome Header */}
       <motion.div variants={itemVariants} className="space-y-2">
-        <h1 className="text-3xl font-kalam font-bold text-pencil">
+        <h1 className="text-3xl font-sans font-bold text-foreground">
           Welcome back!
         </h1>
-        <p className="text-text-subtle">
+        <p className="text-muted-foreground">
           {stats && stats.total_count > 0
             ? `You've captured ${stats.total_count} transcriptions so far. Keep the momentum going!`
             : "Ready to start transcribing? Pick a profile and start recording."}
@@ -339,7 +339,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       {getSetting("output_mode") === "ghostwriter" && (
         <motion.div variants={itemVariants} className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-kalam font-bold text-pencil">
+            <h2 className="text-lg font-sans font-bold text-foreground">
               Active Profile
             </h2>
             {profiles.length > 6 && (
@@ -358,26 +358,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 key={profile.id}
                 onClick={() => handleProfileSelect(profile)}
                 className={`
-                  flex items-center gap-3 px-4 py-3 rounded-wobbly-lg border-3 border-pencil transition-all cursor-pointer shadow-md hover:shadow-lg active:shadow-sm active:translate-x-[2px] active:translate-y-[2px]
+                  flex items-center gap-3 px-4 py-3  border-2 border-border transition-all cursor-pointer shadow-md hover:shadow-lg active:shadow-sm active:translate-x-[2px] active:translate-y-[2px]
                   ${
                     selectedProfile?.id === profile.id
-                      ? "bg-post-it"
-                      : "bg-white hover:bg-old-paper"
+                      ? "bg-secondary"
+                      : "bg-card hover:bg-muted"
                   }
                 `}
               >
                 <div
-                  className="w-10 h-10 rounded-wobbly flex items-center justify-center text-2xl flex-shrink-0 border-2 border-pencil"
+                  className="w-10 h-10  flex items-center justify-center text-2xl flex-shrink-0 border-2 border-border"
                   style={{ backgroundColor: profile.color + "20" }}
                 >
                   {profile.icon}
                 </div>
                 <div className="flex-1 min-w-0 text-left">
-                  <div className="font-medium text-pencil truncate">
+                  <div className={`font-medium truncate ${selectedProfile?.id === profile.id ? "text-secondary-foreground" : "text-foreground"}`}>
                     {profile.name}
                   </div>
                   {profile.description && (
-                    <div className="text-xs text-text-subtle truncate">
+                    <div className={`text-xs truncate ${selectedProfile?.id === profile.id ? "text-secondary-foreground/80" : "text-muted-foreground"}`}>
                       {profile.description}
                     </div>
                   )}
@@ -390,7 +390,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
       {/* Search Bar */}
       <motion.div variants={itemVariants} className="relative">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
           <Search className="w-5 h-5" />
         </div>
         <Input
@@ -402,7 +402,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         />
         {isSearching && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <div className="w-5 h-5 border-2 border-red-marker border-t-transparent rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-destructive border-t-transparent rounded-full animate-spin" />
           </div>
         )}
       </motion.div>
@@ -410,7 +410,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       {/* Recent Transcriptions */}
       <motion.div variants={itemVariants} className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-kalam font-bold text-pencil">
+          <h2 className="text-lg font-sans font-bold text-foreground">
             {searchQuery ? "Search Results" : "Recent Transcriptions"}
           </h2>
           {!searchQuery && recentEntries.length > 0 && (
@@ -425,15 +425,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </div>
 
         {recentEntries.length === 0 ? (
-          <div className="text-center py-12 px-4 bg-white rounded-wobbly-lg border-3 border-dashed border-pencil shadow-md">
-            <FileText className="w-12 h-12 mx-auto mb-3 text-text-subtle" />
-            <p className="text-text-subtle mb-4">
+          <div className="text-center py-12 px-4 bg-card  border-2 border-dashed border-border shadow-md">
+            <FileText className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+            <p className="text-muted-foreground mb-4">
               {searchQuery
                 ? "No transcriptions found. Try a different search term."
                 : "No transcriptions yet. Start recording to see them here!"}
             </p>
             {!searchQuery && (
-              <p className="text-sm text-text-subtle">
+              <p className="text-sm text-muted-foreground">
                 Tip: Use your global shortcut to start recording from anywhere
               </p>
             )}
@@ -447,24 +447,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
                 onClick={() => handleEntryClick(entry)}
-                className="group bg-white rounded-wobbly-lg p-4 border-3 border-pencil hover:bg-post-it hover:shadow-lg shadow-md transition-all cursor-pointer"
+                className="group bg-card  p-4 border-2 border-border hover:bg-secondary hover:shadow-lg shadow-md transition-all cursor-pointer"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium text-pencil">
+                      <span className="text-sm font-medium text-foreground">
                         {entry.title}
                       </span>
                       {entry.duration_seconds && (
-                        <span className="text-xs text-text-subtle">
+                        <span className="text-xs text-muted-foreground">
                           {formatDuration(entry.duration_seconds)}
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-text-subtle line-clamp-2 mb-2">
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
                       {entry.ghostwritten_text || entry.transcription_text}
                     </p>
-                    <div className="flex items-center gap-3 text-xs text-text-subtle">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>{formatDate(entry.timestamp)}</span>
                       {entry.word_count && <span>• {entry.word_count} words</span>}
                     </div>
@@ -474,13 +474,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                       e.stopPropagation();
                       toggleSaved(entry);
                     }}
-                    className="shrink-0 p-2 hover:bg-old-paper rounded-wobbly transition-colors"
+                    className="shrink-0 p-2 hover:bg-muted  transition-colors"
                   >
                     <Star
                       className={`w-5 h-5 ${
                         entry.saved
-                          ? "fill-red-marker text-red-marker"
-                          : "text-text-subtle"
+                          ? "fill-destructive text-destructive"
+                          : "text-muted-foreground"
                       }`}
                     />
                   </button>
@@ -511,21 +511,21 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ icon, label, value, color }) => {
   const colorClasses = {
-    blue: "bg-post-it text-blue-pen",
-    green: "bg-post-it text-blue-pen",
-    purple: "bg-post-it text-blue-pen",
-    amber: "bg-post-it text-blue-pen",
+    blue: "bg-secondary text-secondary-foreground",
+    green: "bg-secondary text-secondary-foreground",
+    purple: "bg-secondary text-secondary-foreground",
+    amber: "bg-secondary text-secondary-foreground",
   };
 
   return (
-    <div className="bg-white rounded-wobbly-lg p-4 border-3 border-pencil shadow-md transition-transform">
-      <div className={`inline-flex p-2 rounded-wobbly mb-3 border-2 border-pencil ${colorClasses[color]}`}>
+    <div className="bg-card  p-4 border-2 border-border shadow-md transition-transform">
+      <div className={`inline-flex p-2  mb-3 border-2 border-border ${colorClasses[color]}`}>
         {icon}
       </div>
-      <div className="text-2xl font-bold text-pencil mb-1">
+      <div className="text-2xl font-bold text-foreground mb-1">
         {value}
       </div>
-      <div className="text-sm text-text-subtle">
+      <div className="text-sm text-muted-foreground">
         {label}
       </div>
     </div>

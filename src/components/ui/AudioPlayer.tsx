@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Play, Pause } from "lucide-react";
+import { cn } from "../../lib/utils";
 
 interface AudioPlayerProps {
   src: string;
@@ -19,11 +20,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const animationRef = useRef<number>();
   const dragTimeRef = useRef<number>(0);
 
-  // Use refs to avoid stale closures in animation loop
   const isPlayingRef = useRef(false);
   const isDraggingRef = useRef(false);
 
-  // Keep refs in sync with state
   useEffect(() => {
     isPlayingRef.current = isPlaying;
   }, [isPlaying]);
@@ -32,7 +31,6 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     isDraggingRef.current = isDragging;
   }, [isDragging]);
 
-  // Stable animation loop with no dependencies
   const tick = useCallback(() => {
     if (audioRef.current && !isDraggingRef.current) {
       const time = audioRef.current.currentTime;
@@ -42,17 +40,14 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     if (isPlayingRef.current) {
       animationRef.current = requestAnimationFrame(tick);
     }
-  }, []); // Empty dependency array is key!
+  }, []);
 
-  // Manage animation loop lifecycle
   useEffect(() => {
     if (isPlaying && !isDragging) {
-      // Only start if not already running
       if (!animationRef.current) {
         animationRef.current = requestAnimationFrame(tick);
       }
     } else {
-      // Stop animation loop
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
         animationRef.current = undefined;
@@ -67,7 +62,6 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     };
   }, [isPlaying, isDragging, tick]);
 
-  // Audio event handlers
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -98,7 +92,6 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     };
   }, []);
 
-  // Global drag handlers
   const handleMouseUp = useCallback(() => {
     if (isDragging) {
       setIsDragging(false);
@@ -162,13 +155,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  // Fix playhead positioning with better edge case handling
   const getProgressPercent = (): number => {
     if (duration <= 0) return 0;
-
-    // Handle the end case - if we're within 0.1 seconds of the end, show 100%
     if (duration - currentTime < 0.1) return 100;
-
     const percent = (currentTime / duration) * 100;
     return Math.min(100, Math.max(0, percent));
   };
@@ -176,12 +165,12 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   const progressPercent = getProgressPercent();
 
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
+    <div className={cn("flex items-center gap-3", className)}>
       <audio ref={audioRef} src={src} preload="metadata" />
 
       <button
         onClick={togglePlay}
-        className="transition-colors cursor-pointer text-text hover:text-logo-primary"
+        className="transition-colors cursor-pointer text-foreground hover:text-primary"
         aria-label={isPlaying ? "Pause" : "Play"}
       >
         {isPlaying ? (
@@ -192,26 +181,29 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       </button>
 
       <div className="flex-1 flex items-center gap-2">
-        <span className="text-xs text-text/60 min-w-[30px] tabular-nums">
+        <span className="text-xs text-muted-foreground min-w-[30px] tabular-nums">
           {formatTime(currentTime)}
         </span>
 
-        <input
-          type="range"
-          min="0"
-          max={duration || 0}
-          step="0.01"
-          value={currentTime}
-          onChange={handleSeek}
-          onMouseDown={handleSliderMouseDown}
-          onTouchStart={handleSliderTouchStart}
-          className={`flex-1 h-1 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-logo-primary ${progressPercent >= 99.5 ? "[&::-webkit-slider-thumb]:translate-x-0.5 [&::-moz-range-thumb]:translate-x-0.5" : ""}`}
-          style={{
-            background: `linear-gradient(to right, #EF4444 0%, #EF4444 ${progressPercent}%, rgba(128, 128, 128, 0.2) ${progressPercent}%, rgba(128, 128, 128, 0.2) 100%)`,
-          }}
-        />
+        <div className="flex-1 relative h-2 bg-muted border border-border">
+          <div
+            className="absolute inset-y-0 left-0 bg-primary"
+            style={{ width: `${progressPercent}%` }}
+          />
+          <input
+            type="range"
+            min="0"
+            max={duration || 0}
+            step="0.01"
+            value={currentTime}
+            onChange={handleSeek}
+            onMouseDown={handleSliderMouseDown}
+            onTouchStart={handleSliderTouchStart}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          />
+        </div>
 
-        <span className="text-xs text-text/60 min-w-[30px] tabular-nums">
+        <span className="text-xs text-muted-foreground min-w-[30px] tabular-nums">
           {formatTime(duration)}
         </span>
       </div>

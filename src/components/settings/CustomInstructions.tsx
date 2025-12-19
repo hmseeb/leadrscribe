@@ -74,9 +74,9 @@ export const CustomInstructions: React.FC<CustomInstructionsProps> = React.memo(
             placeholder="Improve grammar, spelling, clarity, and flow while preserving the original meaning and tone."
             maxLength={MAX_LENGTH}
             rows={6}
-            className="w-full px-3 py-2 text-sm bg-mid-gray/10 border border-mid-gray/80 rounded resize-y transition-all duration-150 hover:bg-logo-primary/10 hover:border-logo-primary focus:outline-none focus:bg-logo-primary/20 focus:border-logo-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-3 py-2 text-sm bg-muted border border-border rounded resize-y transition-all duration-150 hover:bg-primary/10 hover:border-primary focus:outline-none focus:bg-primary/20 focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
           />
-          <div className={`text-xs text-right ${isNearLimit ? "text-orange-400" : "text-mid-gray"}`}>
+          <div className={`text-xs text-right ${isNearLimit ? "text-orange-400" : "text-muted-foreground"}`}>
             {charCount.toLocaleString()} / {MAX_LENGTH.toLocaleString()} characters
           </div>
         </div>

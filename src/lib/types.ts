@@ -43,6 +43,9 @@ export type ClipboardHandling = z.infer<typeof ClipboardHandlingSchema>;
 export const OutputModeSchema = z.enum(["transcript", "ghostwriter"]);
 export type OutputMode = z.infer<typeof OutputModeSchema>;
 
+export const ThemeModeSchema = z.enum(["system", "light", "dark"]);
+export type ThemeMode = z.infer<typeof ThemeModeSchema>;
+
 export const SettingsSchema = z.object({
   bindings: ShortcutBindingsMapSchema,
   push_to_talk: z.boolean(),
@@ -78,6 +81,7 @@ export const SettingsSchema = z.object({
     .optional()
     .default("Improve grammar, spelling, clarity, and flow while preserving the original meaning and tone."),
   active_profile_id: z.number().nullable().optional(),
+  theme_mode: ThemeModeSchema.optional().default("system"),
 });
 
 export const BindingResponseSchema = z.object({

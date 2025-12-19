@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus } from "lucide-react";
 import React, { useState, useEffect, useRef } from "react";
+import { cn } from "../../lib/utils";
 
 interface Tag {
   id: number;
@@ -56,7 +57,6 @@ export const TagInput: React.FC<TagInputProps> = ({
   const searchTags = async (query: string) => {
     try {
       const results: Tag[] = await invoke("search_tags", { query });
-      // Filter out already selected tags
       const filtered = results.filter(
         (tag) => !selectedTags.some((selected) => selected.id === tag.id)
       );
@@ -123,20 +123,20 @@ export const TagInput: React.FC<TagInputProps> = ({
 
   return (
     <div ref={containerRef} className="relative">
-      <div className="flex flex-wrap gap-2 p-2 border-3 border-pencil rounded-wobbly-lg bg-white focus-within:ring-2 focus-within:ring-blue-pen focus-within:border-blue-pen transition-all">
+      <div className="flex flex-wrap gap-2 p-2 border-2 border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:border-ring transition-all">
         {selectedTags.map((tag) => (
           <motion.div
             key={tag.id}
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             exit={{ scale: 0 }}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-wobbly text-sm font-medium text-white border-2 border-pencil"
+            className="inline-flex items-center gap-1 px-2 py-1 text-sm font-medium text-white border-2 border-border"
             style={{ backgroundColor: tag.color }}
           >
             {tag.name}
             <button
               onClick={() => removeTag(tag.id)}
-              className="hover:bg-black/20 rounded-wobbly p-0.5 transition-colors"
+              className="hover:bg-black/20 p-0.5 transition-colors"
             >
               <X className="w-3 h-3" />
             </button>
@@ -150,30 +150,29 @@ export const TagInput: React.FC<TagInputProps> = ({
           onKeyDown={handleKeyDown}
           onFocus={() => inputValue && setShowSuggestions(true)}
           placeholder={selectedTags.length === 0 ? placeholder : ""}
-          className="flex-1 min-w-[120px] outline-none bg-transparent text-pencil"
+          className="flex-1 min-w-[120px] outline-none bg-transparent text-foreground"
         />
       </div>
 
-      {/* Suggestions Dropdown */}
       <AnimatePresence>
         {showSuggestions && (suggestions.length > 0 || inputValue.trim()) && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute z-50 w-full mt-1 bg-white border-3 border-pencil rounded-wobbly-lg shadow-lg overflow-hidden"
+            className="absolute z-50 w-full mt-1 bg-popover border-2 border-border shadow-lg overflow-hidden"
           >
             {suggestions.map((tag) => (
               <button
                 key={tag.id}
                 onClick={() => selectTag(tag)}
-                className="w-full px-3 py-2 text-left hover:bg-post-it transition-colors flex items-center gap-2"
+                className="w-full px-3 py-2 text-left hover:bg-accent transition-colors flex items-center gap-2"
               >
                 <div
-                  className="w-3 h-3 rounded-full border-2 border-pencil"
+                  className="w-3 h-3 border-2 border-border"
                   style={{ backgroundColor: tag.color }}
                 />
-                <span className="text-pencil">{tag.name}</span>
+                <span className="text-popover-foreground">{tag.name}</span>
               </button>
             ))}
 
@@ -181,7 +180,7 @@ export const TagInput: React.FC<TagInputProps> = ({
               <button
                 onClick={createNewTag}
                 disabled={isCreating}
-                className="w-full px-3 py-2 text-left border-t-2 border-pencil hover:bg-old-paper transition-colors flex items-center gap-2 text-red-marker"
+                className="w-full px-3 py-2 text-left border-t-2 border-border hover:bg-muted transition-colors flex items-center gap-2 text-primary"
               >
                 <Plus className="w-4 h-4" />
                 <span>Create "{inputValue}"</span>

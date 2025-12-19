@@ -18,6 +18,7 @@ import { OpenRouterApiKey } from "./OpenRouterApiKey";
 import { OpenRouterModel } from "./OpenRouterModel";
 import { CustomInstructions } from "./CustomInstructions";
 import { CustomWords } from "./CustomWords";
+import { ThemeSelector } from "./ThemeSelector";
 import ModelSelector from "../model-selector";
 
 export const GeneralSettings: React.FC = () => {
@@ -30,11 +31,11 @@ export const GeneralSettings: React.FC = () => {
     <div className="max-w-3xl w-full mx-auto space-y-6">
       <div className="space-y-3 relative z-50">
         <div className="px-1">
-          <h2 className="text-sm font-kalam font-bold text-pencil tracking-tight">
+          <h2 className="text-sm font-sans font-bold text-foreground tracking-tight">
             Speech-to-Text Model
           </h2>
         </div>
-        <div className="bg-white border-3 border-pencil rounded-wobbly-lg shadow-md overflow-visible">
+        <div className="bg-card border-2 border-border  shadow-md overflow-visible">
           <div className="p-4 overflow-visible">
             <ModelSelector />
           </div>
@@ -43,6 +44,7 @@ export const GeneralSettings: React.FC = () => {
 
       <div className="relative z-40">
         <SettingsGroup title="General">
+          <ThemeSelector descriptionMode="tooltip" grouped={true} />
           <LeadrScribeShortcut descriptionMode="tooltip" grouped={true} />
           <LanguageSelector descriptionMode="tooltip" grouped={true} />
           <PushToTalk descriptionMode="tooltip" grouped={true} />

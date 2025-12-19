@@ -1,6 +1,7 @@
-import React from "react";
-import { motion } from "framer-motion";
+import * as React from "react";
 import { SettingContainer } from "./SettingContainer";
+import { Switch } from "./Switch";
+import { cn } from "../../lib/utils";
 
 interface ToggleSwitchProps {
   checked: boolean;
@@ -34,43 +35,19 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
       disabled={disabled}
       tooltipPosition={tooltipPosition}
     >
-      <label
-        className={`inline-flex items-center ${disabled || isUpdating ? "cursor-not-allowed" : "cursor-pointer"}`}
-      >
-        <input
-          type="checkbox"
-          value=""
-          className="sr-only"
+      <div className="relative">
+        <Switch
           checked={checked}
+          onCheckedChange={onChange}
           disabled={disabled || isUpdating}
-          onChange={(e) => onChange(e.target.checked)}
+          className={cn(isUpdating && "opacity-50")}
         />
-        <motion.div
-          className={`relative w-11 h-6 rounded-wobbly-full border-3 border-pencil transition-colors duration-100 ${
-            checked
-              ? "bg-red-marker"
-              : "bg-old-paper"
-          } ${disabled ? "opacity-50" : ""}`}
-          whileTap={disabled || isUpdating ? {} : { scale: 0.95 }}
-        >
-          <motion.div
-            className="absolute top-0 left-0 w-5 h-5 bg-white border-3 border-pencil rounded-wobbly-full shadow-sm"
-            animate={{
-              x: checked ? 20 : 0,
-            }}
-            transition={{
-              type: "spring",
-              stiffness: 600,
-              damping: 25,
-            }}
-          />
-        </motion.div>
-      </label>
-      {isUpdating && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-4 h-4 border-2 border-red-marker border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      )}
+        {isUpdating && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+      </div>
     </SettingContainer>
   );
 };

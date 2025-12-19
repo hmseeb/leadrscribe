@@ -80,14 +80,14 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
   };
 
   return (
-    <div className="absolute top-full left-0 mt-2 w-64 bg-background border border-mid-gray/20 rounded-lg shadow-lg py-2 z-[100]">
+    <div className="absolute top-full left-0 mt-2 w-64 bg-background border border-border rounded-lg shadow-lg py-2 z-[100]">
       {/* First Run Welcome */}
       {isFirstRun && (
-        <div className="px-3 py-2 bg-logo-primary/10 border-b border-logo-primary/20">
-          <div className="text-xs font-medium text-logo-primary mb-1">
+        <div className="px-3 py-2 bg-primary/10 border-b border-primary/20">
+          <div className="text-xs font-medium text-primary mb-1">
             Welcome to LeadrScribe!
           </div>
-          <div className="text-xs text-text/70">
+          <div className="text-xs text-foreground/70">
             Download a model below to get started with transcription.
           </div>
         </div>
@@ -96,7 +96,7 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
       {/* Available Models */}
       {availableModels.length > 0 && (
         <div>
-          <div className="px-3 py-1 text-xs font-medium text-text/80 border-b border-mid-gray/10">
+          <div className="px-3 py-1 text-xs font-medium text-foreground/80 border-b border-border">
             Available Models
           </div>
           {availableModels.map((model) => (
@@ -111,22 +111,22 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
               }}
               tabIndex={0}
               role="button"
-              className={`w-full px-3 py-2 text-left hover:bg-mid-gray/10 transition-colors cursor-pointer focus:outline-none ${
+              className={`w-full px-3 py-2 text-left hover:bg-muted transition-colors cursor-pointer focus:outline-none ${
                 currentModelId === model.id
-                  ? "bg-logo-primary/10 text-logo-primary"
+                  ? "bg-primary/10 text-primary"
                   : ""
               }`}
             >
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-sm">{model.name}</div>
-                  <div className="text-xs text-text/40 italic pr-4">
+                  <div className="text-xs text-muted-foreground italic pr-4">
                     {model.description}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {currentModelId === model.id && (
-                    <div className="text-xs text-logo-primary">Active</div>
+                    <div className="text-xs text-primary">Active</div>
                   )}
                   {currentModelId !== model.id && (
                     <button
@@ -158,9 +158,9 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
       {downloadableModels.length > 0 && (
         <div>
           {(availableModels.length > 0 || isFirstRun) && (
-            <div className="border-t border-mid-gray/10 my-1" />
+            <div className="border-t border-border my-1" />
           )}
-          <div className="px-3 py-1 text-xs font-medium text-text/80">
+          <div className="px-3 py-1 text-xs font-medium text-foreground/80">
             {isFirstRun ? "Choose a Model" : "Download Models"}
           </div>
           {downloadableModels.map((model) => {
@@ -185,7 +185,7 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
                 className={`w-full px-3 py-2 text-left transition-colors focus:outline-none ${
                   disabled
                     ? "opacity-50 cursor-not-allowed hover:bg-transparent"
-                    : "hover:bg-mid-gray/10 cursor-pointer"
+                    : "hover:bg-muted cursor-pointer"
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -193,7 +193,7 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
                     <div className="text-sm">
                       {model.name}
                       {model.id === "small" && isFirstRun && (
-                        <span className="ml-2 text-xs bg-logo-primary/20 text-logo-primary px-1.5 py-0.5 rounded">
+                        <span className="ml-2 text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded">
                           Recommended
                         </span>
                       )}
@@ -203,7 +203,7 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-text/40 italic pr-4">
+                    <div className="text-xs text-muted-foreground italic pr-4">
                       {model.description}
                     </div>
                     {incompatible ? (
@@ -211,12 +211,12 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
                         Requires AVX2 CPU support
                       </div>
                     ) : (
-                      <div className="mt-1 text-xs text-text/50 tabular-nums">
+                      <div className="mt-1 text-xs text-muted-foreground tabular-nums">
                         Download size · {formatModelSize(model.size_mb)}
                       </div>
                     )}
                   </div>
-                  <div className="text-xs text-logo-primary tabular-nums">
+                  <div className="text-xs text-primary tabular-nums">
                     {isDownloading && progress ? (
                       `${Math.max(0, Math.min(100, Math.round(progress.percentage)))}%`
                     ) : (
@@ -245,7 +245,7 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
 
       {/* No Models Available */}
       {availableModels.length === 0 && downloadableModels.length === 0 && (
-        <div className="px-3 py-2 text-sm text-text/60">
+        <div className="px-3 py-2 text-sm text-muted-foreground">
           No models available
         </div>
       )}

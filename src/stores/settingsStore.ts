@@ -54,6 +54,7 @@ const DEFAULT_SETTINGS: Partial<Settings> = {
   custom_words: [],
   history_limit: 5,
   mute_while_recording: false,
+  theme_mode: "system",
 };
 
 const DEFAULT_AUDIO_DEVICE: AudioDevice = {

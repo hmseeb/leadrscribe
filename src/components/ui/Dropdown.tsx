@@ -1,5 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ChevronDown } from "lucide-react";
+import { cn } from "../../lib/utils";
 
 export interface DropdownOption {
   value: string;
@@ -26,10 +28,10 @@ export const Dropdown: React.FC<DropdownProps> = ({
   disabled = false,
   onRefresh,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
@@ -43,7 +45,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
   }, []);
 
   const selectedOption = options.find(
-    (option) => option.value === selectedValue,
+    (option) => option.value === selectedValue
   );
 
   const handleSelect = (value: string) => {
@@ -58,37 +60,29 @@ export const Dropdown: React.FC<DropdownProps> = ({
   };
 
   return (
-    <div className={`relative ${className}`} ref={dropdownRef}>
+    <div className={cn("relative", className)} ref={dropdownRef}>
       <button
         type="button"
-        className={`px-3 py-2 text-sm font-medium bg-white border-3 border-pencil rounded-wobbly min-w-[200px] text-left flex items-center justify-between transition-all duration-100 shadow-md ${
+        className={cn(
+          "px-3 py-2 text-sm font-medium bg-background border-2 border-input min-w-[200px] text-left flex items-center justify-between transition-all shadow-md",
           disabled
             ? "opacity-50 cursor-not-allowed"
-            : "hover:border-blue-pen cursor-pointer hover:shadow-lg focus:outline-none focus:border-blue-pen focus:ring-2 focus:ring-blue-pen/30"
-        }`}
+            : "hover:border-ring cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"
+        )}
         onClick={handleToggle}
         disabled={disabled}
       >
-        <span className="truncate text-pencil">
+        <span className="truncate text-foreground">
           {selectedOption?.label || (
-            <span className="text-text-subtle">{placeholder}</span>
+            <span className="text-muted-foreground">{placeholder}</span>
           )}
         </span>
-        <motion.svg
-          className="w-4 h-4 ml-2 text-text-subtle"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2.5}
-          viewBox="0 0 24 24"
+        <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.15 }}
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M19 9l-7 7-7-7"
-          />
-        </motion.svg>
+          <ChevronDown className="h-4 w-4 ml-2 text-muted-foreground" />
+        </motion.div>
       </button>
       <AnimatePresence>
         {isOpen && !disabled && (
@@ -97,10 +91,10 @@ export const Dropdown: React.FC<DropdownProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.1 }}
-            className="absolute top-full left-0 right-0 mt-2 bg-white border-3 border-pencil rounded-wobbly-lg shadow-xl z-50 max-h-60 overflow-y-auto"
+            className="absolute top-full left-0 right-0 mt-2 bg-popover border-2 border-border shadow-lg z-50 max-h-60 overflow-y-auto"
           >
             {options.length === 0 ? (
-              <div className="px-3 py-2 text-sm text-text-subtle">
+              <div className="px-3 py-2 text-sm text-muted-foreground">
                 No options found
               </div>
             ) : (
@@ -108,11 +102,13 @@ export const Dropdown: React.FC<DropdownProps> = ({
                 <button
                   key={option.value}
                   type="button"
-                  className={`w-full px-3 py-2 text-sm text-left hover:bg-post-it transition-colors duration-100 first:rounded-t-wobbly-lg last:rounded-b-wobbly-lg ${
+                  className={cn(
+                    "w-full px-3 py-2 text-sm text-left transition-colors",
                     selectedValue === option.value
-                      ? "bg-old-paper text-pencil font-bold"
-                      : "text-pencil"
-                  } ${option.disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                      ? "bg-accent text-accent-foreground font-semibold"
+                      : "text-popover-foreground hover:bg-muted",
+                    option.disabled && "opacity-50 cursor-not-allowed"
+                  )}
                   onClick={() => handleSelect(option.value)}
                   disabled={option.disabled}
                 >
