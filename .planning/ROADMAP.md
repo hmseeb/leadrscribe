@@ -12,6 +12,7 @@ Transform LeadrScribe from settings-heavy desktop app to WisprFlow-style minimal
 
 ### Phase 1: Foundation - Overlay Redesign
 **Goal:** Replace current overlay with minimal floating pill design
+**Plans:** 3 plans
 
 **Deliverables:**
 - [ ] New floating pill component with WisprFlow-style design
@@ -23,6 +24,11 @@ Transform LeadrScribe from settings-heavy desktop app to WisprFlow-style minimal
 
 **Entry Criteria:** None (first phase)
 **Exit Criteria:** Overlay looks and feels like WisprFlow, replaces old overlay
+
+Plans:
+- [ ] 01-01-PLAN.md - Frontend UI redesign (React + CSS dark pill styling)
+- [ ] 01-02-PLAN.md - Backend FollowCursor positioning (Rust settings + overlay)
+- [ ] 01-03-PLAN.md - Visual verification checkpoint
 
 ---
 
