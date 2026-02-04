@@ -6,12 +6,12 @@
 ## Current Status
 
 **Phase:** 1 of 7 (Overlay Redesign)
-**Plan:** 1 of 2
-**Status:** In progress
-**Last activity:** 2026-02-04 - Completed 01-01-PLAN.md
+**Plan:** 2 of 2
+**Status:** Phase complete
+**Last activity:** 2026-02-04 - Completed 01-02-PLAN.md
 
-**Progress:** 1/14 plans complete (7%)
-░█░░░░░░░░░░░░ (1 of 14 plans across all phases)
+**Progress:** 2/14 plans complete (14%)
+░██░░░░░░░░░░░ (2 of 14 plans across all phases)
 
 ## Completed
 
@@ -25,7 +25,7 @@
 
 ### Phase 1: Overlay Redesign
 - [x] Plan 01-01: Overlay frontend redesign (WisprFlow-style dark pill)
-- [ ] Plan 01-02: Backend overlay positioning (top/bottom/follow cursor)
+- [x] Plan 01-02: Backend overlay positioning (top/bottom/follow cursor)
 
 ### Key Decisions Made
 
@@ -39,11 +39,14 @@
 | 01-01 | 7 audio bars (reduced from 9) | Cleaner visual | RecordingOverlay.tsx |
 | 01-01 | Subtler mic pulse (1.08x) with separate glow ring | Layered effect | RecordingOverlay.tsx |
 | 01-01 | Spring transitions under 300ms | Instant feel | RecordingOverlay.tsx |
+| 01-02 | FollowCursor positions 40px below cursor | Natural placement near cursor | src-tauri/src/overlay.rs |
+| 01-02 | Fallback to center-bottom if cursor unavailable | Graceful degradation | src-tauri/src/overlay.rs |
+| 01-02 | Updated overlay dimensions to 240x48 | Match new CSS from 01-01 | src-tauri/src/overlay.rs |
 
 ## In Progress
 
-**Current Plan:** 01-01 (Complete - waiting for 01-02)
-**Next Plan:** 01-02 - Backend overlay positioning
+**Current Plan:** None (Phase 1 complete)
+**Next Plan:** Phase 2 - Command Palette (or continue with Phase 1 Plan 03 if exists)
 
 ## Blocked
 
@@ -80,15 +83,16 @@ bun run tauri dev
 
 ## Session Continuity
 
-**Last session:** 2026-02-04 17:40:17 UTC
-**Stopped at:** Completed 01-01-PLAN.md (Overlay frontend redesign)
+**Last session:** 2026-02-04 22:27:18 UTC
+**Stopped at:** Completed 01-02-PLAN.md (Backend overlay positioning)
 **Resume file:** None
 
 ## Notes
 
 - User explicitly wants "WisprFlow-style" - invisible interface philosophy
-- Phase 1 Plan 01: Overlay frontend redesign ✓ COMPLETE
-- Phase 1 Plan 02: Backend overlay positioning - IN PROGRESS
+- Phase 1: Overlay Redesign ✓ COMPLETE (both plans)
+  - Plan 01: Overlay frontend redesign ✓ COMPLETE
+  - Plan 02: Backend overlay positioning ✓ COMPLETE
 - Command palette should be cmdk library (recommended by research)
 - Gradual migration recommended to avoid discoverability collapse
 
