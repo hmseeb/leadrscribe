@@ -9,8 +9,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 static HIDE_PENDING: AtomicBool = AtomicBool::new(false);
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewWindowBuilder};
 
-const OVERLAY_WIDTH: f64 = 220.0;
-const OVERLAY_HEIGHT: f64 = 42.0;
+const OVERLAY_WIDTH: f64 = 240.0;
+const OVERLAY_HEIGHT: f64 = 48.0;
 
 #[cfg(target_os = "macos")]
 const OVERLAY_TOP_OFFSET: f64 = 46.0;
@@ -57,28 +57,61 @@ fn is_mouse_within_monitor(
 }
 
 fn calculate_overlay_position(app_handle: &AppHandle) -> Option<(f64, f64)> {
-    if let Some(monitor) = get_monitor_with_cursor(app_handle) {
-            let work_area = monitor.work_area();
-            let scale = monitor.scale_factor();
-            let work_area_width = work_area.size.width as f64 / scale;
-            let work_area_height = work_area.size.height as f64 / scale;
-            let work_area_x = work_area.position.x as f64 / scale;
-            let work_area_y = work_area.position.y as f64 / scale;
+    let settings = settings::get_settings(app_handle);
+    let monitor = get_monitor_with_cursor(app_handle)?;
 
-            let settings = settings::get_settings(app_handle);
+    let work_area = monitor.work_area();
+    let scale = monitor.scale_factor();
+    let work_area_width = work_area.size.width as f64 / scale;
+    let work_area_height = work_area.size.height as f64 / scale;
+    let work_area_x = work_area.position.x as f64 / scale;
+    let work_area_y = work_area.position.y as f64 / scale;
 
+    let (x, y) = match settings.overlay_position {
+        OverlayPosition::FollowCursor => {
+            // Get cursor position
+            let cursor_pos = Enigo::new(&Default::default())
+                .ok()
+                .and_then(|e| e.location().ok());
+
+            if let Some((cx, cy)) = cursor_pos {
+                // Position below cursor with 40px offset
+                let cursor_x = cx as f64 / scale;
+                let cursor_y = cy as f64 / scale;
+
+                // Center overlay horizontally on cursor, but clamp to screen bounds
+                let x = (cursor_x - OVERLAY_WIDTH / 2.0).clamp(
+                    work_area_x,
+                    work_area_x + work_area_width - OVERLAY_WIDTH
+                );
+
+                // Position below cursor with offset, clamp to screen bounds
+                let y = (cursor_y + 40.0).clamp(
+                    work_area_y,
+                    work_area_y + work_area_height - OVERLAY_HEIGHT
+                );
+
+                (x, y)
+            } else {
+                // Fallback to center-bottom if cursor position unavailable
+                let x = work_area_x + (work_area_width - OVERLAY_WIDTH) / 2.0;
+                let y = work_area_y + work_area_height - OVERLAY_BOTTOM_OFFSET;
+                (x, y)
+            }
+        },
+        OverlayPosition::Top => {
             let x = work_area_x + (work_area_width - OVERLAY_WIDTH) / 2.0;
-            let y = match settings.overlay_position {
-                OverlayPosition::Top => work_area_y + OVERLAY_TOP_OFFSET,
-                OverlayPosition::Bottom | OverlayPosition::None => {
-                    // don't subtract the overlay height it puts it too far up
-                    work_area_y + work_area_height - OVERLAY_BOTTOM_OFFSET
-                }
-            };
-
-            return Some((x, y));
+            let y = work_area_y + OVERLAY_TOP_OFFSET;
+            (x, y)
+        },
+        OverlayPosition::Bottom | OverlayPosition::None => {
+            let x = work_area_x + (work_area_width - OVERLAY_WIDTH) / 2.0;
+            let y = work_area_y + work_area_height - OVERLAY_BOTTOM_OFFSET;
+            (x, y)
         }
-    None
+    };
+
+    Some((x, y))
 }
 
 /// Creates the recording overlay window and keeps it hidden by default
