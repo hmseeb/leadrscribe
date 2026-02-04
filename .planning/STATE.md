@@ -5,8 +5,13 @@
 
 ## Current Status
 
-**Phase:** Not started
-**Next Action:** Plan Phase 1 (Overlay Redesign)
+**Phase:** 1 of 7 (Overlay Redesign)
+**Plan:** 1 of 2
+**Status:** In progress
+**Last activity:** 2026-02-04 - Completed 01-01-PLAN.md
+
+**Progress:** 1/14 plans complete (7%)
+░█░░░░░░░░░░░░ (1 of 14 plans across all phases)
 
 ## Completed
 
@@ -18,17 +23,27 @@
 - [x] ROADMAP.md created with 7 phases
 - [x] config.json set (yolo mode, parallel, all workflow steps)
 
+### Phase 1: Overlay Redesign
+- [x] Plan 01-01: Overlay frontend redesign (WisprFlow-style dark pill)
+- [ ] Plan 01-02: Backend overlay positioning (top/bottom/follow cursor)
+
 ### Key Decisions Made
-- Eliminate main window entirely
-- All settings via command palette + tray menu
-- WisprFlow-style floating pill overlay
-- Dark minimal theme
-- User-configurable overlay position (top/bottom/follow cursor)
-- All 3 phases in v1 (core + power features + polish)
+
+| Phase | Decision | Rationale | Files Affected |
+|-------|----------|-----------|----------------|
+| Setup | Eliminate main window entirely | WisprFlow philosophy | Architecture |
+| Setup | All settings via command palette + tray menu | Minimal UI | Architecture |
+| Setup | User-configurable overlay position | UX flexibility | Architecture |
+| 01-01 | Pill shape 48px height, 24px radius | Perfect pill proportions | src/index.css |
+| 01-01 | Dark theme oklch(0.12 0 0) | Near-black without harshness | src/index.css |
+| 01-01 | 7 audio bars (reduced from 9) | Cleaner visual | RecordingOverlay.tsx |
+| 01-01 | Subtler mic pulse (1.08x) with separate glow ring | Layered effect | RecordingOverlay.tsx |
+| 01-01 | Spring transitions under 300ms | Instant feel | RecordingOverlay.tsx |
 
 ## In Progress
 
-None - ready to start Phase 1
+**Current Plan:** 01-01 (Complete - waiting for 01-02)
+**Next Plan:** 01-02 - Backend overlay positioning
 
 ## Blocked
 
@@ -63,10 +78,17 @@ cd /d C:\Users\hsbaz\leadrscribe
 bun run tauri dev
 ```
 
+## Session Continuity
+
+**Last session:** 2026-02-04 17:40:17 UTC
+**Stopped at:** Completed 01-01-PLAN.md (Overlay frontend redesign)
+**Resume file:** None
+
 ## Notes
 
 - User explicitly wants "WisprFlow-style" - invisible interface philosophy
-- Existing overlay at `src/overlay/` needs complete redesign
+- Phase 1 Plan 01: Overlay frontend redesign ✓ COMPLETE
+- Phase 1 Plan 02: Backend overlay positioning - IN PROGRESS
 - Command palette should be cmdk library (recommended by research)
 - Gradual migration recommended to avoid discoverability collapse
 
