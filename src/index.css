@@ -224,26 +224,43 @@ button {
 /* ===== RECORDING OVERLAY STYLES ===== */
 
 .recording-overlay {
-  height: 42px;
-  min-width: 220px;
+  height: 48px;
+  min-width: 240px;
   max-width: 600px;
+  border-radius: 24px;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 12px;
-  padding: 8px 16px;
-  background: var(--background);
-  border: 2px solid var(--border);
+  padding: 8px 20px;
+  background: oklch(0.12 0 0);
+  border: 1px solid oklch(0.25 0 0);
   opacity: 0;
   transition: all 300ms ease-out;
   box-sizing: border-box;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 8px 24px oklch(0 0 0 / 0.6);
+  backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
 }
 
 .recording-overlay.fade-in {
   opacity: 1;
+}
+
+/* Recording state - pulsing glow */
+.overlay-state-recording {
+  box-shadow: 0 8px 24px oklch(0 0 0 / 0.6), 0 0 0 1px oklch(0.6489 0.2370 26.9728 / 0.2);
+  animation: recording-pulse 2s ease-in-out infinite;
+}
+
+@keyframes recording-pulse {
+  0%, 100% {
+    box-shadow: 0 8px 24px oklch(0 0 0 / 0.6), 0 0 0 1px oklch(0.6489 0.2370 26.9728 / 0.2);
+  }
+  50% {
+    box-shadow: 0 8px 24px oklch(0 0 0 / 0.6), 0 0 20px oklch(0.6489 0.2370 26.9728 / 0.4);
+  }
 }
 
 /* Ghostwriting state - gradient animation */
@@ -271,8 +288,8 @@ button {
   content: '';
   position: absolute;
   inset: 0;
-  background: var(--background);
-  opacity: 0.9;
+  background: oklch(0.12 0 0);
+  opacity: 0.85;
   z-index: 0;
 }
 
@@ -282,19 +299,19 @@ button {
 }
 
 .overlay-state-ghostwriting {
-  border-color: var(--accent);
-  box-shadow: 4px 4px 0px 0px var(--accent);
+  border-color: oklch(0.5635 0.2408 260.8178 / 0.5);
+  box-shadow: 0 8px 24px oklch(0 0 0 / 0.6), 0 0 20px oklch(0.5635 0.2408 260.8178 / 0.3);
 }
 
 /* Error state */
 .overlay-state-error {
-  border-color: var(--primary);
-  box-shadow: 4px 4px 0px 0px var(--primary);
-  background: var(--secondary);
+  border-color: oklch(0.6489 0.2370 26.9728 / 0.6);
+  box-shadow: 0 8px 24px oklch(0 0 0 / 0.6), 0 0 20px oklch(0.6489 0.2370 26.9728 / 0.4);
+  background: oklch(0.15 0.05 25);
 }
 
 .overlay-state-error .transcribing-text {
-  color: var(--primary);
+  color: oklch(0.8 0.2 25);
   font-weight: 600;
 }
 
@@ -336,9 +353,10 @@ button {
 }
 
 .bar {
-  width: 6px;
-  background: var(--primary);
-  max-height: 22px;
+  width: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to top, var(--primary), var(--accent));
+  max-height: 24px;
   min-height: 4px;
 }
 
@@ -363,28 +381,62 @@ button {
 .cancel-button {
   width: 26px;
   height: 26px;
-  background: var(--card);
-  border: 2px solid var(--border);
+  background: oklch(0.18 0 0);
+  border: 1px solid oklch(0.3 0 0);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 150ms ease-out, transform 100ms ease-out;
+  transition: all 150ms ease-out;
   flex-shrink: 0;
   margin-left: 4px;
-  color: var(--destructive);
+  color: oklch(0.6 0.2 25);
 }
 
 .cancel-button:hover {
-  background: var(--destructive);
-  color: var(--destructive-foreground);
+  background: oklch(0.22 0.05 25);
+  border-color: oklch(0.6489 0.2370 26.9728);
+  box-shadow: 0 0 12px oklch(0.6489 0.2370 26.9728 / 0.3);
+  color: oklch(0.8 0.2 25);
 }
 
 .cancel-button:active {
-  background: var(--destructive);
-  color: var(--destructive-foreground);
-  transform: translateX(2px) translateY(2px);
+  background: oklch(0.25 0.08 25);
+  transform: scale(0.95);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .recording-overlay {
+    transition: none;
+  }
+
+  .overlay-state-recording {
+    animation: none;
+  }
+
+  .overlay-state-ghostwriting::before {
+    animation: none;
+  }
+
+  @keyframes recording-pulse {
+    0%, 100% {
+      box-shadow: 0 8px 24px oklch(0 0 0 / 0.6), 0 0 0 1px oklch(0.6489 0.2370 26.9728 / 0.2);
+    }
+  }
+
+  @keyframes ai-gradient-rotate {
+    0%, 100% {
+      transform: rotate(0deg);
+    }
+  }
+
+  @keyframes transcribing-pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+  }
 }
 
 /* ===== UTILITY CLASSES ===== */
