@@ -15,7 +15,7 @@ const RecordingOverlay: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [state, setState] = useState<OverlayState>("recording");
   const [errorMessage, setErrorMessage] = useState<string>("");
-  const [levels, setLevels] = useState<number[]>(Array(16).fill(0));
+  const [levels, setLevels] = useState<number[]>(Array(7).fill(0));
   const smoothedLevelsRef = useRef<number[]>(Array(16).fill(0));
 
   useEffect(() => {
@@ -37,7 +37,7 @@ const RecordingOverlay: React.FC = () => {
           return prev * 0.7 + target * 0.3;
         });
         smoothedLevelsRef.current = smoothed;
-        setLevels(smoothed.slice(0, 9));
+        setLevels(smoothed.slice(0, 7));
       });
 
       const unlistenChunk = await listen<string>("ghostwriter-chunk", () => {});
@@ -99,109 +99,140 @@ const RecordingOverlay: React.FC = () => {
     }
   };
 
-  if (!isVisible) {
-    return null;
-  }
-
   return (
-    <motion.div
-      className={cn(
-        "recording-overlay",
-        isVisible && "fade-in",
-        `overlay-state-${state}`
-      )}
-      initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{
-        scale: { type: "spring", stiffness: 300, damping: 25 },
-      }}
-    >
-      <div className="overlay-left">
+    <AnimatePresence>
+      {isVisible && (
         <motion.div
-          animate={{
-            scale: state === "recording" ? [1, 1.1, 1] : 1
-          }}
+          className={cn(
+            "recording-overlay",
+            "fade-in",
+            `overlay-state-${state}`
+          )}
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
           transition={{
-            duration: 1.5,
-            repeat: state === "recording" ? Infinity : 0,
-            ease: "easeInOut"
+            type: "spring",
+            stiffness: 400,
+            damping: 30,
+            duration: 0.25,
           }}
         >
-          {getIcon()}
-        </motion.div>
-      </div>
-
-      <div className="overlay-middle">
-        {state === "recording" && (
-          <div className="bars-container">
-            {levels.map((v, i) => (
+          <div className="overlay-left">
+            <div style={{ position: "relative" }}>
+              {/* Pulsing glow ring */}
+              {state === "recording" && (
+                <motion.div
+                  style={{
+                    position: "absolute",
+                    inset: -8,
+                    borderRadius: "50%",
+                    background: "radial-gradient(circle, oklch(0.6489 0.2370 26.9728 / 0.4) 0%, transparent 70%)",
+                    pointerEvents: "none",
+                  }}
+                  animate={{
+                    scale: [1, 1.3, 1],
+                    opacity: [0.4, 0, 0.4],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
+              )}
+              {/* Mic icon pulse */}
               <motion.div
-                key={i}
-                className="bar"
                 animate={{
-                  height: `${Math.min(20, 4 + Math.pow(v, 0.7) * 16)}px`,
-                  opacity: Math.max(0.3, v * 1.7),
+                  scale: state === "recording" ? [1, 1.08, 1] : 1
                 }}
                 transition={{
-                  type: "spring",
-                  stiffness: 400,
-                  damping: 20,
+                  duration: 1.2,
+                  repeat: state === "recording" ? Infinity : 0,
+                  ease: "easeInOut"
                 }}
-              />
-            ))}
+              >
+                {getIcon()}
+              </motion.div>
+            </div>
           </div>
-        )}
-        <AnimatePresence>
-          {state === "transcribing" && (
-            <motion.div
-              className="transcribing-text"
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 5 }}
-            >
-              Transcribing...
-            </motion.div>
-          )}
-          {state === "ghostwriting" && (
-            <motion.div
-              className="transcribing-text"
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 5 }}
-            >
-              Ghostwriting...
-            </motion.div>
-          )}
-          {state === "error" && (
-            <motion.div
-              className="transcribing-text max-w-[400px] text-sm font-semibold leading-relaxed text-center"
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 5 }}
-            >
-              <div>Warning: {errorMessage}</div>
-              <div className="text-xs mt-1 font-normal">
-                Original transcription pasted
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
 
-      <div className="overlay-right">
-        <motion.div
-          className="cancel-button"
-          onClick={() => {
-            invoke("cancel_operation");
-          }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          title="Cancel (ESC)"
-        >
-          <CancelIcon />
+          <div className="overlay-middle">
+            {state === "recording" && (
+              <div className="bars-container">
+                {levels.map((v, i) => (
+                  <motion.div
+                    key={i}
+                    className="bar"
+                    animate={{
+                      height: `${Math.min(24, 4 + Math.pow(v, 0.7) * 20)}px`,
+                      opacity: Math.max(0.3, v * 1.7),
+                    }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 400,
+                      damping: 20,
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+            <AnimatePresence mode="wait">
+              {state === "transcribing" && (
+                <motion.div
+                  className="transcribing-text"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  Transcribing...
+                </motion.div>
+              )}
+              {state === "ghostwriting" && (
+                <motion.div
+                  className="transcribing-text"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  Ghostwriting...
+                </motion.div>
+              )}
+              {state === "error" && (
+                <motion.div
+                  className="transcribing-text max-w-[400px] text-sm font-semibold leading-relaxed text-center"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div>Warning: {errorMessage}</div>
+                  <div className="text-xs mt-1 font-normal">
+                    Original transcription pasted
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <div className="overlay-right">
+            <motion.div
+              className="cancel-button"
+              onClick={() => {
+                invoke("cancel_operation");
+              }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              title="Cancel (ESC)"
+            >
+              <CancelIcon />
+            </motion.div>
+          </div>
         </motion.div>
-      </div>
-    </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 
