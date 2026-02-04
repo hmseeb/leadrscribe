@@ -19,6 +19,7 @@ pub enum OverlayPosition {
     None,
     Top,
     Bottom,
+    FollowCursor,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
