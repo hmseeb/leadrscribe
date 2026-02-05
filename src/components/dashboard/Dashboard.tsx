@@ -279,7 +279,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -50, scale: 0.9 }}
             transition={{ type: "spring", stiffness: 600, damping: 20 }}
-            className="bg-destructive text-destructive-foreground border-2 border-border p-4 text-center font-bold text-lg shadow-md"
+            className="bg-primary text-primary-foreground rounded-lg border border-border p-4 text-center font-bold text-lg "
           >
             {celebrationMessage}
           </motion.div>
@@ -358,7 +358,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 key={profile.id}
                 onClick={() => handleProfileSelect(profile)}
                 className={`
-                  flex items-center gap-3 px-4 py-3  border-2 border-border transition-all cursor-pointer shadow-md hover:shadow-lg active:shadow-sm active:translate-x-[2px] active:translate-y-[2px]
+                  flex items-center gap-3 px-4 py-3 rounded-lg border border-border transition-all cursor-pointer  hover:shadow-md
                   ${
                     selectedProfile?.id === profile.id
                       ? "bg-secondary"
@@ -367,7 +367,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 `}
               >
                 <div
-                  className="w-10 h-10  flex items-center justify-center text-2xl flex-shrink-0 border-2 border-border"
+                  className="w-10 h-10 rounded-lg flex items-center justify-center text-2xl flex-shrink-0"
                   style={{ backgroundColor: profile.color + "20" }}
                 >
                   {profile.icon}
@@ -425,7 +425,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </div>
 
         {recentEntries.length === 0 ? (
-          <div className="text-center py-12 px-4 bg-card  border-2 border-dashed border-border shadow-md">
+          <div className="text-center py-12 px-4 bg-card rounded-lg border border-dashed border-border/50 ">
             <FileText className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
             <p className="text-muted-foreground mb-4">
               {searchQuery
@@ -447,7 +447,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
                 onClick={() => handleEntryClick(entry)}
-                className="group bg-card  p-4 border-2 border-border hover:bg-secondary hover:shadow-lg shadow-md transition-all cursor-pointer"
+                className="group bg-card rounded-lg p-4 border border-border hover:border-primary/30 hover:bg-muted/50 transition-all cursor-pointer"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -474,12 +474,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                       e.stopPropagation();
                       toggleSaved(entry);
                     }}
-                    className="shrink-0 p-2 hover:bg-muted  transition-colors"
+                    className="shrink-0 p-2 hover:bg-muted rounded-lg transition-colors"
                   >
                     <Star
                       className={`w-5 h-5 ${
                         entry.saved
-                          ? "fill-destructive text-destructive"
+                          ? "fill-amber-400 text-amber-400"
                           : "text-muted-foreground"
                       }`}
                     />
@@ -511,18 +511,18 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ icon, label, value, color }) => {
   const colorClasses = {
-    blue: "bg-secondary text-secondary-foreground",
-    green: "bg-secondary text-secondary-foreground",
-    purple: "bg-secondary text-secondary-foreground",
-    amber: "bg-secondary text-secondary-foreground",
+    blue: "text-blue-400",
+    green: "text-emerald-400",
+    purple: "text-primary",
+    amber: "text-amber-400",
   };
 
   return (
-    <div className="bg-card  p-4 border-2 border-border shadow-md transition-transform">
-      <div className={`inline-flex p-2  mb-3 border-2 border-border ${colorClasses[color]}`}>
+    <div className="bg-card rounded-lg p-4 border border-border hover:border-border/80 transition-colors">
+      <div className={`inline-flex p-2.5 rounded-lg bg-muted mb-3 ${colorClasses[color]}`}>
         {icon}
       </div>
-      <div className="text-2xl font-bold text-foreground mb-1">
+      <div className="text-2xl font-semibold text-foreground mb-1">
         {value}
       </div>
       <div className="text-sm text-muted-foreground">

@@ -9,8 +9,10 @@ use std::fs::File;
 use tokio::io::AsyncWriteExt;
 use std::path::PathBuf;
 use std::sync::Mutex;
+use std::time::Duration;
 use tar::Archive;
 use tauri::{AppHandle, Emitter, Manager};
+use tokio_util::sync::CancellationToken;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EngineType {
@@ -47,6 +49,7 @@ pub struct ModelManager {
     app_handle: AppHandle,
     models_dir: PathBuf,
     available_models: Mutex<HashMap<String, ModelInfo>>,
+    download_tokens: Mutex<HashMap<String, CancellationToken>>,
 }
 
 impl ModelManager {
@@ -185,6 +188,7 @@ impl ModelManager {
             app_handle: app_handle.clone(),
             models_dir,
             available_models: Mutex::new(available_models),
+            download_tokens: Mutex::new(HashMap::new()),
         };
 
         // Migrate any bundled models to user directory
@@ -336,6 +340,22 @@ impl ModelManager {
             return Ok(());
         }
 
+        // Cancel any existing download for this model
+        {
+            let mut tokens = self.download_tokens.lock().unwrap();
+            if let Some(existing_token) = tokens.remove(model_id) {
+                println!("Cancelling existing download for model: {}", model_id);
+                existing_token.cancel();
+            }
+        }
+
+        // Create a new cancellation token for this download
+        let cancel_token = CancellationToken::new();
+        {
+            let mut tokens = self.download_tokens.lock().unwrap();
+            tokens.insert(model_id.to_string(), cancel_token.clone());
+        }
+
         // Check if we have a partial download to resume
         let resume_from = if partial_path.exists() {
             let size = partial_path.metadata()?.len();
@@ -354,15 +374,62 @@ impl ModelManager {
             }
         }
 
-        // Create HTTP client with range request for resuming
-        let client = reqwest::Client::new();
+        // Create HTTP client with timeout
+        let client = reqwest::Client::builder()
+            .connect_timeout(Duration::from_secs(30))
+            .timeout(Duration::from_secs(300)) // 5 minute timeout for slow connections
+            .build()?;
+
         let mut request = client.get(&url);
 
         if resume_from > 0 {
             request = request.header("Range", format!("bytes={}-", resume_from));
         }
 
-        let response = request.send().await?;
+        let response = match request.send().await {
+            Ok(resp) => resp,
+            Err(e) => {
+                // Mark as not downloading on error
+                {
+                    let mut models = self.available_models.lock().unwrap();
+                    if let Some(model) = models.get_mut(model_id) {
+                        model.is_downloading = false;
+                    }
+                }
+                // Emit error event
+                let _ = self.app_handle.emit("model-download-error", &serde_json::json!({
+                    "model_id": model_id,
+                    "error": format!("Failed to connect: {}", e)
+                }));
+                return Err(anyhow::anyhow!("Failed to connect: {}", e));
+            }
+        };
+
+        // Handle 416 Range Not Satisfiable - delete partial and start fresh
+        let (response, resume_from) = if response.status() == reqwest::StatusCode::RANGE_NOT_SATISFIABLE && resume_from > 0 {
+            println!("Got 416 Range Not Satisfiable, deleting partial file and restarting download");
+            // Delete the partial file
+            if partial_path.exists() {
+                let _ = fs::remove_file(&partial_path);
+            }
+            // Make a fresh request without Range header
+            let fresh_response = client.get(&url).send().await.map_err(|e| {
+                {
+                    let mut models = self.available_models.lock().unwrap();
+                    if let Some(model) = models.get_mut(model_id) {
+                        model.is_downloading = false;
+                    }
+                }
+                let _ = self.app_handle.emit("model-download-error", &serde_json::json!({
+                    "model_id": model_id,
+                    "error": format!("Failed to connect on retry: {}", e)
+                }));
+                anyhow::anyhow!("Failed to connect on retry: {}", e)
+            })?;
+            (fresh_response, 0u64)
+        } else {
+            (response, resume_from)
+        };
 
         // Check for success or partial content status
         if !response.status().is_success()
@@ -375,6 +442,10 @@ impl ModelManager {
                     model.is_downloading = false;
                 }
             }
+            let _ = self.app_handle.emit("model-download-error", &serde_json::json!({
+                "model_id": model_id,
+                "error": format!("HTTP error: {}", response.status())
+            }));
             return Err(anyhow::anyhow!(
                 "Failed to download model: HTTP {}",
                 response.status()
@@ -387,6 +458,11 @@ impl ModelManager {
         } else {
             response.content_length().unwrap_or(0)
         };
+
+        // If server didn't return content length, emit a warning but continue
+        if total_size == 0 {
+            println!("Warning: Server did not return Content-Length for model {}", model_id);
+        }
 
         let mut downloaded = resume_from;
         let mut stream = response.bytes_stream();
@@ -417,37 +493,65 @@ impl ModelManager {
             .app_handle
             .emit("model-download-progress", &initial_progress);
 
-        // Download with progress
-        while let Some(chunk) = stream.next().await {
-            let chunk = chunk.map_err(|e| {
-                // Mark as not downloading on error
-                {
-                    let mut models = self.available_models.lock().unwrap();
-                    if let Some(model) = models.get_mut(model_id) {
-                        model.is_downloading = false;
+        // Download with progress, checking cancellation token
+        loop {
+            tokio::select! {
+                _ = cancel_token.cancelled() => {
+                    println!("Download cancelled for model: {}", model_id);
+                    // Mark as not downloading
+                    {
+                        let mut models = self.available_models.lock().unwrap();
+                        if let Some(model) = models.get_mut(model_id) {
+                            model.is_downloading = false;
+                        }
+                    }
+                    let _ = self.app_handle.emit("model-download-cancelled", model_id);
+                    return Ok(());
+                }
+                chunk_result = stream.next() => {
+                    match chunk_result {
+                        Some(Ok(chunk)) => {
+                            file.write_all(&chunk).await?;
+                            downloaded += chunk.len() as u64;
+
+                            let percentage = if total_size > 0 {
+                                (downloaded as f64 / total_size as f64) * 100.0
+                            } else {
+                                // If no content length, show indeterminate progress
+                                -1.0
+                            };
+
+                            // Emit progress event
+                            let progress = DownloadProgress {
+                                model_id: model_id.to_string(),
+                                downloaded,
+                                total: total_size,
+                                percentage,
+                            };
+
+                            let _ = self.app_handle.emit("model-download-progress", &progress);
+                        }
+                        Some(Err(e)) => {
+                            // Mark as not downloading on error
+                            {
+                                let mut models = self.available_models.lock().unwrap();
+                                if let Some(model) = models.get_mut(model_id) {
+                                    model.is_downloading = false;
+                                }
+                            }
+                            let _ = self.app_handle.emit("model-download-error", &serde_json::json!({
+                                "model_id": model_id,
+                                "error": format!("Download error: {}", e)
+                            }));
+                            return Err(anyhow::anyhow!("Download error: {}", e));
+                        }
+                        None => {
+                            // Download complete
+                            break;
+                        }
                     }
                 }
-                e
-            })?;
-
-            file.write_all(&chunk).await?;
-            downloaded += chunk.len() as u64;
-
-            let percentage = if total_size > 0 {
-                (downloaded as f64 / total_size as f64) * 100.0
-            } else {
-                0.0
-            };
-
-            // Emit progress event
-            let progress = DownloadProgress {
-                model_id: model_id.to_string(),
-                downloaded,
-                total: total_size,
-                percentage,
-            };
-
-            let _ = self.app_handle.emit("model-download-progress", &progress);
+            }
         }
 
         file.flush().await?;
@@ -683,6 +787,15 @@ impl ModelManager {
         let _model_info =
             _model_info.ok_or_else(|| anyhow::anyhow!("Model not found: {}", model_id))?;
 
+        // Cancel the download by triggering the cancellation token
+        {
+            let mut tokens = self.download_tokens.lock().unwrap();
+            if let Some(token) = tokens.remove(model_id) {
+                println!("ModelManager: Triggering cancellation for: {}", model_id);
+                token.cancel();
+            }
+        }
+
         // Mark as not downloading
         {
             let mut models = self.available_models.lock().unwrap();
@@ -690,10 +803,6 @@ impl ModelManager {
                 model.is_downloading = false;
             }
         }
-
-        // Note: The actual download cancellation would need to be handled
-        // by the download task itself. This just updates the state.
-        // The partial file is kept so the download can be resumed later.
 
         // Update download status to reflect current state
         self.update_download_status()?;

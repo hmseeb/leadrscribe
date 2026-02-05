@@ -35,7 +35,7 @@ export const GeneralSettings: React.FC = () => {
             Speech-to-Text Model
           </h2>
         </div>
-        <div className="bg-card border-2 border-border  shadow-md overflow-visible">
+        <div className="bg-card rounded-xl border border-border/30 shadow-sm overflow-visible">
           <div className="p-4 overflow-visible">
             <ModelSelector />
           </div>

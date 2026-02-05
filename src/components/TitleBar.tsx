@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { Minus, Square, X, Copy } from "lucide-react";
 import LeadrScribeIcon from "./icons/LeadrScribeIcon";
 
 export const TitleBar: React.FC = () => {
@@ -45,7 +46,7 @@ export const TitleBar: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-between h-10 bg-background border-b-2 border-border select-none">
+    <div className="flex items-center justify-between h-10 bg-sidebar border-b border-sidebar-border select-none">
       {/* Logo - Draggable Area */}
       <div
         data-tauri-drag-region
@@ -55,32 +56,27 @@ export const TitleBar: React.FC = () => {
       </div>
 
       {/* Window Controls */}
-      <div className="flex items-center gap-2 pr-3 h-full">
-        {/* Minimize Button */}
+      <div className="flex items-center h-full">
         <button
           onMouseDown={handleMinimize}
-          className="w-5 h-5 bg-secondary border-2 border-border hover:shadow-md transition-all duration-100 flex items-center justify-center text-secondary-foreground text-sm font-bold"
+          className="h-full px-3 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           aria-label="Minimize"
         >
-          −
+          <Minus className="w-4 h-4" />
         </button>
-
-        {/* Maximize/Restore Button */}
         <button
           onMouseDown={handleMaximize}
-          className="w-5 h-5 bg-muted border-2 border-border hover:shadow-md transition-all duration-100 flex items-center justify-center text-foreground text-[10px] font-bold"
+          className="h-full px-3 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           aria-label={isMaximized ? "Restore" : "Maximize"}
         >
-          {isMaximized ? "◱" : "□"}
+          {isMaximized ? <Copy className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
         </button>
-
-        {/* Close Button */}
         <button
           onMouseDown={handleClose}
-          className="w-5 h-5 bg-primary border-2 border-border hover:shadow-md transition-all duration-100 flex items-center justify-center text-primary-foreground text-sm font-bold"
+          className="h-full px-3 flex items-center justify-center text-muted-foreground hover:text-white hover:bg-rose-600 transition-colors"
           aria-label="Close"
         >
-          ✕
+          <X className="w-4 h-4" />
         </button>
       </div>
     </div>

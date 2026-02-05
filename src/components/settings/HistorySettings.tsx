@@ -293,7 +293,7 @@ export const HistorySettings: React.FC = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="bg-card  p-4 space-y-4 border-2 border-border shadow-md"
+            className="bg-card rounded-xl p-4 space-y-4 border border-border/30 shadow-sm"
           >
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-foreground">
@@ -317,7 +317,7 @@ export const HistorySettings: React.FC = () => {
                 <select
                   value={dateFilter}
                   onChange={(e) => setDateFilter(e.target.value as DateFilter)}
-                  className="w-full px-3 py-2 border-2 border-border  bg-card text-foreground"
+                  className="w-full px-3 py-2 rounded-lg border border-border/50 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="all">All Time</option>
                   <option value="today">Today</option>
@@ -355,7 +355,7 @@ export const HistorySettings: React.FC = () => {
                     onChange={(e) =>
                       setSelectedProfile(e.target.value ? Number(e.target.value) : null)
                     }
-                    className="w-full px-3 py-2 border-2 border-border  bg-card text-foreground"
+                    className="w-full px-3 py-2 rounded-lg border border-border/50 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="">All Profiles</option>
                     {profiles.map((profile) => (

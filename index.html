@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,10 +7,113 @@
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+        <style>
+            /* Use exact OKLCH colors from dark theme */
+            html, body {
+                margin: 0;
+                padding: 0;
+                background-color: oklch(0.16 0.01 270);
+            }
+            .loading-skeleton {
+                display: flex;
+                flex-direction: column;
+                height: 100vh;
+                background-color: oklch(0.16 0.01 270);
+            }
+            .loading-titlebar {
+                height: 40px;
+                background-color: oklch(0.14 0.012 270);
+                border-bottom: 1px solid oklch(0.24 0.01 270);
+            }
+            .loading-main {
+                display: flex;
+                flex: 1;
+            }
+            .loading-sidebar {
+                width: 180px;
+                background-color: oklch(0.14 0.012 270);
+                padding: 16px 12px;
+                border-right: 1px solid oklch(0.24 0.01 270);
+            }
+            .loading-content {
+                flex: 1;
+                padding: 32px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            .shimmer {
+                background: linear-gradient(90deg, oklch(0.22 0.01 270) 25%, oklch(0.28 0.01 270) 50%, oklch(0.22 0.01 270) 75%);
+                background-size: 200% 100%;
+                animation: shimmer 1.5s infinite;
+                border-radius: 8px;
+            }
+            .shimmer-sm { height: 12px; }
+            .shimmer-md { height: 20px; }
+            .shimmer-lg { height: 40px; }
+            .shimmer-icon { width: 20px; height: 20px; border-radius: 6px; }
+            .sidebar-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 8px;
+                padding: 8px;
+                border-radius: 8px;
+            }
+            .content-card {
+                width: 100%;
+                max-width: 640px;
+                background-color: oklch(0.19 0.012 270);
+                border-radius: 12px;
+                padding: 20px;
+                margin-bottom: 16px;
+            }
+            @keyframes shimmer {
+                0% { background-position: 200% 0; }
+                100% { background-position: -200% 0; }
+            }
+        </style>
     </head>
 
     <body>
-        <div id="root"></div>
+        <div id="root">
+            <!-- Loading skeleton shown before React hydrates -->
+            <div class="loading-skeleton">
+                <div class="loading-titlebar"></div>
+                <div class="loading-main">
+                    <div class="loading-sidebar">
+                        <div class="sidebar-item">
+                            <div class="shimmer shimmer-icon"></div>
+                            <div class="shimmer shimmer-sm" style="width: 80px;"></div>
+                        </div>
+                        <div class="sidebar-item">
+                            <div class="shimmer shimmer-icon"></div>
+                            <div class="shimmer shimmer-sm" style="width: 60px;"></div>
+                        </div>
+                        <div class="sidebar-item">
+                            <div class="shimmer shimmer-icon"></div>
+                            <div class="shimmer shimmer-sm" style="width: 70px;"></div>
+                        </div>
+                        <div class="sidebar-item">
+                            <div class="shimmer shimmer-icon"></div>
+                            <div class="shimmer shimmer-sm" style="width: 50px;"></div>
+                        </div>
+                    </div>
+                    <div class="loading-content">
+                        <div class="content-card">
+                            <div class="shimmer shimmer-md" style="width: 60%; margin-bottom: 16px;"></div>
+                            <div class="shimmer shimmer-lg" style="width: 100%;"></div>
+                        </div>
+                        <div class="content-card">
+                            <div class="shimmer shimmer-md" style="width: 40%; margin-bottom: 16px;"></div>
+                            <div class="shimmer shimmer-sm" style="width: 100%; margin-bottom: 12px;"></div>
+                            <div class="shimmer shimmer-sm" style="width: 100%; margin-bottom: 12px;"></div>
+                            <div class="shimmer shimmer-sm" style="width: 80%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <script type="module" src="/src/main.tsx"></script>
     </body>
 </html>

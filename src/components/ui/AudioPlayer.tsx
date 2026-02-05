@@ -185,9 +185,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           {formatTime(currentTime)}
         </span>
 
-        <div className="flex-1 relative h-2 bg-muted border border-border">
+        <div className="flex-1 relative h-2 bg-muted rounded-full border border-border/30">
           <div
-            className="absolute inset-y-0 left-0 bg-primary"
+            className="absolute inset-y-0 left-0 bg-primary rounded-full"
             style={{ width: `${progressPercent}%` }}
           />
           <input

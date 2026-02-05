@@ -201,7 +201,7 @@ export const ProfileManager: React.FC = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="bg-card  p-6 border-2 border-border shadow-md"
+            className="bg-card rounded-lg p-6 border border-border "
           >
             <h3 className="text-lg font-sans font-bold text-foreground mb-4">
               {editingId ? "Edit Profile" : "Create New Profile"}
@@ -219,7 +219,7 @@ export const ProfileManager: React.FC = () => {
                       key={icon}
                       onClick={() => setFormData({ ...formData, icon })}
                       className={`
-                        w-12 h-12 text-2xl  border-2 border-border transition-all
+                        w-12 h-12 text-2xl rounded-lg border border-border transition-all
                         ${
                           formData.icon === icon
                             ? "bg-secondary"
@@ -244,7 +244,7 @@ export const ProfileManager: React.FC = () => {
                       key={color}
                       onClick={() => setFormData({ ...formData, color })}
                       className={`
-                        w-10 h-10  border-2 transition-all
+                        w-10 h-10 rounded-lg border transition-all
                         ${
                           formData.color === color
                             ? "border-border scale-110"
@@ -301,7 +301,7 @@ export const ProfileManager: React.FC = () => {
                     })
                   }
                   placeholder="Tell the AI how to format your transcriptions for this context... (20-10,000 characters)"
-                  className="w-full px-3 py-2 border-2 border-border  bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   rows={4}
                   maxLength={10000}
                 />
@@ -352,11 +352,11 @@ export const ProfileManager: React.FC = () => {
             layout
             onClick={() => handleProfileActivate(profile.id)}
             className={`
-               p-4 border-2 transition-all cursor-pointer
+              rounded-lg p-4 border transition-all cursor-pointer
               ${
                 activeProfileId === profile.id
-                  ? "border-accent bg-secondary shadow-md"
-                  : "bg-card border-border hover:bg-muted"
+                  ? "bg-primary/10 border-primary/40 shadow-sm"
+                  : "bg-card border-border hover:border-primary/20 hover:bg-muted/50"
               }
             `}
           >
@@ -374,7 +374,7 @@ export const ProfileManager: React.FC = () => {
                       {profile.name}
                     </h3>
                     {activeProfileId === profile.id && (
-                      <span className="px-2 py-0.5 bg-accent text-white text-xs ">
+                      <span className="px-2 py-0.5 bg-accent text-white text-xs rounded-md">
                         Active
                       </span>
                     )}
@@ -394,13 +394,13 @@ export const ProfileManager: React.FC = () => {
               <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => startEdit(profile)}
-                  className="p-2 hover:bg-muted  transition-colors"
+                  className="p-2 hover:bg-muted rounded-lg transition-colors"
                 >
                   <Edit2 className={`w-4 h-4 ${activeProfileId === profile.id ? "text-secondary-foreground" : "text-foreground"}`} />
                 </button>
                 <button
                   onClick={() => handleDelete(profile.id)}
-                  className="p-2 hover:bg-destructive/20  transition-colors"
+                  className="p-2 hover:bg-destructive/20 rounded-lg transition-colors"
                 >
                   <Trash2 className="w-4 h-4 text-destructive" />
                 </button>
@@ -411,7 +411,7 @@ export const ProfileManager: React.FC = () => {
       </div>
 
       {profiles.length === 0 && !isCreating && (
-        <div className="text-center py-12 px-4 bg-card  border-2 border-dashed border-border shadow-md">
+        <div className="text-center py-12 px-4 bg-card rounded-lg border border-dashed border-border ">
           <div className="text-4xl mb-3">📊</div>
           <p className="text-muted-foreground mb-4">
             No profiles yet. Create your first profile to get started!

@@ -32,7 +32,7 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
 }) => {
   const containerClasses = grouped
     ? "px-4 py-3"
-    : "px-4 py-3 border-2 border-border shadow-md bg-card";
+    : "px-4 py-3 rounded-xl border border-border/30 shadow-sm bg-card";
 
   if (layout === "stacked") {
     return (
@@ -75,7 +75,7 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
   // Horizontal layout (default)
   const horizontalContainerClasses = grouped
     ? "flex items-center justify-between px-4 py-3"
-    : "flex items-center justify-between px-4 py-3 border-2 border-border shadow-md bg-card";
+    : "flex items-center justify-between px-4 py-3 rounded-xl border border-border/30 shadow-sm bg-card";
 
   return (
     <div className={cn(horizontalContainerClasses, className)}>

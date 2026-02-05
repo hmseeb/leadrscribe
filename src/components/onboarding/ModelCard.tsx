@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { ArrowDown, Loader2 } from "lucide-react";
+import { ArrowDown, Loader2, X } from "lucide-react";
 import { ModelInfo } from "../../lib/types";
 import { formatModelSize } from "../../lib/utils/format";
 import Badge from "../ui/Badge";
@@ -18,6 +18,7 @@ interface ModelCardProps {
   disabled?: boolean;
   className?: string;
   onSelect: (modelId: string) => void;
+  onCancel?: (modelId: string) => void;
   isDownloading?: boolean;
   downloadProgress?: DownloadProgress | null;
   isExtracting?: boolean;
@@ -29,6 +30,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
   disabled = false,
   className = "",
   onSelect,
+  onCancel,
   isDownloading = false,
   downloadProgress = null,
   isExtracting = false,
@@ -45,8 +47,10 @@ const ModelCard: React.FC<ModelCardProps> = ({
 
   return (
     <motion.div
-      className={`w-full border-2 border-border p-4 bg-card shadow-sm ${
-        isFeatured ? "border-l-4 border-l-secondary" : ""
+      className={`w-full rounded-xl border p-4 shadow-sm ${
+        isFeatured
+          ? "bg-primary/10 border-primary/30"
+          : "bg-card border-border/30"
       } ${className}`}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -75,40 +79,52 @@ const ModelCard: React.FC<ModelCardProps> = ({
         </div>
 
         {isDownloading ? (
-          <div className="flex flex-col gap-1.5 min-w-[160px] items-end">
-            {isExtracting ? (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2.5} />
-                <span className="font-medium text-sm">Extracting...</span>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between text-sm w-full">
-                  <span className="text-muted-foreground text-xs">
-                    {downloadProgress ? `${Math.round(downloadProgress.percentage)}%` : '0%'}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {downloadProgress && `${formatBytes(downloadProgress.downloaded)} / ${formatBytes(downloadProgress.total)}`}
-                  </span>
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-1.5 min-w-[180px] items-end">
+              {isExtracting ? (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2.5} />
+                  <span className="font-medium text-sm">Extracting...</span>
                 </div>
-                <div className="h-1.5 bg-muted border border-border overflow-hidden w-full">
-                  <motion.div
-                    className="h-full bg-primary"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${downloadProgress?.percentage || 0}%` }}
-                    transition={{ duration: 0.3, ease: "easeOut" }}
-                  />
-                </div>
-              </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between gap-3 text-sm w-full">
+                    <span className="text-muted-foreground text-xs">
+                      {downloadProgress ? `${Math.round(downloadProgress.percentage)}%` : '0%'}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {downloadProgress && `${formatBytes(downloadProgress.downloaded)} / ${formatBytes(downloadProgress.total)}`}
+                    </span>
+                  </div>
+                  <div className="h-1.5 bg-muted rounded-full border border-border/30 overflow-hidden w-full">
+                    <motion.div
+                      className="h-full bg-primary rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${downloadProgress?.percentage || 0}%` }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+            {!isExtracting && onCancel && (
+              <motion.button
+                onClick={() => onCancel(model.id)}
+                className="p-2 rounded-lg border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                whileTap={{ scale: 0.95 }}
+                title="Cancel download"
+              >
+                <X className="w-4 h-4" strokeWidth={2.5} />
+              </motion.button>
             )}
           </div>
         ) : (
           <motion.button
             onClick={() => onSelect(model.id)}
             disabled={disabled}
-            className={`px-4 py-2 border-2 border-border font-semibold text-sm transition-all duration-100 flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-lg border border-border/50 font-semibold text-sm transition-all duration-100 flex items-center gap-2 ${
               isFeatured
-                ? "bg-secondary text-secondary-foreground hover:shadow-md"
+                ? "bg-secondary text-secondary-foreground hover:shadow-sm"
                 : "bg-card text-foreground hover:bg-muted"
             } disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer`}
             whileTap={disabled ? {} : { scale: 0.98 }}

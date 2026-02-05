@@ -103,7 +103,7 @@ export const TranscriptionDetailModal: React.FC<TranscriptionDetailModalProps> =
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
           />
 
           {/* Modal */}
@@ -112,10 +112,10 @@ export const TranscriptionDetailModal: React.FC<TranscriptionDetailModalProps> =
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", duration: 0.3 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl max-h-[90vh] bg-background shadow-xl border-2 border-border z-50 overflow-hidden flex flex-col"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl max-h-[90vh] bg-card rounded-lg shadow-xl border border-border z-50 overflow-hidden flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-start justify-between p-6 border-b-2 border-border">
+            <div className="flex items-start justify-between p-6 border-b border-border">
               <div className="flex-1 min-w-0">
                 <h2 className="text-2xl font-semibold text-foreground mb-2">
                   {entry.title}
@@ -138,26 +138,26 @@ export const TranscriptionDetailModal: React.FC<TranscriptionDetailModalProps> =
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <button
                   onClick={onToggleSaved}
-                  className="p-2 hover:bg-accent transition-colors"
+                  className="p-2 rounded-lg hover:bg-muted transition-colors"
                   title={entry.saved ? "Remove from saved" : "Save transcription"}
                 >
                   <Star
                     className={cn(
                       "w-5 h-5",
                       entry.saved
-                        ? "fill-primary text-primary"
+                        ? "fill-amber-400 text-amber-400"
                         : "text-muted-foreground"
                     )}
                   />
                 </button>
                 <button
                   onClick={onClose}
-                  className="p-2 hover:bg-muted transition-colors"
+                  className="p-2 rounded-lg hover:bg-muted transition-colors"
                 >
-                  <X className="w-5 h-5 text-foreground" />
+                  <X className="w-5 h-5 text-muted-foreground hover:text-foreground" />
                 </button>
               </div>
             </div>
@@ -199,7 +199,7 @@ export const TranscriptionDetailModal: React.FC<TranscriptionDetailModalProps> =
                     )}
                   </Button>
                 </div>
-                <div className="bg-muted p-4 border-2 border-border">
+                <div className="bg-muted/50 p-4 rounded-md border border-border">
                   <p className="text-foreground whitespace-pre-wrap leading-relaxed">
                     {entry.transcription_text}
                   </p>
@@ -232,8 +232,8 @@ export const TranscriptionDetailModal: React.FC<TranscriptionDetailModalProps> =
                       )}
                     </Button>
                   </div>
-                  <div className="bg-secondary p-4 border-2 border-accent">
-                    <p className="text-secondary-foreground whitespace-pre-wrap leading-relaxed">
+                  <div className="bg-primary/10 p-4 rounded-md border border-primary/20">
+                    <p className="text-foreground whitespace-pre-wrap leading-relaxed">
                       {entry.ghostwritten_text}
                     </p>
                   </div>
@@ -246,7 +246,7 @@ export const TranscriptionDetailModal: React.FC<TranscriptionDetailModalProps> =
                   <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">
                     Notes
                   </h3>
-                  <div className="bg-muted p-4 border-2 border-border">
+                  <div className="bg-muted/50 p-4 rounded-md border border-border">
                     <p className="text-foreground whitespace-pre-wrap leading-relaxed">
                       {entry.notes}
                     </p>

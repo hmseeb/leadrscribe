@@ -3,9 +3,10 @@ import { motion } from "framer-motion";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { Minus, Square, X, Copy } from "lucide-react";
 import { ModelInfo } from "../../lib/types";
 import ModelCard from "./ModelCard";
-import LeadrScribeLogo from "../icons/LeadrScribeLogo";
+import LeadrScribeIcon from "../icons/LeadrScribeIcon";
 
 interface OnboardingProps {
   onModelSelected: () => void;
@@ -24,6 +25,21 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isMaximized, setIsMaximized] = useState(false);
+
+  useEffect(() => {
+    const checkMaximized = async () => {
+      const maximized = await getCurrentWindow().isMaximized();
+      setIsMaximized(maximized);
+    };
+    checkMaximized();
+    const unlisten = getCurrentWindow().onResized(() => {
+      checkMaximized();
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
 
   useEffect(() => {
     loadModels();
@@ -77,12 +93,31 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
       setIsExtracting(false);
     });
 
+    // Listen for download errors
+    const downloadErrorUnlisten = listen<{ model_id: string; error: string }>("model-download-error", (event) => {
+      console.error("Download error:", event.payload);
+      setError(`Download failed: ${event.payload.error}`);
+      setDownloadingModelId(null);
+      setDownloadProgress(null);
+      setIsExtracting(false);
+    });
+
+    // Listen for download cancellation
+    const downloadCancelledUnlisten = listen<string>("model-download-cancelled", (event) => {
+      console.log("Download cancelled for:", event.payload);
+      setDownloadingModelId(null);
+      setDownloadProgress(null);
+      setIsExtracting(false);
+    });
+
     return () => {
       progressUnlisten.then((fn) => fn());
       completeUnlisten.then((fn) => fn());
       extractStartUnlisten.then((fn) => fn());
       extractCompleteUnlisten.then((fn) => fn());
       extractFailedUnlisten.then((fn) => fn());
+      downloadErrorUnlisten.then((fn) => fn());
+      downloadCancelledUnlisten.then((fn) => fn());
     };
   }, [onModelSelected]);
 
@@ -113,6 +148,17 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
     }
   };
 
+  const handleCancelDownload = async (modelId: string) => {
+    try {
+      await invoke("cancel_download", { modelId });
+      setDownloadingModelId(null);
+      setDownloadProgress(null);
+      setIsExtracting(false);
+    } catch (err) {
+      console.error("Failed to cancel download:", err);
+    }
+  };
+
   const getRecommendedBadge = (modelId: string): boolean => {
     return modelId === "parakeet-tdt-0.6b-v3";
   };
@@ -135,21 +181,31 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   return (
     <div className="h-screen w-screen flex flex-col inset-0 bg-background">
       {/* Title bar with window controls */}
-      <div data-tauri-drag-region className="h-10 flex items-center justify-end px-3 shrink-0 bg-background border-b-2 border-border select-none">
-        <div className="flex items-center gap-2">
+      <div className="h-10 flex items-center justify-between shrink-0 bg-sidebar border-b border-sidebar-border select-none">
+        <div data-tauri-drag-region className="flex items-center gap-2 px-3 flex-1 h-full">
+          <LeadrScribeIcon width={20} height={20} className="text-primary" />
+        </div>
+        <div className="flex items-center h-full">
           <button
             onMouseDown={() => getCurrentWindow().minimize()}
-            className="w-5 h-5 bg-secondary border-2 border-border hover:shadow-md transition-all duration-100 flex items-center justify-center text-secondary-foreground text-sm font-bold"
+            className="h-full px-3 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             aria-label="Minimize"
           >
-            −
+            <Minus className="w-4 h-4" />
+          </button>
+          <button
+            onMouseDown={() => getCurrentWindow().toggleMaximize().then(() => getCurrentWindow().isMaximized()).then(setIsMaximized)}
+            className="h-full px-3 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            aria-label={isMaximized ? "Restore" : "Maximize"}
+          >
+            {isMaximized ? <Copy className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
           </button>
           <button
             onMouseDown={() => getCurrentWindow().close()}
-            className="w-5 h-5 bg-primary border-2 border-border hover:shadow-md transition-all duration-100 flex items-center justify-center text-primary-foreground text-sm font-bold"
+            className="h-full px-3 flex items-center justify-center text-muted-foreground hover:text-white hover:bg-rose-600 transition-colors"
             aria-label="Close"
           >
-            ✕
+            <X className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -157,21 +213,23 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
       {/* Content */}
       <div className="flex-1 flex flex-col p-8 gap-6 overflow-auto">
         <motion.div
-          className="flex flex-col items-center gap-3 shrink-0"
+          className="flex flex-col items-center gap-2 shrink-0"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, type: "spring", stiffness: 500 }}
         >
-          <LeadrScribeLogo width={200} />
-          <p className="text-muted-foreground max-w-md font-medium mx-auto text-center">
-            Choose and download a transcription model to get started
+          <h1 className="text-2xl font-semibold text-foreground">
+            Choose a transcription model
+          </h1>
+          <p className="text-muted-foreground max-w-md mx-auto text-center">
+            Download a model to get started with speech-to-text
           </p>
         </motion.div>
 
       <div className="max-w-3xl w-full mx-auto flex-1 flex flex-col min-h-0">
         {error && (
           <motion.div
-            className="bg-destructive/10 border-2 border-destructive  p-4 mb-6 shrink-0 shadow-md"
+            className="bg-destructive/10 rounded-lg border border-destructive/30 p-4 mb-6 shrink-0 "
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
           >
@@ -199,6 +257,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
                   downloadProgress={downloadingModelId === model.id ? downloadProgress : null}
                   isExtracting={downloadingModelId === model.id && isExtracting}
                   onSelect={handleDownloadModel}
+                  onCancel={handleCancelDownload}
                 />
               </motion.div>
             ))}
@@ -215,6 +274,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
                   downloadProgress={downloadingModelId === model.id ? downloadProgress : null}
                   isExtracting={downloadingModelId === model.id && isExtracting}
                   onSelect={handleDownloadModel}
+                  onCancel={handleCancelDownload}
                 />
               </motion.div>
             ))}
