@@ -203,6 +203,36 @@ body {
   filter: brightness(1.1);
 }
 
+/* Light theme card elevation */
+:root .bg-card,
+:not(.dark) .bg-card {
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+}
+
+/* Light theme sidebar border */
+:root .bg-sidebar,
+:not(.dark) .bg-sidebar {
+  border-right: 1px solid var(--sidebar-border);
+}
+
+/* Light theme focus rings */
+:root *:focus-visible,
+:not(.dark) *:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 3px var(--primary);
+}
+
+/* Light theme primary button lift */
+:root .bg-primary,
+:not(.dark) .bg-primary {
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.15);
+}
+
+:root .bg-primary:hover,
+:not(.dark) .bg-primary:hover {
+  filter: brightness(1.05);
+}
+
 /* Overlay window needs transparent background */
 body.overlay-window,
 html:has(body.overlay-window),
