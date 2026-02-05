@@ -64,10 +64,10 @@ export const Dropdown: React.FC<DropdownProps> = ({
       <button
         type="button"
         className={cn(
-          "px-3 py-2 text-sm font-medium bg-card border border-border/50 rounded-lg min-w-[200px] text-left flex items-center justify-between transition-all shadow-sm",
+          "px-3 py-2 text-sm font-medium bg-secondary border border-border/30 rounded-xl min-w-[200px] text-left flex items-center justify-between transition-all shadow-sm",
           disabled
             ? "opacity-50 cursor-not-allowed"
-            : "hover:bg-muted/50 cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring/50"
+            : "hover:bg-secondary/80 hover:border-border/50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
         )}
         onClick={handleToggle}
         disabled={disabled}
@@ -91,7 +91,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.1 }}
-            className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border/50 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto"
+            className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border/30 rounded-xl shadow-xl backdrop-blur-sm z-50 max-h-60 overflow-y-auto"
           >
             {options.length === 0 ? (
               <div className="px-3 py-2 text-sm text-muted-foreground">
@@ -103,10 +103,10 @@ export const Dropdown: React.FC<DropdownProps> = ({
                   key={option.value}
                   type="button"
                   className={cn(
-                    "w-full px-3 py-1.5 text-sm text-left transition-colors rounded-md mx-1 first:mt-1 last:mb-1",
+                    "w-full px-3 py-2 text-sm text-left transition-colors rounded-lg mx-1 first:mt-1.5 last:mb-1.5",
                     selectedValue === option.value
-                      ? "bg-muted text-foreground font-medium"
-                      : "text-popover-foreground hover:bg-muted/70",
+                      ? "bg-primary/15 text-primary font-medium"
+                      : "text-popover-foreground hover:bg-muted/80",
                     option.disabled && "opacity-50 cursor-not-allowed"
                   )}
                   style={{ width: "calc(100% - 8px)" }}

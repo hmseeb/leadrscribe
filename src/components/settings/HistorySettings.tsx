@@ -317,7 +317,7 @@ export const HistorySettings: React.FC = () => {
                 <select
                   value={dateFilter}
                   onChange={(e) => setDateFilter(e.target.value as DateFilter)}
-                  className="w-full px-3 py-2 rounded-lg border border-border/50 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full px-3 py-2 rounded-xl border border-border/30 bg-secondary text-foreground shadow-sm transition-all hover:bg-secondary/80 hover:border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
                 >
                   <option value="all">All Time</option>
                   <option value="today">Today</option>
@@ -355,7 +355,7 @@ export const HistorySettings: React.FC = () => {
                     onChange={(e) =>
                       setSelectedProfile(e.target.value ? Number(e.target.value) : null)
                     }
-                    className="w-full px-3 py-2 rounded-lg border border-border/50 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="w-full px-3 py-2 rounded-xl border border-border/30 bg-secondary text-foreground shadow-sm transition-all hover:bg-secondary/80 hover:border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
                   >
                     <option value="">All Profiles</option>
                     {profiles.map((profile) => (
