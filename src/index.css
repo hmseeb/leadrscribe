@@ -3,27 +3,27 @@
 /* ===== THEME VARIABLES ===== */
 
 :root {
-  /* Core palette with violet warmth */
-  --background: oklch(0.985 0.005 270);
-  --foreground: oklch(0.15 0.01 270);
-  --card: oklch(0.995 0 0);
-  --card-foreground: oklch(0.15 0.01 270);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.01 270);
-  /* Violet accent matching dark theme */
-  --primary: oklch(0.55 0.20 270);
+  /* Core palette with violet warmth and depth */
+  --background: oklch(0.97 0.008 270);
+  --foreground: oklch(0.12 0.02 270);
+  --card: oklch(0.99 0.005 270);
+  --card-foreground: oklch(0.12 0.02 270);
+  --popover: oklch(0.995 0.003 270);
+  --popover-foreground: oklch(0.12 0.02 270);
+  /* Richer violet accent */
+  --primary: oklch(0.55 0.22 270);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.94 0.01 270);
-  --secondary-foreground: oklch(0.20 0.01 270);
-  --muted: oklch(0.96 0.005 270);
-  --muted-foreground: oklch(0.45 0 0);
-  --accent: oklch(0.55 0.20 270);
+  --secondary: oklch(0.92 0.015 270);
+  --secondary-foreground: oklch(0.18 0.02 270);
+  --muted: oklch(0.94 0.01 270);
+  --muted-foreground: oklch(0.40 0.01 270);
+  --accent: oklch(0.55 0.22 270);
   --accent-foreground: oklch(1 0 0);
-  --destructive: oklch(0.55 0.20 25);
+  --destructive: oklch(0.55 0.22 25);
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.90 0.008 270);
-  --input: oklch(0.96 0.005 270);
-  --ring: oklch(0.55 0.20 270);
+  --border: oklch(0.88 0.015 270);
+  --input: oklch(0.95 0.008 270);
+  --ring: oklch(0.55 0.22 270);
   /* Chart colors harmonious with violet */
   --chart-1: oklch(0.55 0.18 270);
   --chart-2: oklch(0.55 0.14 200);
@@ -203,34 +203,131 @@ body {
   filter: brightness(1.1);
 }
 
-/* Light theme card elevation */
+/* ===== LIGHT THEME VISUAL DEPTH ===== */
+
+/* Light theme card elevation with colored shadow */
 :root .bg-card,
 :not(.dark) .bg-card {
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+  box-shadow:
+    0 1px 2px 0 rgb(139 92 246 / 0.03),
+    0 2px 4px 0 rgb(0 0 0 / 0.04),
+    0 4px 8px -2px rgb(139 92 246 / 0.06);
+  backdrop-filter: blur(8px);
+  background: linear-gradient(
+    180deg,
+    oklch(0.995 0.005 270 / 0.9) 0%,
+    oklch(0.99 0.008 270 / 0.95) 100%
+  );
 }
 
-/* Light theme sidebar border */
+/* Light theme popover/modal glass effect */
+:root .bg-popover,
+:not(.dark) .bg-popover {
+  box-shadow:
+    0 4px 6px -1px rgb(139 92 246 / 0.08),
+    0 10px 20px -5px rgb(0 0 0 / 0.1),
+    0 0 0 1px rgb(139 92 246 / 0.05);
+  backdrop-filter: blur(12px);
+  background: linear-gradient(
+    135deg,
+    oklch(1 0 0 / 0.95) 0%,
+    oklch(0.98 0.01 270 / 0.9) 100%
+  );
+}
+
+/* Light theme sidebar with gradient */
 :root .bg-sidebar,
 :not(.dark) .bg-sidebar {
-  border-right: 1px solid var(--sidebar-border);
+  border-right: 1px solid oklch(0.88 0.02 270 / 0.5);
+  background: linear-gradient(
+    180deg,
+    oklch(0.98 0.005 270) 0%,
+    oklch(0.96 0.01 270) 100%
+  );
 }
 
-/* Light theme focus rings */
+/* Light theme focus rings with glow */
 :root *:focus-visible,
 :not(.dark) *:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--background), 0 0 0 3px var(--primary);
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 3px var(--primary),
+    0 0 12px 2px rgb(139 92 246 / 0.2);
 }
 
-/* Light theme primary button lift */
+/* Light theme primary button with gradient and depth */
 :root .bg-primary,
 :not(.dark) .bg-primary {
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.15);
+  background: linear-gradient(
+    135deg,
+    oklch(0.58 0.22 270) 0%,
+    oklch(0.52 0.20 270) 100%
+  );
+  box-shadow:
+    0 1px 2px 0 rgb(139 92 246 / 0.3),
+    0 2px 4px -1px rgb(0 0 0 / 0.15),
+    inset 0 1px 0 0 rgb(255 255 255 / 0.1);
 }
 
 :root .bg-primary:hover,
 :not(.dark) .bg-primary:hover {
-  filter: brightness(1.05);
+  background: linear-gradient(
+    135deg,
+    oklch(0.62 0.24 270) 0%,
+    oklch(0.55 0.22 270) 100%
+  );
+  box-shadow:
+    0 2px 4px 0 rgb(139 92 246 / 0.4),
+    0 4px 8px -2px rgb(0 0 0 / 0.2),
+    inset 0 1px 0 0 rgb(255 255 255 / 0.15);
+  transform: translateY(-1px);
+}
+
+/* Light theme secondary button depth */
+:root .bg-secondary,
+:not(.dark) .bg-secondary {
+  background: linear-gradient(
+    180deg,
+    oklch(0.96 0.008 270) 0%,
+    oklch(0.93 0.01 270) 100%
+  );
+  box-shadow:
+    0 1px 2px 0 rgb(0 0 0 / 0.05),
+    inset 0 1px 0 0 rgb(255 255 255 / 0.5);
+}
+
+:root .bg-secondary:hover,
+:not(.dark) .bg-secondary:hover {
+  background: linear-gradient(
+    180deg,
+    oklch(0.94 0.01 270) 0%,
+    oklch(0.91 0.015 270) 100%
+  );
+}
+
+/* Light theme muted surfaces */
+:root .bg-muted,
+:not(.dark) .bg-muted {
+  background: linear-gradient(
+    180deg,
+    oklch(0.97 0.005 270 / 0.8) 0%,
+    oklch(0.95 0.008 270 / 0.9) 100%
+  );
+}
+
+/* Light theme input fields with inner shadow */
+:root .bg-input,
+:not(.dark) .bg-input,
+:root input,
+:not(.dark) input {
+  box-shadow: inset 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+/* Light theme accent glow on interactive elements */
+:root .hover\:bg-accent:hover,
+:not(.dark) .hover\:bg-accent:hover {
+  box-shadow: 0 0 8px 0 rgb(139 92 246 / 0.15);
 }
 
 /* Overlay window needs transparent background */
