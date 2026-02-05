@@ -3,20 +3,20 @@
 /* ===== THEME VARIABLES ===== */
 
 :root {
-  /* Core palette with violet warmth and depth */
-  --background: oklch(0.97 0.008 270);
-  --foreground: oklch(0.12 0.02 270);
-  --card: oklch(0.99 0.005 270);
-  --card-foreground: oklch(0.12 0.02 270);
-  --popover: oklch(0.995 0.003 270);
-  --popover-foreground: oklch(0.12 0.02 270);
+  /* Core palette - high contrast for readability */
+  --background: oklch(0.96 0.008 270);
+  --foreground: oklch(0.15 0.02 270);
+  --card: oklch(0.98 0.005 270);
+  --card-foreground: oklch(0.15 0.02 270);
+  --popover: oklch(0.99 0.003 270);
+  --popover-foreground: oklch(0.15 0.02 270);
   /* Richer violet accent */
-  --primary: oklch(0.55 0.22 270);
+  --primary: oklch(0.50 0.24 270);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.92 0.015 270);
-  --secondary-foreground: oklch(0.18 0.02 270);
-  --muted: oklch(0.94 0.01 270);
-  --muted-foreground: oklch(0.40 0.01 270);
+  --secondary: oklch(0.90 0.015 270);
+  --secondary-foreground: oklch(0.15 0.02 270);
+  --muted: oklch(0.92 0.01 270);
+  --muted-foreground: oklch(0.40 0.02 270);
   --accent: oklch(0.55 0.22 270);
   --accent-foreground: oklch(1 0 0);
   --destructive: oklch(0.55 0.22 25);
@@ -178,66 +178,154 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Sidebar border */
-.dark .bg-sidebar {
-  border-right: 1px solid var(--sidebar-border);
-}
+/* ===== DARK THEME VISUAL DEPTH ===== */
 
-/* Cards get subtle elevation */
+/* Dark theme card with gradient and glow */
 .dark .bg-card {
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.2), 0 1px 2px -1px rgb(0 0 0 / 0.15);
+  background: linear-gradient(
+    180deg,
+    oklch(0.20 0.015 270) 0%,
+    oklch(0.17 0.012 270) 100%
+  );
+  box-shadow:
+    0 1px 2px 0 rgb(0 0 0 / 0.4),
+    0 4px 8px -2px rgb(0 0 0 / 0.3),
+    0 0 0 1px rgb(139 92 246 / 0.08),
+    inset 0 1px 0 0 rgb(255 255 255 / 0.03);
 }
 
-/* Subtle focus rings */
+/* Dark theme popover with glass effect */
+.dark .bg-popover {
+  background: linear-gradient(
+    135deg,
+    oklch(0.22 0.015 270) 0%,
+    oklch(0.18 0.012 270) 100%
+  );
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.4),
+    0 10px 20px -5px rgb(0 0 0 / 0.5),
+    0 0 0 1px rgb(139 92 246 / 0.1),
+    inset 0 1px 0 0 rgb(255 255 255 / 0.05);
+  backdrop-filter: blur(12px);
+}
+
+/* Dark theme sidebar with gradient */
+.dark .bg-sidebar {
+  border-right: 1px solid oklch(0.28 0.02 270 / 0.5);
+  background: linear-gradient(
+    180deg,
+    oklch(0.15 0.015 270) 0%,
+    oklch(0.12 0.012 270) 100%
+  );
+}
+
+/* Dark theme focus rings with glow */
 .dark *:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--background), 0 0 0 3px var(--primary);
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 3px var(--primary),
+    0 0 16px 2px rgb(139 92 246 / 0.3);
 }
 
-/* Primary buttons get slight lift */
+/* Dark theme primary button with gradient */
 .dark .bg-primary {
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3);
+  background: linear-gradient(
+    135deg,
+    oklch(0.68 0.20 270) 0%,
+    oklch(0.60 0.18 270) 100%
+  );
+  box-shadow:
+    0 1px 2px 0 rgb(0 0 0 / 0.4),
+    0 2px 4px -1px rgb(139 92 246 / 0.3),
+    inset 0 1px 0 0 rgb(255 255 255 / 0.1);
 }
 
 .dark .bg-primary:hover {
-  filter: brightness(1.1);
+  background: linear-gradient(
+    135deg,
+    oklch(0.72 0.22 270) 0%,
+    oklch(0.64 0.20 270) 100%
+  );
+  box-shadow:
+    0 2px 4px 0 rgb(0 0 0 / 0.4),
+    0 4px 8px -2px rgb(139 92 246 / 0.4),
+    0 0 20px 0 rgb(139 92 246 / 0.2),
+    inset 0 1px 0 0 rgb(255 255 255 / 0.15);
+  transform: translateY(-1px);
+}
+
+/* Dark theme secondary button depth */
+.dark .bg-secondary {
+  background: linear-gradient(
+    180deg,
+    oklch(0.26 0.012 270) 0%,
+    oklch(0.22 0.01 270) 100%
+  );
+  box-shadow:
+    0 1px 2px 0 rgb(0 0 0 / 0.3),
+    inset 0 1px 0 0 rgb(255 255 255 / 0.05);
+}
+
+.dark .bg-secondary:hover {
+  background: linear-gradient(
+    180deg,
+    oklch(0.30 0.015 270) 0%,
+    oklch(0.26 0.012 270) 100%
+  );
+}
+
+/* Dark theme muted surfaces */
+.dark .bg-muted {
+  background: linear-gradient(
+    180deg,
+    oklch(0.24 0.01 270) 0%,
+    oklch(0.20 0.008 270) 100%
+  );
+}
+
+/* Dark theme input fields */
+.dark input {
+  box-shadow:
+    inset 0 1px 2px 0 rgb(0 0 0 / 0.2),
+    0 0 0 1px rgb(139 92 246 / 0.05);
+}
+
+/* Dark theme accent glow on interactive elements */
+.dark .hover\:bg-accent:hover {
+  box-shadow: 0 0 12px 0 rgb(139 92 246 / 0.25);
 }
 
 /* ===== LIGHT THEME VISUAL DEPTH ===== */
 
 /* Light theme card elevation with colored shadow */
-:root .bg-card,
-:not(.dark) .bg-card {
+html:not(.dark) .bg-card {
   box-shadow:
-    0 1px 2px 0 rgb(139 92 246 / 0.03),
-    0 2px 4px 0 rgb(0 0 0 / 0.04),
-    0 4px 8px -2px rgb(139 92 246 / 0.06);
-  backdrop-filter: blur(8px);
+    0 1px 2px 0 rgb(139 92 246 / 0.05),
+    0 2px 4px 0 rgb(0 0 0 / 0.06),
+    0 4px 8px -2px rgb(139 92 246 / 0.08);
   background: linear-gradient(
     180deg,
-    oklch(0.995 0.005 270 / 0.9) 0%,
-    oklch(0.99 0.008 270 / 0.95) 100%
+    oklch(0.99 0.005 270) 0%,
+    oklch(0.97 0.01 270) 100%
   );
 }
 
 /* Light theme popover/modal glass effect */
-:root .bg-popover,
-:not(.dark) .bg-popover {
+html:not(.dark) .bg-popover {
   box-shadow:
-    0 4px 6px -1px rgb(139 92 246 / 0.08),
-    0 10px 20px -5px rgb(0 0 0 / 0.1),
-    0 0 0 1px rgb(139 92 246 / 0.05);
-  backdrop-filter: blur(12px);
+    0 4px 6px -1px rgb(139 92 246 / 0.1),
+    0 10px 20px -5px rgb(0 0 0 / 0.12),
+    0 0 0 1px rgb(139 92 246 / 0.08);
   background: linear-gradient(
     135deg,
-    oklch(1 0 0 / 0.95) 0%,
-    oklch(0.98 0.01 270 / 0.9) 100%
+    oklch(1 0 0) 0%,
+    oklch(0.98 0.01 270) 100%
   );
 }
 
 /* Light theme sidebar with gradient */
-:root .bg-sidebar,
-:not(.dark) .bg-sidebar {
+html:not(.dark) .bg-sidebar {
   border-right: 1px solid oklch(0.88 0.02 270 / 0.5);
   background: linear-gradient(
     180deg,
@@ -247,8 +335,7 @@ body {
 }
 
 /* Light theme focus rings with glow */
-:root *:focus-visible,
-:not(.dark) *:focus-visible {
+html:not(.dark) *:focus-visible {
   outline: none;
   box-shadow:
     0 0 0 2px var(--background),
@@ -257,12 +344,11 @@ body {
 }
 
 /* Light theme primary button with gradient and depth */
-:root .bg-primary,
-:not(.dark) .bg-primary {
+html:not(.dark) .bg-primary {
   background: linear-gradient(
     135deg,
-    oklch(0.58 0.22 270) 0%,
-    oklch(0.52 0.20 270) 100%
+    oklch(0.53 0.22 270) 0%,
+    oklch(0.48 0.20 270) 100%
   );
   box-shadow:
     0 1px 2px 0 rgb(139 92 246 / 0.3),
@@ -270,12 +356,11 @@ body {
     inset 0 1px 0 0 rgb(255 255 255 / 0.1);
 }
 
-:root .bg-primary:hover,
-:not(.dark) .bg-primary:hover {
+html:not(.dark) .bg-primary:hover {
   background: linear-gradient(
     135deg,
-    oklch(0.62 0.24 270) 0%,
-    oklch(0.55 0.22 270) 100%
+    oklch(0.56 0.24 270) 0%,
+    oklch(0.50 0.22 270) 100%
   );
   box-shadow:
     0 2px 4px 0 rgb(139 92 246 / 0.4),
@@ -285,8 +370,7 @@ body {
 }
 
 /* Light theme secondary button depth */
-:root .bg-secondary,
-:not(.dark) .bg-secondary {
+html:not(.dark) .bg-secondary {
   background: linear-gradient(
     180deg,
     oklch(0.96 0.008 270) 0%,
@@ -297,8 +381,7 @@ body {
     inset 0 1px 0 0 rgb(255 255 255 / 0.5);
 }
 
-:root .bg-secondary:hover,
-:not(.dark) .bg-secondary:hover {
+html:not(.dark) .bg-secondary:hover {
   background: linear-gradient(
     180deg,
     oklch(0.94 0.01 270) 0%,
@@ -307,26 +390,21 @@ body {
 }
 
 /* Light theme muted surfaces */
-:root .bg-muted,
-:not(.dark) .bg-muted {
+html:not(.dark) .bg-muted {
   background: linear-gradient(
     180deg,
-    oklch(0.97 0.005 270 / 0.8) 0%,
-    oklch(0.95 0.008 270 / 0.9) 100%
+    oklch(0.95 0.008 270) 0%,
+    oklch(0.93 0.01 270) 100%
   );
 }
 
 /* Light theme input fields with inner shadow */
-:root .bg-input,
-:not(.dark) .bg-input,
-:root input,
-:not(.dark) input {
+html:not(.dark) input {
   box-shadow: inset 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 
 /* Light theme accent glow on interactive elements */
-:root .hover\:bg-accent:hover,
-:not(.dark) .hover\:bg-accent:hover {
+html:not(.dark) .hover\:bg-accent:hover {
   box-shadow: 0 0 8px 0 rgb(139 92 246 / 0.15);
 }
 
