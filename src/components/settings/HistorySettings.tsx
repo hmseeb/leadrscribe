@@ -7,6 +7,7 @@ import { listen } from "@tauri-apps/api/event";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "../ui/Input";
 import { Button } from "../ui/Button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/Select";
 import { useSettings } from "../../hooks/useSettings";
 
 interface HistoryEntry {
@@ -314,17 +315,18 @@ export const HistorySettings: React.FC = () => {
                   <Calendar className="w-4 h-4 inline mr-1" />
                   Date Range
                 </label>
-                <select
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value as DateFilter)}
-                  className="w-full px-3 py-2 rounded-xl border border-border/30 bg-secondary text-foreground shadow-sm transition-all hover:bg-secondary/80 hover:border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
-                >
-                  <option value="all">All Time</option>
-                  <option value="today">Today</option>
-                  <option value="week">Past Week</option>
-                  <option value="month">Past Month</option>
-                  <option value="custom">Custom Range</option>
-                </select>
+                <Select value={dateFilter} onValueChange={(value) => setDateFilter(value as DateFilter)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Time</SelectItem>
+                    <SelectItem value="today">Today</SelectItem>
+                    <SelectItem value="week">Past Week</SelectItem>
+                    <SelectItem value="month">Past Month</SelectItem>
+                    <SelectItem value="custom">Custom Range</SelectItem>
+                  </SelectContent>
+                </Select>
 
                 {dateFilter === "custom" && (
                   <div className="mt-2 space-y-2">
@@ -350,32 +352,41 @@ export const HistorySettings: React.FC = () => {
                   <label className="block text-sm font-medium text-foreground mb-2">
                     Profile
                   </label>
-                  <select
-                    value={selectedProfile ?? ""}
-                    onChange={(e) =>
-                      setSelectedProfile(e.target.value ? Number(e.target.value) : null)
-                    }
-                    className="w-full px-3 py-2 rounded-xl border border-border/30 bg-secondary text-foreground shadow-sm transition-all hover:bg-secondary/80 hover:border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
+                  <Select
+                    value={selectedProfile?.toString() ?? ""}
+                    onValueChange={(value) => setSelectedProfile(value ? Number(value) : null)}
                   >
-                    <option value="">All Profiles</option>
-                    {profiles.map((profile) => (
-                      <option key={profile.id} value={profile.id}>
-                        {profile.icon} {profile.name}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="All Profiles" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Profiles</SelectItem>
+                      {profiles.map((profile) => (
+                        <SelectItem key={profile.id} value={profile.id.toString()}>
+                          {profile.icon} {profile.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
             </div>
 
             {/* Saved Only Toggle */}
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showSavedOnly}
-                onChange={(e) => setShowSavedOnly(e.target.checked)}
-                className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
-              />
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={showSavedOnly}
+                  onChange={(e) => setShowSavedOnly(e.target.checked)}
+                  className="peer sr-only"
+                />
+                <div className="w-5 h-5 rounded-md border border-border/50 bg-secondary transition-all peer-checked:bg-primary peer-checked:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/20 group-hover:border-border">
+                  {showSavedOnly && (
+                    <Check className="w-4 h-4 text-primary-foreground absolute top-0.5 left-0.5" />
+                  )}
+                </div>
+              </div>
               <Star className="w-4 h-4 text-amber-500" />
               <span className="text-sm text-foreground">
                 Show saved only
