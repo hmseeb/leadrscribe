@@ -284,6 +284,28 @@ body {
   );
 }
 
+/* Dark theme native select/option styling */
+.dark select {
+  background-color: oklch(0.24 0.01 270);
+  color: oklch(0.94 0 0);
+}
+
+.dark select option {
+  background-color: oklch(0.24 0.01 270);
+  color: oklch(0.94 0 0);
+}
+
+/* Light theme native select/option styling */
+html:not(.dark) select {
+  background-color: oklch(0.96 0.008 270);
+  color: oklch(0.15 0.02 270);
+}
+
+html:not(.dark) select option {
+  background-color: oklch(0.96 0.008 270);
+  color: oklch(0.15 0.02 270);
+}
+
 /* Dark theme input fields */
 .dark input {
   box-shadow:
