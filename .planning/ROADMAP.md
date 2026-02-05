@@ -127,6 +127,31 @@ Plans:
 
 ---
 
+### Phase 8: Real-Time Transcription Display
+**Goal:** Show live speech-to-text feedback during dictation — WisprFlow-style confidence display
+**Plans:** 4 plans
+
+**Deliverables:**
+- [ ] Dark translucent bar (85% opacity black, rounded corners) pinned above overlay
+- [ ] Chunked Whisper inference (every ~2-3s) for streaming partial results
+- [ ] Text appearing word/chunk-by-word with subtle fade-in animation
+- [ ] Auto-scroll as new text flows in
+- [ ] Pulse/waveform indicator on left showing active listening
+- [ ] Tap/click to dismiss or minimize
+- [ ] Backend streaming pipeline in transcription.rs
+- [ ] Event system for partial transcription results
+
+**Entry Criteria:** Phase 7 complete (clean codebase)
+**Exit Criteria:** Users see real-time text during dictation, partial results replace with final output
+
+Plans:
+- [ ] 08-01-PLAN.md — Backend streaming buffer and streaming transcription pipeline
+- [ ] 08-02-PLAN.md — Frontend transcription display overlay component and styles
+- [ ] 08-03-PLAN.md — Wire backend to frontend, integrate into recording flow
+- [ ] 08-04-PLAN.md — Visual and functional verification checkpoint
+
+---
+
 ## Phase Dependencies
 
 ```
@@ -143,6 +168,8 @@ Phase 5 (Settings Migration)
 Phase 6 (Polish)
     ↓
 Phase 7 (Cleanup)
+    ↓
+Phase 8 (Real-Time Transcription Display)
 ```
 
 All phases are sequential - each builds on the previous.
