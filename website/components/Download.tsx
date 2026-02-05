@@ -49,9 +49,10 @@ export function Download({ downloadLinks }: DownloadProps) {
             Free forever. No account required.
           </p>
           {downloadLinks?.version && (
-            <p className="text-sm text-slate-500 mt-2">
-              Latest version: {downloadLinks.version}
-            </p>
+            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-500/10 border border-primary-500/30">
+              <span className="text-primary-400 font-semibold">{downloadLinks.version}</span>
+              <span className="text-slate-400 text-sm">Latest Release</span>
+            </div>
           )}
         </motion.div>
 
