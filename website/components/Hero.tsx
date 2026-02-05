@@ -83,21 +83,21 @@ export function Hero() {
   return (
     <section
       ref={containerRef}
-      className="relative min-h-screen overflow-hidden pt-20 pb-0"
+      className="relative min-h-screen overflow-hidden pt-28 md:pt-32 pb-0"
     >
       {/* Background orbs */}
       <motion.div
         style={{ y: orb1Y }}
-        className="absolute top-20 left-1/4 w-80 h-80 bg-primary-500/20 rounded-full blur-3xl animate-pulse-slow"
+        className="absolute top-20 left-1/4 w-80 h-80 bg-primary-500/20 rounded-full blur-3xl animate-pulse-slow z-0 pointer-events-none"
       />
       <motion.div
         style={{ y: orb2Y }}
-        className="absolute top-40 right-1/4 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl animate-pulse-slow"
+        className="absolute top-40 right-1/4 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl animate-pulse-slow z-0 pointer-events-none"
         initial={{ opacity: 0.5 }}
       />
       <motion.div
         style={{ y: orb3Y }}
-        className="absolute bottom-20 left-1/3 w-[500px] h-[500px] bg-slate-500/10 rounded-full blur-3xl animate-pulse-slow"
+        className="absolute bottom-20 left-1/3 w-[500px] h-[500px] bg-slate-500/10 rounded-full blur-3xl animate-pulse-slow z-0 pointer-events-none"
       />
 
       <div className="container mx-auto px-4 relative z-10">

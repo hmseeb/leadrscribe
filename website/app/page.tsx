@@ -1,3 +1,4 @@
+import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { Features } from "@/components/Features";
 import { HowItWorks } from "@/components/HowItWorks";
@@ -8,12 +9,16 @@ import { getLatestRelease } from "@/lib/github";
 export const revalidate = 3600; // Revalidate every hour
 
 export default async function Home() {
-  const downloadLinks = await getLatestRelease();
+  let downloadLinks = null;
+  try {
+    downloadLinks = await getLatestRelease();
+  } catch (error) {
+    console.error("Failed to fetch releases:", error);
+  }
 
   return (
-    <main className="min-h-screen bg-slate-950 relative overflow-hidden noise">
-      {/* Fixed navigation (optional - can add later) */}
-
+    <main className="min-h-screen bg-slate-950 relative overflow-hidden">
+      <Header />
       <Hero />
       <Features />
       <HowItWorks />

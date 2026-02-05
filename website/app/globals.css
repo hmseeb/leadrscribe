@@ -73,7 +73,8 @@ body {
   border: 1px solid rgba(148, 163, 184, 0.1);
 }
 
-/* Noise texture overlay */
+/* Noise texture overlay - disabled for now */
+/*
 .noise::before {
   content: "";
   position: absolute;
@@ -82,6 +83,7 @@ body {
   opacity: 0.03;
   pointer-events: none;
 }
+*/
 
 /* Hide scrollbar for specific elements */
 .no-scrollbar::-webkit-scrollbar {
@@ -91,4 +93,13 @@ body {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Ensure content is visible even if animations fail */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
