@@ -137,15 +137,15 @@ Plans:
 - [ ] Text appearing word/chunk-by-word with subtle fade-in animation
 - [ ] Auto-scroll as new text flows in
 - [ ] Pulse/waveform indicator on left showing active listening
-- [ ] Tap/click to dismiss or minimize
-- [ ] Backend streaming pipeline in transcription.rs
-- [ ] Event system for partial transcription results
+- [ ] Click to dismiss
+- [ ] Backend streaming pipeline with StreamingBuffer and StreamingSession
+- [ ] Window-targeted events for partial transcription results
 
 **Entry Criteria:** Phase 7 complete (clean codebase)
 **Exit Criteria:** Users see real-time text during dictation, partial results replace with final output
 
 Plans:
-- [ ] 08-01-PLAN.md — Backend streaming buffer and streaming transcription pipeline
+- [ ] 08-01-PLAN.md — Backend streaming buffer and streaming session state
 - [ ] 08-02-PLAN.md — Frontend transcription display overlay component and styles
 - [ ] 08-03-PLAN.md — Wire backend to frontend, integrate into recording flow
 - [ ] 08-04-PLAN.md — Visual and functional verification checkpoint
