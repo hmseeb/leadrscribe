@@ -9,8 +9,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 static HIDE_PENDING: AtomicBool = AtomicBool::new(false);
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewWindowBuilder};
 
-const OVERLAY_WIDTH: f64 = 240.0;
-const OVERLAY_HEIGHT: f64 = 48.0;
+// Add padding for shadow (shadow extends ~32px)
+const OVERLAY_WIDTH: f64 = 280.0;  // 200 + 40 padding for shadow on each side
+const OVERLAY_HEIGHT: f64 = 90.0;  // 42 + 48 padding for shadow
 
 #[cfg(target_os = "macos")]
 const OVERLAY_TOP_OFFSET: f64 = 46.0;
@@ -271,6 +272,16 @@ pub fn emit_levels(app_handle: &AppHandle, levels: &Vec<f32>) {
     // also emit to the recording overlay if it's open
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
         let _ = overlay_window.emit("mic-level", levels);
+
+        // Update overlay position dynamically to follow cursor across monitors
+        // This ensures the overlay appears on whichever screen the cursor is on
+        let current_settings = settings::get_settings(app_handle);
+        if current_settings.overlay_position != OverlayPosition::None {
+            if let Some((x, y)) = calculate_overlay_position(app_handle) {
+                let _ = overlay_window
+                    .set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
+            }
+        }
     }
 }
 

@@ -51,7 +51,7 @@ pub enum ClipboardHandling {
 
 impl Default for ModelUnloadTimeout {
     fn default() -> Self {
-        ModelUnloadTimeout::Never
+        ModelUnloadTimeout::Immediately
     }
 }
 
@@ -290,7 +290,7 @@ pub fn get_default_settings() -> AppSettings {
         overlay_position: OverlayPosition::Bottom,
         debug_mode: false,
         custom_words: Vec::new(),
-        model_unload_timeout: ModelUnloadTimeout::Never,
+        model_unload_timeout: ModelUnloadTimeout::Immediately,
         word_correction_threshold: default_word_correction_threshold(),
         history_limit: default_history_limit(),
         paste_method: PasteMethod::default(),

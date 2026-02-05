@@ -1,6 +1,6 @@
 [package]
 name = "leadrscribe"
-version = "0.5.16"
+version = "0.5.17"
 description = "LeadrScribe"
 authors = ["cjpais"]
 edition = "2021"
@@ -52,6 +52,7 @@ hound = "3.5.1"
 env_logger = "0.11.6"
 log = "0.4.25"
 tokio = "1.43.0"
+tokio-util = "0.7"
 vad-rs = { git = "https://github.com/cjpais/vad-rs", default-features = false }
 enigo = "0.6.1"
 rodio = { git = "https://github.com/cjpais/rodio.git" }

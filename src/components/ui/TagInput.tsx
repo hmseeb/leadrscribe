@@ -123,20 +123,20 @@ export const TagInput: React.FC<TagInputProps> = ({
 
   return (
     <div ref={containerRef} className="relative">
-      <div className="flex flex-wrap gap-2 p-2 border-2 border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:border-ring transition-all">
+      <div className="flex flex-wrap gap-2 p-2 rounded-lg border border-input/50 bg-background focus-within:ring-2 focus-within:ring-ring transition-all">
         {selectedTags.map((tag) => (
           <motion.div
             key={tag.id}
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             exit={{ scale: 0 }}
-            className="inline-flex items-center gap-1 px-2 py-1 text-sm font-medium text-white border-2 border-border"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-sm font-medium text-white"
             style={{ backgroundColor: tag.color }}
           >
             {tag.name}
             <button
               onClick={() => removeTag(tag.id)}
-              className="hover:bg-black/20 p-0.5 transition-colors"
+              className="hover:bg-black/20 p-0.5 rounded transition-colors"
             >
               <X className="w-3 h-3" />
             </button>
@@ -160,7 +160,7 @@ export const TagInput: React.FC<TagInputProps> = ({
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute z-50 w-full mt-1 bg-popover border-2 border-border shadow-lg overflow-hidden"
+            className="absolute z-50 w-full mt-1 bg-popover rounded-lg border border-border shadow-lg overflow-hidden"
           >
             {suggestions.map((tag) => (
               <button
@@ -169,7 +169,7 @@ export const TagInput: React.FC<TagInputProps> = ({
                 className="w-full px-3 py-2 text-left hover:bg-accent transition-colors flex items-center gap-2"
               >
                 <div
-                  className="w-3 h-3 border-2 border-border"
+                  className="w-3 h-3 rounded-sm"
                   style={{ backgroundColor: tag.color }}
                 />
                 <span className="text-popover-foreground">{tag.name}</span>
@@ -180,7 +180,7 @@ export const TagInput: React.FC<TagInputProps> = ({
               <button
                 onClick={createNewTag}
                 disabled={isCreating}
-                className="w-full px-3 py-2 text-left border-t-2 border-border hover:bg-muted transition-colors flex items-center gap-2 text-primary"
+                className="w-full px-3 py-2 text-left border-t border-border hover:bg-muted transition-colors flex items-center gap-2 text-primary"
               >
                 <Plus className="w-4 h-4" />
                 <span>Create "{inputValue}"</span>

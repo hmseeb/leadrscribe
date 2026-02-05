@@ -41,7 +41,7 @@ export const Slider: React.FC<SliderProps> = ({
       layout="horizontal"
       disabled={disabled}
     >
-      <div className="w-full">
+      <div className="w-48">
         <div className="flex items-center gap-3">
           <SliderPrimitive.Root
             className={cn(
@@ -55,10 +55,10 @@ export const Slider: React.FC<SliderProps> = ({
             step={step}
             disabled={disabled}
           >
-            <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden bg-muted border border-border">
+            <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-muted">
               <SliderPrimitive.Range className="absolute h-full bg-primary" />
             </SliderPrimitive.Track>
-            <SliderPrimitive.Thumb className="block h-4 w-4 border-2 border-border bg-background shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50" />
+            <SliderPrimitive.Thumb className="block h-4 w-4 rounded-full border-2 border-primary bg-background shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50" />
           </SliderPrimitive.Root>
           {showValue && (
             <span className="text-sm font-semibold text-foreground min-w-10 text-right">
@@ -84,10 +84,10 @@ const StandaloneSlider = React.forwardRef<
     )}
     {...props}
   >
-    <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden bg-muted border border-border">
+    <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-muted">
       <SliderPrimitive.Range className="absolute h-full bg-primary" />
     </SliderPrimitive.Track>
-    <SliderPrimitive.Thumb className="block h-4 w-4 border-2 border-border bg-background shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50" />
+    <SliderPrimitive.Thumb className="block h-4 w-4 rounded-full border-2 border-primary bg-background shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50" />
   </SliderPrimitive.Root>
 ));
 StandaloneSlider.displayName = SliderPrimitive.Root.displayName;

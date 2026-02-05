@@ -303,12 +303,12 @@ button {
   align-items: center;
   gap: 10px;
   padding: 6px 12px;
-  background: oklch(0.15 0.015 270 / 0.95);
-  border: 0.5px solid oklch(0.30 0.02 270 / 0.6);
+  background: color-mix(in oklch, var(--popover) 95%, transparent);
+  border: 0.5px solid color-mix(in oklch, var(--border) 60%, transparent);
   opacity: 0;
   transition: all 180ms ease-out;
   box-sizing: border-box;
-  box-shadow: 0 8px 32px oklch(0 0 0 / 0.4), inset 0 0.5px 0 oklch(1 0 0 / 0.05);
+  box-shadow: var(--shadow-lg);
   backdrop-filter: blur(24px);
   position: relative;
   overflow: hidden;
@@ -320,26 +320,26 @@ button {
 
 /* Recording state - subtle border glow */
 .overlay-state-recording {
-  border-color: oklch(0.55 0.15 270 / 0.4);
+  border-color: color-mix(in oklch, var(--primary) 40%, transparent);
 }
 
 /* Ghostwriting state - subtle accent */
 .overlay-state-ghostwriting {
-  border-color: oklch(0.55 0.12 200 / 0.4);
+  border-color: color-mix(in oklch, var(--accent) 40%, transparent);
 }
 
 .overlay-state-ghostwriting .transcribing-text {
-  color: oklch(0.70 0.08 200);
+  color: var(--accent);
 }
 
 /* Error state */
 .overlay-state-error {
-  border-color: oklch(0.55 0.15 25 / 0.5);
-  background: oklch(0.15 0.02 25 / 0.95);
+  border-color: color-mix(in oklch, var(--destructive) 50%, transparent);
+  background: color-mix(in oklch, var(--destructive) 10%, var(--popover) 90%);
 }
 
 .overlay-state-error .transcribing-text {
-  color: oklch(0.70 0.12 25);
+  color: var(--destructive);
 }
 
 .overlay-left {
@@ -371,13 +371,13 @@ button {
 .bar {
   width: 2px;
   border-radius: 1px;
-  background: oklch(0.60 0.15 270);
+  background: var(--primary);
   max-height: 16px;
   min-height: 2px;
 }
 
 .transcribing-text {
-  color: oklch(0.75 0 0);
+  color: var(--muted-foreground);
   font-size: 12px;
   font-weight: 500;
   font-family: var(--font-sans);
@@ -396,12 +396,12 @@ button {
   cursor: pointer;
   transition: all 120ms ease-out;
   flex-shrink: 0;
-  color: oklch(0.45 0 0);
+  color: var(--muted-foreground);
 }
 
 .cancel-button:hover {
-  background: oklch(0.25 0.01 270 / 0.8);
-  color: oklch(0.75 0 0);
+  background: var(--muted);
+  color: var(--foreground);
 }
 
 .cancel-button:active {
