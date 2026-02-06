@@ -413,10 +413,7 @@ body.overlay-window,
 html:has(body.overlay-window),
 body:has(.recording-overlay),
 html:has(.recording-overlay),
-html:has(.recording-overlay) body,
-body:has(.transcription-display-container),
-html:has(.transcription-display-container),
-html:has(.transcription-display-container) body {
+html:has(.recording-overlay) body {
   background: transparent !important;
   background-color: transparent !important;
 }
@@ -467,8 +464,9 @@ button {
   width: 100%;
   height: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   background: transparent !important;
 }
 
@@ -586,70 +584,34 @@ button {
   transform: scale(0.92);
 }
 
-/* ===== TRANSCRIPTION DISPLAY OVERLAY ===== */
+/* ===== STREAMING TEXT AREA (Above Recording Pill) ===== */
 
-.transcription-display-container {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-}
-
-.transcription-display {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  width: 100%;
-  max-height: 100%;
-  padding: 16px 20px;
-  background: oklch(0.12 0 0 / 0.85);
-  border-radius: 16px;
-  border: 1px solid oklch(1 0 0 / 0.06);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 8px 32px oklch(0 0 0 / 0.4);
-  cursor: pointer;
-  user-select: none;
-  overflow: hidden;
-}
-
-.transcription-display-left {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding-top: 2px;
-}
-
-.listening-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: oklch(0.72 0.19 155);
-}
-
-.transcription-display-content {
-  flex: 1;
+.streaming-text-area {
+  max-width: 320px;
+  max-height: 120px;
   overflow-y: auto;
-  max-height: 160px;
-  line-height: 1.6;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  background: color-mix(in oklch, var(--popover) 90%, transparent);
+  border: 0.5px solid color-mix(in oklch, var(--border) 40%, transparent);
+  border-radius: 12px;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: var(--shadow-lg);
+  line-height: 1.5;
   scrollbar-width: thin;
   scrollbar-color: oklch(1 0 0 / 0.15) transparent;
 }
 
-.transcription-display-content::-webkit-scrollbar {
+.streaming-text-area::-webkit-scrollbar {
   width: 4px;
 }
 
-.transcription-display-content::-webkit-scrollbar-track {
+.streaming-text-area::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.transcription-display-content::-webkit-scrollbar-thumb {
+.streaming-text-area::-webkit-scrollbar-thumb {
   background: oklch(1 0 0 / 0.15);
   border-radius: 2px;
 }
