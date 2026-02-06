@@ -161,9 +161,6 @@ fn initialize_core_logic(app_handle: &AppHandle) {
 
     // Create the recording overlay window (hidden by default)
     utils::create_recording_overlay(app_handle);
-
-    // Create the transcription display window (hidden by default)
-    utils::create_transcription_display(app_handle);
 }
 
 #[tauri::command]

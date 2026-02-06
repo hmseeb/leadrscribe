@@ -1,5 +1,4 @@
 use crate::audio_feedback::{play_feedback_sound, SoundType};
-use crate::commands::streaming::StreamingSession;
 use crate::ghostwriter;
 use crate::managers::audio::{AudioRecordingManager, AudioSegmentEvent};
 use crate::managers::history::HistoryManager;
@@ -22,19 +21,15 @@ pub trait ShortcutAction: Send + Sync {
     fn stop(&self, app: &AppHandle, binding_id: &str, shortcut_str: &str);
 }
 
-// Structure to hold streaming transcription state
-// Note: Streaming mode is currently disabled in favor of direct full-audio transcription
-// for better performance. Kept for potential future re-enablement.
 #[derive(Clone)]
-#[allow(dead_code)]
 struct StreamingState {
     segments: Arc<Mutex<Vec<String>>>,
     segment_count: Arc<Mutex<usize>>,
     pending_segments: Arc<AtomicUsize>,
     is_recording: Arc<Mutex<bool>>,
+    audio_buffer: Arc<Mutex<Vec<f32>>>,
 }
 
-#[allow(dead_code)]
 impl StreamingState {
     fn new() -> Self {
         Self {
@@ -42,6 +37,7 @@ impl StreamingState {
             segment_count: Arc::new(Mutex::new(0)),
             pending_segments: Arc::new(AtomicUsize::new(0)),
             is_recording: Arc::new(Mutex::new(false)),
+            audio_buffer: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -50,10 +46,23 @@ impl StreamingState {
         self.segments.lock().unwrap().clear();
         *self.segment_count.lock().unwrap() = 0;
         self.pending_segments.store(0, Ordering::Release);
+        self.audio_buffer.lock().unwrap().clear();
     }
 
     fn stop_recording(&self) {
         *self.is_recording.lock().unwrap() = false;
+    }
+
+    /// Take any remaining buffered audio (for flushing on stop)
+    fn take_buffered_audio(&self) -> Vec<f32> {
+        std::mem::take(&mut *self.audio_buffer.lock().unwrap())
+    }
+
+    fn next_segment_index(&self) -> usize {
+        let mut count = self.segment_count.lock().unwrap();
+        let idx = *count;
+        *count += 1;
+        idx
     }
 
     fn increment_pending(&self) {
@@ -70,24 +79,10 @@ impl StreamingState {
 
     fn add_segment(&self, text: String, index: usize) {
         let mut segments = self.segments.lock().unwrap();
-        // Ensure the vector is large enough
         if segments.len() <= index {
             segments.resize(index + 1, String::new());
         }
         segments[index] = text;
-        debug!("Segment {} added: '{}'", index, segments[index]);
-
-        // Emit progress update to frontend
-    }
-
-    fn get_accumulated_text(&self) -> String {
-        let segments = self.segments.lock().unwrap();
-        segments
-            .iter()
-            .filter(|s| !s.is_empty())
-            .cloned()
-            .collect::<Vec<_>>()
-            .join(" ")
     }
 }
 
@@ -101,98 +96,73 @@ pub fn setup_segment_listener(app: &AppHandle) {
     LISTENER_INITIALIZED.call_once(|| {
         let app_clone = app.clone();
         let tm_clone = app.state::<Arc<TranscriptionManager>>().inner().clone();
-        let streaming_session_clone = app.state::<Arc<StreamingSession>>().inner().clone();
+
+        // 3 seconds of audio at 16kHz gives the model enough context for reliable results
+        const BATCH_THRESHOLD: usize = 16000 * 3; // 48000 samples = 3 seconds
 
         app.listen("audio-segment", move |event| {
             if !*STREAMING_STATE.is_recording.lock().unwrap() {
-                return; // Ignore segments if not recording
+                return;
             }
 
             if let Ok(segment_event) = serde_json::from_str::<AudioSegmentEvent>(event.payload()) {
-                debug!(
-                    "Received audio segment with {} samples",
-                    segment_event.samples.len()
-                );
-
-                let segment_index = {
-                    let mut count = STREAMING_STATE.segment_count.lock().unwrap();
-                    let idx = *count;
-                    *count += 1;
-                    idx
+                // Accumulate audio samples into shared buffer
+                let should_transcribe = {
+                    let mut buf = STREAMING_STATE.audio_buffer.lock().unwrap();
+                    buf.extend_from_slice(&segment_event.samples);
+                    let total = buf.len();
+                    println!(
+                        "[Streaming] Accumulated {:.1}s / {:.1}s",
+                        total as f64 / 16000.0,
+                        BATCH_THRESHOLD as f64 / 16000.0
+                    );
+                    total >= BATCH_THRESHOLD
                 };
 
-                // Transcribe segment asynchronously
-                let tm = tm_clone.clone();
-                let app_for_emit = app_clone.clone();
-                STREAMING_STATE.increment_pending(); // Track pending transcription
-                tm.transcribe_segment_async(
-                    segment_event.samples.clone(),
-                    segment_index,
-                    move |index, result| {
-                        match result {
-                            Ok(text) if !text.is_empty() => {
-                                debug!("Segment {} transcribed: '{}'", index, text);
-                                STREAMING_STATE.add_segment(text.clone(), index);
+                if !should_transcribe {
+                    return;
+                }
 
-                                // Emit progress to frontend for overlay update
-                                let accumulated = STREAMING_STATE.get_accumulated_text();
-                                let _ = app_for_emit.emit("transcription-progress", accumulated);
-                            }
-                            Ok(_) => debug!("Segment {} was empty", index),
-                            Err(e) => error!("Segment {} transcription failed: {}", index, e),
-                        }
-                        // Always decrement pending count when done (success or failure)
-                        STREAMING_STATE.decrement_pending();
-                    },
+                // Take the accumulated audio for transcription
+                let batch_samples = STREAMING_STATE.take_buffered_audio();
+                let segment_index = STREAMING_STATE.next_segment_index();
+
+                // Backpressure: skip if too many transcriptions pending
+                let pending = STREAMING_STATE.pending_count();
+                if pending >= 2 {
+                    println!("[Streaming] Skipping batch {} - {} pending", segment_index, pending);
+                    return;
+                }
+
+                println!(
+                    "[Streaming] Transcribing batch {} ({:.1}s)...",
+                    segment_index,
+                    batch_samples.len() as f64 / 16000.0
                 );
 
-                // Feed into streaming buffer for real-time display
-                if *streaming_session_clone.is_active.lock().unwrap() {
-                    let chunk_opt = {
-                        let mut buffer = streaming_session_clone.buffer.lock().unwrap();
-                        buffer.add_segment(segment_event.samples)
-                    };
+                STREAMING_STATE.increment_pending();
+                let tm = tm_clone.clone();
+                let app_for_display = app_clone.clone();
 
-                    if let Some((chunk_samples, chunk_index)) = chunk_opt {
-                        let pending = streaming_session_clone.pending_chunks.load(std::sync::atomic::Ordering::Acquire);
-                        if pending < 2 {
-                            streaming_session_clone.pending_chunks.fetch_add(1, std::sync::atomic::Ordering::AcqRel);
-                            let tm = tm_clone.clone();
-                            let session = streaming_session_clone.clone();
-                            let app_for_display = app_clone.clone();
+                std::thread::spawn(move || {
+                    match tm.transcribe(batch_samples) {
+                        Ok(text) if !text.is_empty() => {
+                            println!("[Streaming] Batch {} transcribed: '{}'", segment_index, text);
+                            STREAMING_STATE.add_segment(text.clone(), segment_index);
 
-                            std::thread::spawn(move || {
-                                match tm.transcribe(chunk_samples) {
-                                    Ok(text) if !text.is_empty() => {
-                                        // Store partial text
-                                        {
-                                            let mut partials = session.partial_texts.lock().unwrap();
-                                            if partials.len() <= chunk_index {
-                                                partials.resize(chunk_index + 1, String::new());
-                                            }
-                                            partials[chunk_index] = text.clone();
-                                        }
-
-                                        // Emit to transcription display window
-                                        if let Some(window) = app_for_display.get_webview_window("transcription_display") {
-                                            let _ = window.emit("transcription-partial", serde_json::json!({
-                                                "text": text,
-                                                "chunk_index": chunk_index,
-                                            }));
-                                        }
-                                    }
-                                    Ok(_) => { /* empty transcription, skip */ }
-                                    Err(e) => {
-                                        error!("Streaming chunk {} transcription failed: {}", chunk_index, e);
-                                    }
-                                }
-                                session.pending_chunks.fetch_sub(1, std::sync::atomic::Ordering::AcqRel);
-                            });
-                        } else {
-                            debug!("Dropping streaming chunk {} - concurrency limit reached", chunk_index);
+                            if let Some(window) = app_for_display.get_webview_window("recording_overlay") {
+                                let escaped = text.replace('\\', "\\\\").replace('\'', "\\'").replace('\n', "\\n");
+                                let _ = window.eval(&format!(
+                                    "document.dispatchEvent(new CustomEvent('td-partial', {{ detail: {{ text: '{}', chunk_index: {} }} }}))",
+                                    escaped, segment_index
+                                ));
+                            }
                         }
+                        Ok(_) => println!("[Streaming] Batch {} was empty", segment_index),
+                        Err(e) => println!("[Streaming] Batch {} failed: {}", segment_index, e),
                     }
-                }
+                    STREAMING_STATE.decrement_pending();
+                });
             }
         });
 
@@ -214,25 +184,18 @@ impl ShortcutAction for TranscribeAction {
         // Initialize streaming state
         STREAMING_STATE.start_recording();
 
-        // Load model in the background
+        // Load model and keep it loaded during recording for streaming
         let tm = app.state::<Arc<TranscriptionManager>>();
+        tm.set_suppress_unload(true);
         tm.initiate_model_load();
 
         let binding_id = binding_id.to_string();
         change_tray_icon(app, TrayIconState::Recording);
         show_recording_overlay(app);
 
-        // Show transcription display for real-time text
-        crate::overlay::show_transcription_display(app);
-
-        // Initialize streaming session for real-time transcription
-        let streaming_session = app.state::<Arc<StreamingSession>>();
-        {
-            let mut buffer = streaming_session.buffer.lock().unwrap();
-            buffer.reset();
-            *streaming_session.is_active.lock().unwrap() = true;
-            streaming_session.partial_texts.lock().unwrap().clear();
-            streaming_session.pending_chunks.store(0, std::sync::atomic::Ordering::Release);
+        // Show streaming text in recording overlay
+        if let Some(window) = app.get_webview_window("recording_overlay") {
+            let _ = window.eval("document.dispatchEvent(new CustomEvent('td-show'))");
         }
 
         let rm = app.state::<Arc<AudioRecordingManager>>();
@@ -280,10 +243,38 @@ impl ShortcutAction for TranscribeAction {
         // Stop accepting new segments
         STREAMING_STATE.stop_recording();
 
-        // Stop streaming session
-        if let Some(session) = app.try_state::<Arc<StreamingSession>>() {
-            *session.is_active.lock().unwrap() = false;
+        // Flush any remaining buffered audio for streaming display
+        let remaining_audio = STREAMING_STATE.take_buffered_audio();
+        if remaining_audio.len() >= 8000 { // At least 0.5s to avoid hallucinations
+            let segment_index = STREAMING_STATE.next_segment_index();
+            let tm_flush = app.state::<Arc<TranscriptionManager>>().inner().clone();
+            let app_flush = app.clone();
+            println!(
+                "[Streaming] Flushing remaining {:.1}s of buffered audio...",
+                remaining_audio.len() as f64 / 16000.0
+            );
+            std::thread::spawn(move || {
+                match tm_flush.transcribe(remaining_audio) {
+                    Ok(text) if !text.is_empty() => {
+                        println!("[Streaming] Flush transcribed: '{}'", text);
+                        STREAMING_STATE.add_segment(text.clone(), segment_index);
+                        if let Some(window) = app_flush.get_webview_window("recording_overlay") {
+                            let escaped = text.replace('\\', "\\\\").replace('\'', "\\'").replace('\n', "\\n");
+                            let _ = window.eval(&format!(
+                                "document.dispatchEvent(new CustomEvent('td-partial', {{ detail: {{ text: '{}', chunk_index: {} }} }}))",
+                                escaped, segment_index
+                            ));
+                        }
+                    }
+                    Ok(_) => println!("[Streaming] Flush was empty"),
+                    Err(e) => println!("[Streaming] Flush failed: {}", e),
+                }
+            });
         }
+
+        // Allow model unload again (after final transcription completes)
+        let tm_for_unload = app.state::<Arc<TranscriptionManager>>();
+        tm_for_unload.set_suppress_unload(false);
 
         let ah = app.clone();
         let rm = Arc::clone(&app.state::<Arc<AudioRecordingManager>>());
@@ -333,8 +324,10 @@ impl ShortcutAction for TranscribeAction {
                     }
                     Err(err) => {
                         debug!("Transcription error: {}", err);
+                        if let Some(window) = ah.get_webview_window("recording_overlay") {
+                            let _ = window.eval("document.dispatchEvent(new CustomEvent('td-hide'))");
+                        }
                         utils::hide_recording_overlay(&ah);
-                        crate::overlay::hide_transcription_display(&ah);
                         change_tray_icon(&ah, TrayIconState::Idle);
                         return;
                     }
@@ -470,11 +463,13 @@ impl ShortcutAction for TranscribeAction {
                         }
                     });
 
-                    // Send final result to transcription display
-                    if let Some(window) = ah.get_webview_window("transcription_display") {
-                        let _ = window.emit("transcription-final", serde_json::json!({
-                            "text": final_text.clone(),
-                        }));
+                    // Send final result to recording overlay via eval
+                    if let Some(window) = ah.get_webview_window("recording_overlay") {
+                        let escaped = final_text.replace('\\', "\\\\").replace('\'', "\\'").replace('\n', "\\n");
+                        let _ = window.eval(&format!(
+                            "document.dispatchEvent(new CustomEvent('td-final', {{ detail: {{ text: '{}' }} }}))",
+                            escaped
+                        ));
                     }
 
                     let transcription_clone = final_text.clone();
@@ -482,8 +477,10 @@ impl ShortcutAction for TranscribeAction {
                     let paste_time = Instant::now();
                     ah.run_on_main_thread(move || {
                         // Hide the overlay BEFORE pasting to prevent it from stealing focus
+                        if let Some(window) = ah_clone.get_webview_window("recording_overlay") {
+                            let _ = window.eval("document.dispatchEvent(new CustomEvent('td-hide'))");
+                        }
                         utils::hide_recording_overlay(&ah_clone);
-                        crate::overlay::hide_transcription_display(&ah_clone);
 
                         // Small delay to ensure overlay is fully hidden before pasting
                         std::thread::sleep(std::time::Duration::from_millis(50));
@@ -499,19 +496,25 @@ impl ShortcutAction for TranscribeAction {
                     })
                     .unwrap_or_else(|e| {
                         eprintln!("Failed to run paste on main thread: {:?}", e);
+                        if let Some(window) = ah.get_webview_window("recording_overlay") {
+                            let _ = window.eval("document.dispatchEvent(new CustomEvent('td-hide'))");
+                        }
                         utils::hide_recording_overlay(&ah);
-                        crate::overlay::hide_transcription_display(&ah);
                         change_tray_icon(&ah, TrayIconState::Idle);
                     });
                 } else {
+                    if let Some(window) = ah.get_webview_window("recording_overlay") {
+                        let _ = window.eval("document.dispatchEvent(new CustomEvent('td-hide'))");
+                    }
                     utils::hide_recording_overlay(&ah);
-                    crate::overlay::hide_transcription_display(&ah);
                     change_tray_icon(&ah, TrayIconState::Idle);
                 }
             } else {
                 debug!("No samples retrieved from recording stop");
+                if let Some(window) = ah.get_webview_window("recording_overlay") {
+                    let _ = window.eval("document.dispatchEvent(new CustomEvent('td-hide'))");
+                }
                 utils::hide_recording_overlay(&ah);
-                crate::overlay::hide_transcription_display(&ah);
                 change_tray_icon(&ah, TrayIconState::Idle);
             }
         });
