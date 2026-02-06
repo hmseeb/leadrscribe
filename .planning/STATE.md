@@ -65,6 +65,7 @@ None
 |---|-------------|------|--------|-----------|
 | 001 | Modernize light theme to match dark theme polish | 2026-02-05 | f59472c | [001-modernize-light-theme](./quick/001-modernize-light-theme/) |
 | 004 | Fix dark mode select text color in dropdowns | 2026-02-05 | 3902747 | [004-fix-dark-mode-select-text-color](./quick/004-fix-dark-mode-select-text-color/) |
+| 005 | Merge streaming transcription into recording overlay | 2026-02-06 | a9be6c3, 6480093 | [005-merge-streaming-into-overlay](./quick/005-merge-streaming-into-overlay/) |
 
 ## Context for Next Session
 
@@ -97,8 +98,8 @@ bun run tauri dev
 
 ## Session Continuity
 
-**Last session:** 2026-02-05 16:27:32 UTC
-**Stopped at:** Completed quick task 004 (Fix dark mode select text color)
+**Last session:** 2026-02-06 18:03:21 UTC
+**Stopped at:** Completed quick task 005 (Merge streaming transcription into recording overlay)
 **Resume file:** None
 
 ### Roadmap Evolution
