@@ -2,6 +2,7 @@ pub mod audio;
 pub mod history;
 pub mod models;
 pub mod profile;
+pub mod streaming;
 pub mod tag;
 pub mod transcription;
 

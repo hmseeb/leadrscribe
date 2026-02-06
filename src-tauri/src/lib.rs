@@ -13,6 +13,7 @@ mod shortcut;
 mod tray;
 mod utils;
 
+use commands::streaming::StreamingSession;
 use managers::audio::AudioRecordingManager;
 use managers::history::HistoryManager;
 use managers::model::ModelManager;
@@ -89,6 +90,7 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(history_manager.clone());
     app_handle.manage(profile_manager.clone());
     app_handle.manage(tag_manager.clone());
+    app_handle.manage(Arc::new(StreamingSession::new()));
 
     // Initialize the shortcuts
     shortcut::init_shortcuts(app_handle);
@@ -159,6 +161,9 @@ fn initialize_core_logic(app_handle: &AppHandle) {
 
     // Create the recording overlay window (hidden by default)
     utils::create_recording_overlay(app_handle);
+
+    // Create the transcription display window (hidden by default)
+    utils::create_transcription_display(app_handle);
 }
 
 #[tauri::command]

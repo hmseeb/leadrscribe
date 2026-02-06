@@ -1,4 +1,5 @@
 use crate::audio_feedback::{play_feedback_sound, SoundType};
+use crate::commands::streaming::StreamingSession;
 use crate::ghostwriter;
 use crate::managers::audio::{AudioRecordingManager, AudioSegmentEvent};
 use crate::managers::history::HistoryManager;
@@ -100,6 +101,7 @@ pub fn setup_segment_listener(app: &AppHandle) {
     LISTENER_INITIALIZED.call_once(|| {
         let app_clone = app.clone();
         let tm_clone = app.state::<Arc<TranscriptionManager>>().inner().clone();
+        let streaming_session_clone = app.state::<Arc<StreamingSession>>().inner().clone();
 
         app.listen("audio-segment", move |event| {
             if !*STREAMING_STATE.is_recording.lock().unwrap() {
@@ -124,7 +126,7 @@ pub fn setup_segment_listener(app: &AppHandle) {
                 let app_for_emit = app_clone.clone();
                 STREAMING_STATE.increment_pending(); // Track pending transcription
                 tm.transcribe_segment_async(
-                    segment_event.samples,
+                    segment_event.samples.clone(),
                     segment_index,
                     move |index, result| {
                         match result {
@@ -143,6 +145,54 @@ pub fn setup_segment_listener(app: &AppHandle) {
                         STREAMING_STATE.decrement_pending();
                     },
                 );
+
+                // Feed into streaming buffer for real-time display
+                if *streaming_session_clone.is_active.lock().unwrap() {
+                    let chunk_opt = {
+                        let mut buffer = streaming_session_clone.buffer.lock().unwrap();
+                        buffer.add_segment(segment_event.samples)
+                    };
+
+                    if let Some((chunk_samples, chunk_index)) = chunk_opt {
+                        let pending = streaming_session_clone.pending_chunks.load(std::sync::atomic::Ordering::Acquire);
+                        if pending < 2 {
+                            streaming_session_clone.pending_chunks.fetch_add(1, std::sync::atomic::Ordering::AcqRel);
+                            let tm = tm_clone.clone();
+                            let session = streaming_session_clone.clone();
+                            let app_for_display = app_clone.clone();
+
+                            std::thread::spawn(move || {
+                                match tm.transcribe(chunk_samples) {
+                                    Ok(text) if !text.is_empty() => {
+                                        // Store partial text
+                                        {
+                                            let mut partials = session.partial_texts.lock().unwrap();
+                                            if partials.len() <= chunk_index {
+                                                partials.resize(chunk_index + 1, String::new());
+                                            }
+                                            partials[chunk_index] = text.clone();
+                                        }
+
+                                        // Emit to transcription display window
+                                        if let Some(window) = app_for_display.get_webview_window("transcription_display") {
+                                            let _ = window.emit("transcription-partial", serde_json::json!({
+                                                "text": text,
+                                                "chunk_index": chunk_index,
+                                            }));
+                                        }
+                                    }
+                                    Ok(_) => { /* empty transcription, skip */ }
+                                    Err(e) => {
+                                        error!("Streaming chunk {} transcription failed: {}", chunk_index, e);
+                                    }
+                                }
+                                session.pending_chunks.fetch_sub(1, std::sync::atomic::Ordering::AcqRel);
+                            });
+                        } else {
+                            debug!("Dropping streaming chunk {} - concurrency limit reached", chunk_index);
+                        }
+                    }
+                }
             }
         });
 
@@ -171,6 +221,19 @@ impl ShortcutAction for TranscribeAction {
         let binding_id = binding_id.to_string();
         change_tray_icon(app, TrayIconState::Recording);
         show_recording_overlay(app);
+
+        // Show transcription display for real-time text
+        crate::overlay::show_transcription_display(app);
+
+        // Initialize streaming session for real-time transcription
+        let streaming_session = app.state::<Arc<StreamingSession>>();
+        {
+            let mut buffer = streaming_session.buffer.lock().unwrap();
+            buffer.reset();
+            *streaming_session.is_active.lock().unwrap() = true;
+            streaming_session.partial_texts.lock().unwrap().clear();
+            streaming_session.pending_chunks.store(0, std::sync::atomic::Ordering::Release);
+        }
 
         let rm = app.state::<Arc<AudioRecordingManager>>();
 
@@ -216,6 +279,11 @@ impl ShortcutAction for TranscribeAction {
 
         // Stop accepting new segments
         STREAMING_STATE.stop_recording();
+
+        // Stop streaming session
+        if let Some(session) = app.try_state::<Arc<StreamingSession>>() {
+            *session.is_active.lock().unwrap() = false;
+        }
 
         let ah = app.clone();
         let rm = Arc::clone(&app.state::<Arc<AudioRecordingManager>>());
@@ -266,6 +334,7 @@ impl ShortcutAction for TranscribeAction {
                     Err(err) => {
                         debug!("Transcription error: {}", err);
                         utils::hide_recording_overlay(&ah);
+                        crate::overlay::hide_transcription_display(&ah);
                         change_tray_icon(&ah, TrayIconState::Idle);
                         return;
                     }
@@ -401,12 +470,20 @@ impl ShortcutAction for TranscribeAction {
                         }
                     });
 
+                    // Send final result to transcription display
+                    if let Some(window) = ah.get_webview_window("transcription_display") {
+                        let _ = window.emit("transcription-final", serde_json::json!({
+                            "text": final_text.clone(),
+                        }));
+                    }
+
                     let transcription_clone = final_text.clone();
                     let ah_clone = ah.clone();
                     let paste_time = Instant::now();
                     ah.run_on_main_thread(move || {
                         // Hide the overlay BEFORE pasting to prevent it from stealing focus
                         utils::hide_recording_overlay(&ah_clone);
+                        crate::overlay::hide_transcription_display(&ah_clone);
 
                         // Small delay to ensure overlay is fully hidden before pasting
                         std::thread::sleep(std::time::Duration::from_millis(50));
@@ -423,15 +500,18 @@ impl ShortcutAction for TranscribeAction {
                     .unwrap_or_else(|e| {
                         eprintln!("Failed to run paste on main thread: {:?}", e);
                         utils::hide_recording_overlay(&ah);
+                        crate::overlay::hide_transcription_display(&ah);
                         change_tray_icon(&ah, TrayIconState::Idle);
                     });
                 } else {
                     utils::hide_recording_overlay(&ah);
+                    crate::overlay::hide_transcription_display(&ah);
                     change_tray_icon(&ah, TrayIconState::Idle);
                 }
             } else {
                 debug!("No samples retrieved from recording stop");
                 utils::hide_recording_overlay(&ah);
+                crate::overlay::hide_transcription_display(&ah);
                 change_tray_icon(&ah, TrayIconState::Idle);
             }
         });

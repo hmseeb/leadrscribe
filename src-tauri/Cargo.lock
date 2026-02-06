@@ -2980,7 +2980,7 @@ dependencies = [
 
 [[package]]
 name = "leadrscribe"
-version = "0.5.19"
+version = "0.5.21"
 dependencies = [
  "anyhow",
  "chrono",

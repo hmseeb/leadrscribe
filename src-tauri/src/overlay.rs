@@ -13,6 +13,11 @@ use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, Webview
 const OVERLAY_WIDTH: f64 = 280.0;  // 200 + 40 padding for shadow on each side
 const OVERLAY_HEIGHT: f64 = 90.0;  // 42 + 48 padding for shadow
 
+// Transcription display window dimensions
+const TRANSCRIPTION_DISPLAY_WIDTH: f64 = 600.0;
+const TRANSCRIPTION_DISPLAY_HEIGHT: f64 = 220.0;  // 200px content + padding
+const DISPLAY_SPACING: f64 = 12.0;  // Gap between transcription display and recording overlay
+
 #[cfg(target_os = "macos")]
 const OVERLAY_TOP_OFFSET: f64 = 46.0;
 #[cfg(any(target_os = "windows", target_os = "linux"))]
@@ -304,5 +309,113 @@ pub fn ensure_overlay_exists(app_handle: &AppHandle) {
             let _ = old_window.destroy();
         }
         create_recording_overlay(app_handle);
+    }
+}
+
+// ===== Transcription Display Window =====
+
+fn calculate_transcription_display_position(app_handle: &AppHandle) -> Option<(f64, f64)> {
+    let settings = settings::get_settings(app_handle);
+
+    if settings.overlay_position == OverlayPosition::None {
+        return None;
+    }
+
+    let monitor = get_monitor_with_cursor(app_handle)?;
+    let work_area = monitor.work_area();
+    let scale = monitor.scale_factor();
+    let work_area_width = work_area.size.width as f64 / scale;
+    let work_area_y = work_area.position.y as f64 / scale;
+    let work_area_x = work_area.position.x as f64 / scale;
+    let work_area_height = work_area.size.height as f64 / scale;
+
+    // Center horizontally
+    let x = work_area_x + (work_area_width - TRANSCRIPTION_DISPLAY_WIDTH) / 2.0;
+
+    // Position based on overlay position setting
+    let y = match settings.overlay_position {
+        OverlayPosition::Top => {
+            // Below recording overlay (overlay is at top)
+            work_area_y + OVERLAY_TOP_OFFSET + OVERLAY_HEIGHT + DISPLAY_SPACING
+        }
+        OverlayPosition::Bottom | OverlayPosition::None => {
+            // Above recording overlay (overlay is at bottom)
+            work_area_y + work_area_height - OVERLAY_BOTTOM_OFFSET - OVERLAY_HEIGHT - DISPLAY_SPACING - TRANSCRIPTION_DISPLAY_HEIGHT
+        }
+        OverlayPosition::FollowCursor => {
+            // For follow cursor, position above center of screen (static while recording)
+            work_area_y + work_area_height - OVERLAY_BOTTOM_OFFSET - OVERLAY_HEIGHT - DISPLAY_SPACING - TRANSCRIPTION_DISPLAY_HEIGHT
+        }
+    };
+
+    Some((x, y))
+}
+
+/// Creates the transcription display window (hidden by default)
+pub fn create_transcription_display(app_handle: &AppHandle) {
+    if app_handle.get_webview_window("transcription_display").is_some() {
+        return;
+    }
+
+    let (x, y) = calculate_transcription_display_position(app_handle)
+        .unwrap_or((200.0, 200.0));
+
+    match WebviewWindowBuilder::new(
+        app_handle,
+        "transcription_display",
+        tauri::WebviewUrl::App("src/overlay/transcription-display.html".into()),
+    )
+    .title("Transcription")
+    .position(x, y)
+    .resizable(false)
+    .inner_size(TRANSCRIPTION_DISPLAY_WIDTH, TRANSCRIPTION_DISPLAY_HEIGHT)
+    .shadow(false)
+    .maximizable(false)
+    .minimizable(false)
+    .closable(false)
+    .accept_first_mouse(true)
+    .decorations(false)
+    .always_on_top(true)
+    .skip_taskbar(true)
+    .transparent(true)
+    .focused(false)
+    .visible(false)
+    .build()
+    {
+        Ok(_) => debug!("Transcription display window created (hidden)"),
+        Err(e) => debug!("Failed to create transcription display window: {}", e),
+    }
+}
+
+/// Shows the transcription display window
+pub fn show_transcription_display(app_handle: &AppHandle) {
+    let settings = settings::get_settings(app_handle);
+    if settings.overlay_position == OverlayPosition::None {
+        return;
+    }
+
+    // Ensure window exists
+    if app_handle.get_webview_window("transcription_display").is_none() {
+        create_transcription_display(app_handle);
+    }
+
+    if let Some(window) = app_handle.get_webview_window("transcription_display") {
+        if let Some((x, y)) = calculate_transcription_display_position(app_handle) {
+            let _ = window.set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
+        }
+        let _ = window.show();
+        let _ = window.emit("show-transcription-display", ());
+    }
+}
+
+/// Hides the transcription display window with fade-out animation
+pub fn hide_transcription_display(app_handle: &AppHandle) {
+    if let Some(window) = app_handle.get_webview_window("transcription_display") {
+        let _ = window.emit("hide-transcription-display", ());
+        let window_clone = window.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(300));
+            let _ = window_clone.hide();
+        });
     }
 }

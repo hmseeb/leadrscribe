@@ -413,7 +413,10 @@ body.overlay-window,
 html:has(body.overlay-window),
 body:has(.recording-overlay),
 html:has(.recording-overlay),
-html:has(.recording-overlay) body {
+html:has(.recording-overlay) body,
+body:has(.transcription-display-container),
+html:has(.transcription-display-container),
+html:has(.transcription-display-container) body {
   background: transparent !important;
   background-color: transparent !important;
 }
@@ -581,6 +584,89 @@ button {
 
 .cancel-button:active {
   transform: scale(0.92);
+}
+
+/* ===== TRANSCRIPTION DISPLAY OVERLAY ===== */
+
+.transcription-display-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.transcription-display {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  max-height: 100%;
+  padding: 16px 20px;
+  background: oklch(0.12 0 0 / 0.85);
+  border-radius: 16px;
+  border: 1px solid oklch(1 0 0 / 0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px oklch(0 0 0 / 0.4);
+  cursor: pointer;
+  user-select: none;
+  overflow: hidden;
+}
+
+.transcription-display-left {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding-top: 2px;
+}
+
+.listening-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: oklch(0.72 0.19 155);
+}
+
+.transcription-display-content {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 160px;
+  line-height: 1.6;
+  scrollbar-width: thin;
+  scrollbar-color: oklch(1 0 0 / 0.15) transparent;
+}
+
+.transcription-display-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.transcription-display-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.transcription-display-content::-webkit-scrollbar-thumb {
+  background: oklch(1 0 0 / 0.15);
+  border-radius: 2px;
+}
+
+.transcription-word {
+  display: inline;
+  color: oklch(0.95 0 0);
+  font-size: 14px;
+  font-weight: 400;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.transcription-placeholder {
+  color: oklch(0.6 0 0);
+  font-size: 14px;
+  font-style: italic;
+  font-family: 'DM Sans', sans-serif;
 }
 
 /* Reduced motion support */
