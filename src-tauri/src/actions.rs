@@ -193,10 +193,11 @@ impl ShortcutAction for TranscribeAction {
         change_tray_icon(app, TrayIconState::Recording);
         show_recording_overlay(app);
 
-        // Show streaming text in recording overlay
+        // Show streaming text in recording overlay and expand window
         if let Some(window) = app.get_webview_window("recording_overlay") {
             let _ = window.eval("document.dispatchEvent(new CustomEvent('td-show'))");
         }
+        crate::overlay::expand_overlay_for_streaming(app);
 
         let rm = app.state::<Arc<AudioRecordingManager>>();
 
@@ -317,7 +318,7 @@ impl ShortcutAction for TranscribeAction {
 
                 // Transcribe full audio directly (faster than streaming mode which
                 // processes segments sequentially due to engine mutex lock)
-                let transcription = match tm.transcribe(samples) {
+                let mut transcription = match tm.transcribe(samples) {
                     Ok(t) => {
                         debug!("Transcription result: '{}'", t);
                         t
@@ -332,6 +333,20 @@ impl ShortcutAction for TranscribeAction {
                         return;
                     }
                 };
+
+                // If final transcription is empty but we have streaming segments, use those
+                // This happens when all audio was already transcribed during streaming
+                if transcription.is_empty() {
+                    let streaming_segments = STREAMING_STATE.segments.lock().unwrap();
+                    if !streaming_segments.is_empty() {
+                        transcription = streaming_segments.join(" ");
+                        debug!(
+                            "Final transcription empty, using {} streaming segments: '{}'",
+                            streaming_segments.len(),
+                            transcription
+                        );
+                    }
+                }
 
                 if !transcription.is_empty() {
                     // Apply ghostwriting if enabled

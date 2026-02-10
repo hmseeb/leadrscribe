@@ -7,6 +7,14 @@ use std::sync::atomic::{AtomicBool, Ordering};
 /// Atomic flag to track if a hide operation is pending.
 /// This prevents race conditions where a delayed hide() executes after a new show().
 static HIDE_PENDING: AtomicBool = AtomicBool::new(false);
+
+/// Tracks whether the overlay is in streaming (expanded) mode.
+/// When true, emit_levels skips repositioning to avoid fighting the expanded size.
+static STREAMING_ACTIVE: AtomicBool = AtomicBool::new(false);
+
+// Expanded overlay dimensions for streaming mode
+const STREAMING_WIDTH: f64 = 400.0;
+const STREAMING_HEIGHT: f64 = 160.0;
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewWindowBuilder};
 
 // Add padding for shadow (shadow extends ~32px)
@@ -251,17 +259,77 @@ pub fn hide_recording_overlay(app_handle: &AppHandle) {
         let _ = overlay_window.emit("hide-overlay", ());
         // Mark that a hide operation is pending
         HIDE_PENDING.store(true, Ordering::SeqCst);
-        // Hide the window after a short delay to allow animation to complete
+
+        // Clone app handle and window for the delayed operations
+        let app_clone = app_handle.clone();
         let window_clone = overlay_window.clone();
+
         std::thread::spawn(move || {
             std::thread::sleep(std::time::Duration::from_millis(300));
             // Only hide if no show() was called since we started hiding
             // This prevents the race condition where hide() fires after a new show()
             if HIDE_PENDING.load(Ordering::SeqCst) {
+                // Reset streaming state - shrink window back to normal size
+                // Do this AFTER the animation completes so the window doesn't jump during fade-out
+                if STREAMING_ACTIVE.load(Ordering::SeqCst) {
+                    shrink_overlay_from_streaming(&app_clone);
+                }
+
                 let _ = window_clone.hide();
                 HIDE_PENDING.store(false, Ordering::SeqCst);
             }
         });
+    }
+}
+
+/// Expands the overlay window for streaming text display.
+/// Keeps the pill at the same screen position by shifting the window up.
+pub fn expand_overlay_for_streaming(app_handle: &AppHandle) {
+    if let Some(window) = app_handle.get_webview_window("recording_overlay") {
+        if let (Ok(pos), Ok(scale)) = (window.outer_position(), window.scale_factor()) {
+            let old_x = pos.x as f64 / scale;
+            let old_y = pos.y as f64 / scale;
+
+            let width_diff = STREAMING_WIDTH - OVERLAY_WIDTH;
+            let height_diff = STREAMING_HEIGHT - OVERLAY_HEIGHT;
+
+            // Center horizontally, shift up to keep pill at bottom
+            let new_x = old_x - width_diff / 2.0;
+            let new_y = old_y - height_diff;
+
+            let _ = window.set_position(tauri::Position::Logical(
+                tauri::LogicalPosition { x: new_x, y: new_y },
+            ));
+            let _ = window.set_size(tauri::Size::Logical(
+                tauri::LogicalSize { width: STREAMING_WIDTH, height: STREAMING_HEIGHT },
+            ));
+        }
+        STREAMING_ACTIVE.store(true, Ordering::SeqCst);
+    }
+}
+
+/// Shrinks the overlay window back to normal size after streaming ends.
+pub fn shrink_overlay_from_streaming(app_handle: &AppHandle) {
+    STREAMING_ACTIVE.store(false, Ordering::SeqCst);
+    if let Some(window) = app_handle.get_webview_window("recording_overlay") {
+        if let (Ok(pos), Ok(scale)) = (window.outer_position(), window.scale_factor()) {
+            let old_x = pos.x as f64 / scale;
+            let old_y = pos.y as f64 / scale;
+
+            let width_diff = STREAMING_WIDTH - OVERLAY_WIDTH;
+            let height_diff = STREAMING_HEIGHT - OVERLAY_HEIGHT;
+
+            // Reverse: center back, shift down
+            let new_x = old_x + width_diff / 2.0;
+            let new_y = old_y + height_diff;
+
+            let _ = window.set_size(tauri::Size::Logical(
+                tauri::LogicalSize { width: OVERLAY_WIDTH, height: OVERLAY_HEIGHT },
+            ));
+            let _ = window.set_position(tauri::Position::Logical(
+                tauri::LogicalPosition { x: new_x, y: new_y },
+            ));
+        }
     }
 }
 
@@ -273,8 +341,13 @@ pub fn emit_levels(app_handle: &AppHandle, levels: &Vec<f32>) {
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
         let _ = overlay_window.emit("mic-level", levels);
 
+        // Skip repositioning during streaming - the window is expanded and
+        // repositioning with the original dimensions would push it off-screen
+        if STREAMING_ACTIVE.load(Ordering::SeqCst) {
+            return;
+        }
+
         // Update overlay position dynamically to follow cursor across monitors
-        // This ensures the overlay appears on whichever screen the cursor is on
         let current_settings = settings::get_settings(app_handle);
         if current_settings.overlay_position != OverlayPosition::None {
             if let Some((x, y)) = calculate_overlay_position(app_handle) {
