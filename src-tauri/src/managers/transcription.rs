@@ -3,7 +3,7 @@ use crate::cpu_features;
 use crate::managers::model::{EngineType, ModelManager};
 use crate::settings::{get_settings, ModelUnloadTimeout};
 use anyhow::Result;
-use log::debug;
+use log::{debug, info};
 use serde::Serialize;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
@@ -360,10 +360,10 @@ impl TranscriptionManager {
 
         let st = std::time::Instant::now();
 
-        println!("Audio vector length: {}", audio.len());
+        debug!("Audio vector length: {}", audio.len());
 
         if audio.len() == 0 {
-            println!("Empty audio vector");
+            debug!("Empty audio vector");
             return Ok(String::new());
         }
 
@@ -447,14 +447,14 @@ impl TranscriptionManager {
         } else {
             ""
         };
-        println!("\ntook {}ms{}", (et - st).as_millis(), translation_note);
+        info!("Transcription took {}ms{}", (et - st).as_millis(), translation_note);
 
         // Check if we should immediately unload the model after transcription
         // Skip if suppress_unload is set (active recording session needs the model)
         if settings.model_unload_timeout == ModelUnloadTimeout::Immediately
             && !self.suppress_unload.load(Ordering::SeqCst)
         {
-            println!("⚡ Immediately unloading model after transcription");
+            info!("Immediately unloading model after transcription");
             if let Err(e) = self.unload_model() {
                 eprintln!("Failed to immediately unload model: {}", e);
             }

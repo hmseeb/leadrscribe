@@ -1,8 +1,38 @@
+use keyring::Entry;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tauri::AppHandle;
 use tauri_plugin_store::StoreExt;
+
+// Keyring constants for secure API key storage
+const KEYRING_SERVICE: &str = "com.leadr.leadrscribe";
+const KEYRING_USER: &str = "openrouter_api_key";
+
+// Keyring helper functions for secure API key storage
+fn get_keyring_entry() -> Result<Entry, String> {
+    Entry::new(KEYRING_SERVICE, KEYRING_USER)
+        .map_err(|e| format!("Failed to access keyring: {}", e))
+}
+
+pub fn get_openrouter_api_key() -> Option<String> {
+    match get_keyring_entry() {
+        Ok(entry) => entry.get_password().ok(),
+        Err(_) => None,
+    }
+}
+
+pub fn set_openrouter_api_key(key: &str) -> Result<(), String> {
+    let entry = get_keyring_entry()?;
+    entry.set_password(key)
+        .map_err(|e| format!("Failed to save API key: {}", e))
+}
+
+pub fn delete_openrouter_api_key() -> Result<(), String> {
+    let entry = get_keyring_entry()?;
+    entry.delete_credential()
+        .map_err(|e| format!("Failed to delete API key: {}", e))
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ShortcutBinding {
@@ -310,7 +340,7 @@ pub fn load_or_create_app_settings(app: &AppHandle) -> AppSettings {
         .store(SETTINGS_STORE_PATH)
         .expect("Failed to initialize store");
 
-    let settings = if let Some(settings_value) = store.get("settings") {
+    let mut settings = if let Some(settings_value) = store.get("settings") {
         // Parse the entire settings object
         match serde_json::from_value::<AppSettings>(settings_value) {
             Ok(settings) => {
@@ -339,6 +369,23 @@ pub fn load_or_create_app_settings(app: &AppHandle) -> AppSettings {
         default_settings
     };
 
+    // Migrate API key from settings file to keychain (one-time migration)
+    if let Some(plaintext_key) = settings.openrouter_api_key.take() {
+        // Save to keychain
+        if let Err(e) = set_openrouter_api_key(&plaintext_key) {
+            log::warn!("Failed to migrate API key to keychain: {}", e);
+            // Keep in settings as fallback
+            settings.openrouter_api_key = Some(plaintext_key);
+        } else {
+            // Successfully migrated - remove from settings file
+            store.set("settings", serde_json::to_value(&settings).unwrap());
+            if let Err(e) = store.save() {
+                log::warn!("Failed to save settings after migration: {}", e);
+            }
+            log::info!("Migrated OpenRouter API key to OS keychain");
+        }
+    }
+
     settings
 }
 
@@ -349,23 +396,15 @@ pub fn get_settings(app: &AppHandle) -> AppSettings {
 
     if let Some(settings_value) = store.get("settings") {
         match serde_json::from_value::<AppSettings>(settings_value) {
-            Ok(settings) => {
-                println!("DEBUG: get_settings returning settings with selected_model: {:?}", settings.selected_model);
-                settings
-            }
-            Err(e) => {
-                println!("DEBUG: get_settings failed to parse, returning defaults. Error: {}", e);
-                get_default_settings()
-            }
+            Ok(settings) => settings,
+            Err(_e) => get_default_settings(),
         }
     } else {
-        println!("DEBUG: get_settings found no settings in store, returning defaults");
         get_default_settings()
     }
 }
 
 pub fn write_settings(app: &AppHandle, settings: AppSettings) {
-    println!("DEBUG: write_settings called with selected_model: {:?}", settings.selected_model);
     let store = app
         .store(SETTINGS_STORE_PATH)
         .expect("Failed to initialize store");
@@ -376,7 +415,7 @@ pub fn write_settings(app: &AppHandle, settings: AppSettings) {
     if let Err(e) = store.save() {
         eprintln!("Failed to save settings store: {}", e);
     } else {
-        println!("DEBUG: Settings saved successfully");
+        debug!("Settings saved successfully");
     }
 }
 

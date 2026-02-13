@@ -314,6 +314,7 @@ pub fn run() {
             shortcut::refresh_shortcuts,
             shortcut::change_mute_while_recording_setting,
             shortcut::change_output_mode_setting,
+            shortcut::get_openrouter_api_key_setting,
             shortcut::change_openrouter_api_key_setting,
             shortcut::change_openrouter_model_setting,
             shortcut::change_custom_instructions_setting,

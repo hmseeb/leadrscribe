@@ -360,11 +360,18 @@ pub fn change_output_mode_setting(app: AppHandle, mode: String) -> Result<(), St
 }
 
 #[tauri::command]
-pub fn change_openrouter_api_key_setting(app: AppHandle, api_key: Option<String>) -> Result<(), String> {
-    let mut settings = settings::get_settings(&app);
-    settings.openrouter_api_key = api_key;
-    settings::write_settings(&app, settings);
-    Ok(())
+pub fn get_openrouter_api_key_setting() -> Option<String> {
+    // Retrieve API key from OS keychain
+    settings::get_openrouter_api_key()
+}
+
+#[tauri::command]
+pub fn change_openrouter_api_key_setting(_app: AppHandle, api_key: Option<String>) -> Result<(), String> {
+    // Store API key in OS keychain instead of settings file
+    match api_key {
+        Some(key) => settings::set_openrouter_api_key(&key),
+        None => settings::delete_openrouter_api_key(),
+    }
 }
 
 #[tauri::command]
