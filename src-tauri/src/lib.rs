@@ -13,7 +13,6 @@ mod shortcut;
 mod tray;
 mod utils;
 
-use commands::streaming::StreamingSession;
 use managers::audio::AudioRecordingManager;
 use managers::history::HistoryManager;
 use managers::model::ModelManager;
@@ -90,7 +89,6 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(history_manager.clone());
     app_handle.manage(profile_manager.clone());
     app_handle.manage(tag_manager.clone());
-    app_handle.manage(Arc::new(StreamingSession::new()));
 
     // Initialize the shortcuts
     shortcut::init_shortcuts(app_handle);
