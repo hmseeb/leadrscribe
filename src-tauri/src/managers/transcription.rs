@@ -138,6 +138,11 @@ impl TranscriptionManager {
         engine.is_some()
     }
 
+    /// Check if a model is currently being loaded
+    pub fn is_loading(&self) -> bool {
+        *self.is_loading.lock().unwrap()
+    }
+
     /// Prevent auto-unload (call during recording to keep model loaded for streaming)
     pub fn set_suppress_unload(&self, suppress: bool) {
         self.suppress_unload.store(suppress, Ordering::SeqCst);

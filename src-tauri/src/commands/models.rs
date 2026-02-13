@@ -94,9 +94,9 @@ pub async fn get_transcription_model_status(
 pub async fn is_model_loading(
     transcription_manager: State<'_, Arc<TranscriptionManager>>,
 ) -> Result<bool, String> {
-    // Check if transcription manager has a loaded model
-    let current_model = transcription_manager.get_current_model();
-    Ok(current_model.is_none())
+    // Check if a model is currently being loaded
+    let is_loading = transcription_manager.is_loading();
+    Ok(is_loading)
 }
 
 #[tauri::command]
