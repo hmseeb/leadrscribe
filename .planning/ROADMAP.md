@@ -49,10 +49,12 @@ Plans:
   3. Model manager accurately reports download status (onboarding doesn't say "no models" when downloads are in progress)
   4. FollowCursor overlay position is selectable in settings UI and works when chosen
   5. Model loading status command returns accurate state for UI feedback (not inverted semantics)
-**Plans**: TBD
+**Plans**: 3 plans in 1 wave
 
 Plans:
-- [ ] 09-01: TBD
+- [ ] 09-01-PLAN.md — Fix critical timing bug and broken tests (CORR-01, CORR-02)
+- [ ] 09-02-PLAN.md — Fix download detection and loading status (CORR-03, CORR-04)
+- [ ] 09-03-PLAN.md — Add FollowCursor to UI and types (FEAT-01)
 
 #### Phase 10: Security & Code Health
 **Goal**: Secure API key storage, harden app permissions, and remove technical debt
@@ -77,7 +79,7 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 1. Overlay Redesign | v1.0 UI Redesign | 5/5 | Complete | 2026-01-28 |
 | 8. Real-Time Transcription Display | v1.0 UI Redesign | 2/2 | Complete | 2026-02-06 |
-| 9. Critical Correctness Fixes | v0.6.0 Audit Fixes | 0/? | Not started | - |
+| 9. Critical Correctness Fixes | v0.6.0 Audit Fixes | 0/3 | Not started | - |
 | 10. Security & Code Health | v0.6.0 Audit Fixes | 0/? | Not started | - |
 
 ---
