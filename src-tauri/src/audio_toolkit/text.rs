@@ -104,7 +104,7 @@ fn preserve_case_pattern(original: &str, replacement: &str) -> String {
         }
         chars.into_iter().collect()
     } else {
-        replacement.to_string()
+        replacement.to_lowercase()
     }
 }
 
@@ -141,7 +141,7 @@ mod tests {
         let text = "hello world";
         let custom_words = vec!["Hello".to_string(), "World".to_string()];
         let result = apply_custom_words(text, &custom_words, 0.5);
-        assert_eq!(result, "Hello World");
+        assert_eq!(result, "hello world");
     }
 
     #[test]
@@ -156,7 +156,7 @@ mod tests {
     fn test_preserve_case_pattern() {
         assert_eq!(preserve_case_pattern("HELLO", "world"), "WORLD");
         assert_eq!(preserve_case_pattern("Hello", "world"), "World");
-        assert_eq!(preserve_case_pattern("hello", "WORLD"), "WORLD");
+        assert_eq!(preserve_case_pattern("hello", "WORLD"), "world");
     }
 
     #[test]
