@@ -292,26 +292,32 @@ pub fn hide_recording_overlay(app_handle: &AppHandle) {
 
 /// Expands the overlay window for streaming text display.
 /// Keeps the pill at the same screen position by shifting the window up.
+/// Uses atomic compare_exchange to ensure this only runs once per session.
 pub fn expand_overlay_for_streaming(app_handle: &AppHandle) {
+    // Atomically check and set - only the first caller proceeds
+    if STREAMING_ACTIVE.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_err() {
+        return;
+    }
+
     if let Some(window) = app_handle.get_webview_window("recording_overlay") {
         if let (Ok(pos), Ok(scale)) = (window.outer_position(), window.scale_factor()) {
             let old_x = pos.x as f64 / scale;
             let old_y = pos.y as f64 / scale;
 
             let width_diff = STREAMING_WIDTH - OVERLAY_WIDTH;
+            let height_diff = STREAMING_HEIGHT - OVERLAY_HEIGHT;
 
-            // Center horizontally, keep Y (pill anchored at top, grows downward)
+            // Center horizontally, shift up so pill bottom stays at same screen position
             let new_x = old_x - width_diff / 2.0;
-            let new_y = old_y;
+            let new_y = old_y - height_diff;
 
-            let _ = window.set_position(tauri::Position::Logical(
-                tauri::LogicalPosition { x: new_x, y: new_y },
-            ));
             let _ = window.set_size(tauri::Size::Logical(
                 tauri::LogicalSize { width: STREAMING_WIDTH, height: STREAMING_HEIGHT },
             ));
+            let _ = window.set_position(tauri::Position::Logical(
+                tauri::LogicalPosition { x: new_x, y: new_y },
+            ));
         }
-        STREAMING_ACTIVE.store(true, Ordering::SeqCst);
     }
 }
 

@@ -340,7 +340,7 @@ pub fn load_or_create_app_settings(app: &AppHandle) -> AppSettings {
         .store(SETTINGS_STORE_PATH)
         .expect("Failed to initialize store");
 
-    let mut settings = if let Some(settings_value) = store.get("settings") {
+    let settings = if let Some(settings_value) = store.get("settings") {
         // Parse the entire settings object
         match serde_json::from_value::<AppSettings>(settings_value) {
             Ok(settings) => {
@@ -368,23 +368,6 @@ pub fn load_or_create_app_settings(app: &AppHandle) -> AppSettings {
 
         default_settings
     };
-
-    // Migrate API key from settings file to keychain (one-time migration)
-    if let Some(plaintext_key) = settings.openrouter_api_key.take() {
-        // Save to keychain
-        if let Err(e) = set_openrouter_api_key(&plaintext_key) {
-            log::warn!("Failed to migrate API key to keychain: {}", e);
-            // Keep in settings as fallback
-            settings.openrouter_api_key = Some(plaintext_key);
-        } else {
-            // Successfully migrated - remove from settings file
-            store.set("settings", serde_json::to_value(&settings).unwrap());
-            if let Err(e) = store.save() {
-                log::warn!("Failed to save settings after migration: {}", e);
-            }
-            log::info!("Migrated OpenRouter API key to OS keychain");
-        }
-    }
 
     settings
 }

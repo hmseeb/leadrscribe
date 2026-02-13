@@ -243,6 +243,8 @@ pub fn setup_segment_listener(app: &AppHandle) {
                                 *STREAMING_STATE.latest_text.lock().unwrap() = display_text.clone();
 
                                 if let Some(window) = app_for_display.get_webview_window("recording_overlay") {
+                                    // Expand overlay on first partial result (idempotent)
+                                    crate::overlay::expand_overlay_for_streaming(&app_for_display);
                                     let _ = window.emit("td-partial", &display_text);
                                 }
                             } else {
@@ -284,11 +286,10 @@ impl ShortcutAction for TranscribeAction {
         change_tray_icon(app, TrayIconState::Recording);
         show_recording_overlay(app);
 
-        // Show streaming text in recording overlay and expand window
+        // Notify overlay that streaming is starting (but don't expand yet)
         if let Some(window) = app.get_webview_window("recording_overlay") {
             let _ = window.emit("td-show", ());
         }
-        crate::overlay::expand_overlay_for_streaming(app);
 
         let rm = app.state::<Arc<AudioRecordingManager>>();
 
@@ -465,8 +466,9 @@ impl ShortcutAction for TranscribeAction {
 
                         debug!("Using combined instructions: {}", combined_instructions);
 
-                        // Get API key from OS keychain
-                        let api_key = get_openrouter_api_key();
+                        // Get API key from OS keychain, fall back to settings file
+                        let api_key = get_openrouter_api_key()
+                            .or_else(|| settings.openrouter_api_key.clone());
 
                         match ghostwriter::process_text(
                             &transcription,

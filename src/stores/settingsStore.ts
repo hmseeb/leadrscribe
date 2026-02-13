@@ -168,11 +168,12 @@ export const useSettingsStore = create<SettingsStore>()(
         }
 
         // Load additional settings that come from invoke calls
-        const [microphoneMode, selectedMicrophone, selectedOutputDevice] =
+        const [microphoneMode, selectedMicrophone, selectedOutputDevice, openrouterApiKey] =
           await Promise.allSettled([
             invoke("get_microphone_mode"),
             invoke("get_selected_microphone"),
             invoke("get_selected_output_device"),
+            invoke("get_openrouter_api_key_setting"),
           ]);
 
         // Merge all settings
@@ -190,6 +191,10 @@ export const useSettingsStore = create<SettingsStore>()(
             selectedOutputDevice.status === "fulfilled"
               ? (selectedOutputDevice.value as string)
               : "Default",
+          openrouter_api_key:
+            openrouterApiKey.status === "fulfilled"
+              ? (openrouterApiKey.value as string | null)
+              : null,
         };
 
         set({ settings: mergedSettings, isLoading: false });
