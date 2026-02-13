@@ -44,6 +44,8 @@ pub struct TranscriptionManager {
     watcher_handle: Arc<Mutex<Option<thread::JoinHandle<()>>>>,
     is_loading: Arc<Mutex<bool>>,
     loading_condvar: Arc<Condvar>,
+    /// When true, prevents auto-unload after transcription (used during active recording)
+    suppress_unload: Arc<AtomicBool>,
 }
 
 impl TranscriptionManager {
@@ -63,6 +65,7 @@ impl TranscriptionManager {
             watcher_handle: Arc::new(Mutex::new(None)),
             is_loading: Arc::new(Mutex::new(false)),
             loading_condvar: Arc::new(Condvar::new()),
+            suppress_unload: Arc::new(AtomicBool::new(false)),
         };
 
         // Start the idle watcher
@@ -95,8 +98,10 @@ impl TranscriptionManager {
                             .as_millis() as u64;
 
                         if now_ms.saturating_sub(last) > limit_seconds * 1000 {
-                            // idle -> unload
-                            if manager_cloned.is_model_loaded() {
+                            // idle -> unload (skip if recording session is active)
+                            if manager_cloned.is_model_loaded()
+                                && !manager_cloned.suppress_unload.load(Ordering::SeqCst)
+                            {
                                 let unload_start = std::time::Instant::now();
                                 debug!("Starting to unload model due to inactivity");
 
@@ -131,6 +136,11 @@ impl TranscriptionManager {
     pub fn is_model_loaded(&self) -> bool {
         let engine = self.engine.lock().unwrap();
         engine.is_some()
+    }
+
+    /// Prevent auto-unload (call during recording to keep model loaded for streaming)
+    pub fn set_suppress_unload(&self, suppress: bool) {
+        self.suppress_unload.store(suppress, Ordering::SeqCst);
     }
 
     pub fn unload_model(&self) -> Result<()> {
@@ -284,7 +294,7 @@ impl TranscriptionManager {
             SystemTime::now()
                 .duration_since(SystemTime::UNIX_EPOCH)
                 .unwrap()
-                .as_secs(),
+                .as_millis() as u64,
             std::sync::atomic::Ordering::Relaxed,
         );
 
@@ -435,7 +445,10 @@ impl TranscriptionManager {
         println!("\ntook {}ms{}", (et - st).as_millis(), translation_note);
 
         // Check if we should immediately unload the model after transcription
-        if settings.model_unload_timeout == ModelUnloadTimeout::Immediately {
+        // Skip if suppress_unload is set (active recording session needs the model)
+        if settings.model_unload_timeout == ModelUnloadTimeout::Immediately
+            && !self.suppress_unload.load(Ordering::SeqCst)
+        {
             println!("⚡ Immediately unloading model after transcription");
             if let Err(e) = self.unload_model() {
                 eprintln!("Failed to immediately unload model: {}", e);
