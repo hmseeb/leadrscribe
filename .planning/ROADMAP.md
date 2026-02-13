@@ -69,9 +69,9 @@ Plans:
 **Plans**: 3 plans in 1 wave
 
 Plans:
-- [ ] 10-01-PLAN.md — Security hardening (SEC-01 through SEC-04)
-- [ ] 10-02-PLAN.md — Remove dead streaming code (HLTH-01, HLTH-02)
-- [ ] 10-03-PLAN.md — Replace println! with log macros (HLTH-03)
+- [x] 10-01-PLAN.md — Security hardening (SEC-01 through SEC-04)
+- [x] 10-02-PLAN.md — Remove dead streaming code (HLTH-01, HLTH-02)
+- [x] 10-03-PLAN.md — Replace println! with log macros (HLTH-03)
 
 ## Progress
 
@@ -82,7 +82,7 @@ Plans:
 | 1. Overlay Redesign | v1.0 UI Redesign | 5/5 | Complete | 2026-01-28 |
 | 8. Real-Time Transcription Display | v1.0 UI Redesign | 2/2 | Complete | 2026-02-06 |
 | 9. Critical Correctness Fixes | v0.6.0 Audit Fixes | 3/3 | Complete | 2026-02-13 |
-| 10. Security & Code Health | v0.6.0 Audit Fixes | 0/3 | Not started | - |
+| 10. Security & Code Health | v0.6.0 Audit Fixes | 3/3 | Complete | 2026-02-13 |
 
 ---
 *Roadmap created: 2026-02-04*
