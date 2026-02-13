@@ -243,8 +243,8 @@ pub fn setup_segment_listener(app: &AppHandle) {
                                 *STREAMING_STATE.latest_text.lock().unwrap() = display_text.clone();
 
                                 if let Some(window) = app_for_display.get_webview_window("recording_overlay") {
-                                    // Expand overlay on first partial result (idempotent)
-                                    crate::overlay::expand_overlay_for_streaming(&app_for_display);
+                                    // Stop repositioning once streaming text appears
+                                    crate::overlay::set_streaming_active(true);
                                     let _ = window.emit("td-partial", &display_text);
                                 }
                             } else {
@@ -411,9 +411,7 @@ impl ShortcutAction for TranscribeAction {
                         debug!("Ghostwriter mode enabled, processing transcription");
 
                         // Update overlay to show "Ghostwriting..." now that transcription is done
-                        if let Some(overlay_window) = ah.get_webview_window("recording_overlay") {
-                            let _ = overlay_window.emit("show-overlay", "ghostwriting");
-                        }
+                        utils::emit_overlay_state(&ah, "ghostwriting");
 
                         // Get active profile's custom instructions if available
                         // Skip if "None" profile (ID 1) is selected
@@ -425,26 +423,21 @@ impl ShortcutAction for TranscribeAction {
                                 None
                             } else {
                                 use crate::managers::profile::ProfileManager;
-                                match ProfileManager::new(&ah) {
-                                    Ok(pm) => match pm.get_profile(profile_id).await {
-                                        Ok(Some(profile)) => {
-                                            debug!(
-                                                "Using profile '{}' custom instructions",
-                                                profile.name
-                                            );
-                                            profile.custom_instructions
-                                        }
-                                        Ok(None) => {
-                                            debug!("Active profile ID {} not found", profile_id);
-                                            None
-                                        }
-                                        Err(e) => {
-                                            error!("Failed to get profile: {}", e);
-                                            None
-                                        }
-                                    },
+                                let pm = ah.state::<Arc<ProfileManager>>();
+                                match pm.get_profile(profile_id).await {
+                                    Ok(Some(profile)) => {
+                                        debug!(
+                                            "Using profile '{}' custom instructions",
+                                            profile.name
+                                        );
+                                        profile.custom_instructions
+                                    }
+                                    Ok(None) => {
+                                        debug!("Active profile ID {} not found", profile_id);
+                                        None
+                                    }
                                     Err(e) => {
-                                        error!("Failed to create ProfileManager: {}", e);
+                                        error!("Failed to get profile: {}", e);
                                         None
                                     }
                                 }

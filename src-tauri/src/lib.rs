@@ -13,7 +13,7 @@ mod shortcut;
 mod tray;
 mod utils;
 
-use log::{debug, info};
+use log::{debug, error, info, warn};
 use managers::audio::AudioRecordingManager;
 use managers::history::HistoryManager;
 use managers::model::ModelManager;
@@ -41,28 +41,28 @@ fn show_main_window(app: &AppHandle) {
     if let Some(main_window) = app.get_webview_window("main") {
         // First, ensure the window is visible
         if let Err(e) = main_window.show() {
-            eprintln!("Failed to show window: {}", e);
+            error!("Failed to show window: {}", e);
         }
         // Then, bring it to the front and give it focus
         if let Err(e) = main_window.set_focus() {
-            eprintln!("Failed to focus window: {}", e);
+            error!("Failed to focus window: {}", e);
         }
         // Optional: On macOS, ensure the app becomes active if it was an accessory
         #[cfg(target_os = "macos")]
         {
             if let Err(e) = app.set_activation_policy(tauri::ActivationPolicy::Regular) {
-                eprintln!("Failed to set activation policy to Regular: {}", e);
+                error!("Failed to set activation policy to Regular: {}", e);
             }
         }
     } else {
-        eprintln!("Main window not found.");
+        warn!("Main window not found.");
     }
 }
 
 fn initialize_core_logic(app_handle: &AppHandle) {
     // Migrate user data from old "handy" directory if it exists
     if let Err(e) = migration::migrate_user_data(app_handle) {
-        eprintln!("Warning: Failed to migrate user data: {}", e);
+        warn!("Failed to migrate user data: {}", e);
         // Continue with initialization even if migration fails
     }
 
@@ -218,8 +218,8 @@ pub fn run() {
                 if let Some(model_info) = model_manager.get_model_info(&selected_model) {
                     if matches!(model_info.engine_type, managers::model::EngineType::Parakeet)
                         && !cpu_features::supports_parakeet() {
-                        eprintln!(
-                            "Warning: Selected Parakeet model '{}' requires AVX2 CPU support. \
+                        warn!(
+                            "Selected Parakeet model '{}' requires AVX2 CPU support. \
                              Your CPU does not support this feature. Switching to Whisper Small model.",
                             selected_model
                         );
@@ -249,7 +249,7 @@ pub fn run() {
                     if let Some(model_info) = model_manager_clone.get_model_info(&selected_model) {
                         if model_info.is_downloaded {
                             if let Err(e) = transcription_manager_clone.load_model(&selected_model) {
-                                eprintln!("Failed to auto-load model on startup: {}", e);
+                                error!("Failed to auto-load model on startup: {}", e);
                             } else {
                                 info!("Successfully auto-loaded model: {}", selected_model);
                             }

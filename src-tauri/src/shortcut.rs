@@ -1,4 +1,4 @@
-use log::warn;
+use log::{debug, error, warn};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_autostart::ManagerExt;
@@ -15,7 +15,7 @@ pub fn init_shortcuts(app: &AppHandle) {
     // Register shortcuts with the bindings from settings
     for (_id, binding) in settings.bindings {
         if let Err(e) = _register_shortcut(app, binding) {
-            eprintln!("Failed to register shortcut {} during init: {}", _id, e);
+            error!("Failed to register shortcut {} during init: {}", _id, e);
         }
     }
 
@@ -40,18 +40,18 @@ fn verify_and_reregister_shortcuts(app: &AppHandle) {
         if let Ok(shortcut) = binding.current_binding.parse::<Shortcut>() {
             // Check if it's still registered
             if !app.global_shortcut().is_registered(shortcut) {
-                eprintln!(
+                warn!(
                     "Health check: Shortcut '{}' ({}) is not registered. Re-registering...",
                     id, binding.current_binding
                 );
                 // Try to re-register
                 if let Err(e) = _register_shortcut(app, binding.clone()) {
-                    eprintln!(
+                    error!(
                         "Health check: Failed to re-register shortcut '{}': {}",
                         id, e
                     );
                 } else {
-                    eprintln!("Health check: Successfully re-registered shortcut '{}'", id);
+                    debug!("Health check: Successfully re-registered shortcut '{}'", id);
                 }
             }
         }
@@ -81,7 +81,7 @@ pub fn change_binding(
         Some(binding) => binding.clone(),
         None => {
             let error_msg = format!("Binding with id '{}' not found", id);
-            eprintln!("change_binding error: {}", error_msg);
+            warn!("change_binding error: {}", error_msg);
             return Ok(BindingResponse {
                 success: false,
                 binding: None,
@@ -93,12 +93,12 @@ pub fn change_binding(
     // Unregister the existing binding
     if let Err(e) = _unregister_shortcut(&app, binding_to_modify.clone()) {
         let error_msg = format!("Failed to unregister shortcut: {}", e);
-        eprintln!("change_binding error: {}", error_msg);
+        warn!("change_binding error: {}", error_msg);
     }
 
     // Validate the new shortcut before we touch the current registration
     if let Err(e) = validate_shortcut_string(&binding) {
-        eprintln!("change_binding validation error: {}", e);
+        warn!("change_binding validation error: {}", e);
         return Err(e);
     }
 
@@ -109,7 +109,7 @@ pub fn change_binding(
     // Register the new binding
     if let Err(e) = _register_shortcut(&app, updated_binding.clone()) {
         let error_msg = format!("Failed to register shortcut: {}", e);
-        eprintln!("change_binding error: {}", error_msg);
+        error!("change_binding error: {}", error_msg);
         return Ok(BindingResponse {
             success: false,
             binding: None,
@@ -133,9 +133,10 @@ pub fn change_binding(
 
 #[tauri::command]
 pub fn reset_binding(app: AppHandle, id: String) -> Result<BindingResponse, String> {
-    let binding = settings::get_stored_binding(&app, &id);
+    let binding = settings::get_stored_binding(&app, &id)
+        .ok_or_else(|| format!("Binding with id '{}' not found", id))?;
 
-    return change_binding(app, id, binding.default_binding);
+    change_binding(app, id, binding.default_binding)
 }
 
 #[tauri::command]
@@ -175,7 +176,7 @@ pub fn change_sound_theme_setting(app: AppHandle, theme: String) -> Result<(), S
         "pop" => SoundTheme::Pop,
         "custom" => SoundTheme::Custom,
         other => {
-            eprintln!("Invalid sound theme '{}', defaulting to marimba", other);
+            warn!("Invalid sound theme '{}', defaulting to marimba", other);
             SoundTheme::Marimba
         }
     };
@@ -207,9 +208,8 @@ pub fn change_overlay_position_setting(app: AppHandle, position: String) -> Resu
         "none" => OverlayPosition::None,
         "top" => OverlayPosition::Top,
         "bottom" => OverlayPosition::Bottom,
-        "followcursor" => OverlayPosition::FollowCursor,
         other => {
-            eprintln!("Invalid overlay position '{}', defaulting to bottom", other);
+            warn!("Invalid overlay position '{}', defaulting to bottom", other);
             OverlayPosition::Bottom
         }
     };
@@ -310,7 +310,7 @@ pub fn change_paste_method_setting(app: AppHandle, method: String) -> Result<(),
         "ctrl_v" => PasteMethod::CtrlV,
         "direct" => PasteMethod::Direct,
         other => {
-            eprintln!("Invalid paste method '{}', defaulting to ctrl_v", other);
+            warn!("Invalid paste method '{}', defaulting to ctrl_v", other);
             PasteMethod::CtrlV
         }
     };
@@ -326,7 +326,7 @@ pub fn change_clipboard_handling_setting(app: AppHandle, handling: String) -> Re
         "dont_modify" => ClipboardHandling::DontModify,
         "copy_to_clipboard" => ClipboardHandling::CopyToClipboard,
         other => {
-            eprintln!("Invalid clipboard handling '{}', defaulting to dont_modify", other);
+            warn!("Invalid clipboard handling '{}', defaulting to dont_modify", other);
             ClipboardHandling::DontModify
         }
     };
@@ -351,7 +351,7 @@ pub fn change_output_mode_setting(app: AppHandle, mode: String) -> Result<(), St
         "transcript" => settings::OutputMode::Transcript,
         "ghostwriter" => settings::OutputMode::Ghostwriter,
         other => {
-            eprintln!("Invalid output mode '{}', defaulting to transcript", other);
+            warn!("Invalid output mode '{}', defaulting to transcript", other);
             settings::OutputMode::Transcript
         }
     };
@@ -362,22 +362,49 @@ pub fn change_output_mode_setting(app: AppHandle, mode: String) -> Result<(), St
 
 #[tauri::command]
 pub fn get_openrouter_api_key_setting(app: AppHandle) -> Option<String> {
-    // Try keychain first, fall back to settings file
-    settings::get_openrouter_api_key()
-        .or_else(|| settings::get_settings(&app).openrouter_api_key.clone())
+    // Try keychain first
+    if let Some(key) = settings::get_openrouter_api_key() {
+        return Some(key);
+    }
+
+    // Fall back to settings file, and auto-migrate to keychain if found
+    if let Some(key) = settings::get_settings(&app).openrouter_api_key.clone() {
+        if !key.is_empty() {
+            debug!("Migrating API key from settings file to keychain");
+            if settings::set_openrouter_api_key(&key).is_ok() {
+                // Clear plaintext from settings file after successful migration
+                let mut s = settings::get_settings(&app);
+                s.openrouter_api_key = None;
+                settings::write_settings(&app, s);
+            }
+            return Some(key);
+        }
+    }
+
+    None
 }
 
 #[tauri::command]
 pub fn change_openrouter_api_key_setting(app: AppHandle, api_key: Option<String>) -> Result<(), String> {
-    // Store in both keychain (best effort) and settings file (reliable fallback)
+    let mut s = settings::get_settings(&app);
+
     if let Some(ref key) = api_key {
-        let _ = settings::set_openrouter_api_key(key);
+        match settings::set_openrouter_api_key(key) {
+            Ok(()) => {
+                // Keychain succeeded: clear plaintext from settings file
+                s.openrouter_api_key = None;
+            }
+            Err(e) => {
+                // Keychain failed: store in settings file as last resort
+                warn!("Keychain storage failed, falling back to settings file: {}", e);
+                s.openrouter_api_key = api_key;
+            }
+        }
     } else {
         let _ = settings::delete_openrouter_api_key();
+        s.openrouter_api_key = None;
     }
-    // Always persist to settings file as fallback
-    let mut s = settings::get_settings(&app);
-    s.openrouter_api_key = api_key;
+
     settings::write_settings(&app, s);
     Ok(())
 }
@@ -422,7 +449,7 @@ fn validate_shortcut_string(raw: &str) -> Result<(), String> {
 pub fn suspend_binding(app: AppHandle, id: String) -> Result<(), String> {
     if let Some(b) = settings::get_bindings(&app).get(&id).cloned() {
         if let Err(e) = _unregister_shortcut(&app, b) {
-            eprintln!("suspend_binding error for id '{}': {}", id, e);
+            error!("suspend_binding error for id '{}': {}", id, e);
             return Err(e);
         }
     }
@@ -434,7 +461,7 @@ pub fn suspend_binding(app: AppHandle, id: String) -> Result<(), String> {
 pub fn resume_binding(app: AppHandle, id: String) -> Result<(), String> {
     if let Some(b) = settings::get_bindings(&app).get(&id).cloned() {
         if let Err(e) = _register_shortcut(&app, b) {
-            eprintln!("resume_binding error for id '{}': {}", id, e);
+            error!("resume_binding error for id '{}': {}", id, e);
             return Err(e);
         }
     }
@@ -446,7 +473,7 @@ pub fn resume_binding(app: AppHandle, id: String) -> Result<(), String> {
 /// or automatically after system wake events.
 #[tauri::command]
 pub fn refresh_shortcuts(app: AppHandle) -> Result<(), String> {
-    eprintln!("Manual shortcut refresh triggered");
+    debug!("Manual shortcut refresh triggered");
     verify_and_reregister_shortcuts(&app);
     Ok(())
 }
@@ -454,7 +481,7 @@ pub fn refresh_shortcuts(app: AppHandle) -> Result<(), String> {
 fn _register_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<(), String> {
     // Validate human-level rules first
     if let Err(e) = validate_shortcut_string(&binding.current_binding) {
-        eprintln!(
+        warn!(
             "_register_shortcut validation error for binding '{}': {}",
             binding.current_binding, e
         );
@@ -469,7 +496,7 @@ fn _register_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<(), S
                 "Failed to parse shortcut '{}': {}",
                 binding.current_binding, e
             );
-            eprintln!("_register_shortcut parse error: {}", error_msg);
+            error!("_register_shortcut parse error: {}", error_msg);
             return Err(error_msg);
         }
     };
@@ -477,7 +504,7 @@ fn _register_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<(), S
     // Prevent duplicate registrations that would silently shadow one another
     if app.global_shortcut().is_registered(shortcut) {
         let error_msg = format!("Shortcut '{}' is already in use", binding.current_binding);
-        eprintln!("_register_shortcut duplicate error: {}", error_msg);
+        warn!("_register_shortcut duplicate error: {}", error_msg);
         return Err(error_msg);
     }
 
@@ -530,7 +557,7 @@ fn _register_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<(), S
         })
         .map_err(|e| {
             let error_msg = format!("Couldn't register shortcut '{}': {}", binding.current_binding, e);
-            eprintln!("_register_shortcut registration error: {}", error_msg);
+            error!("_register_shortcut registration error: {}", error_msg);
             error_msg
         })?;
 
@@ -545,7 +572,7 @@ fn _unregister_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<(),
                 "Failed to parse shortcut '{}' for unregistration: {}",
                 binding.current_binding, e
             );
-            eprintln!("_unregister_shortcut parse error: {}", error_msg);
+            error!("_unregister_shortcut parse error: {}", error_msg);
             return Err(error_msg);
         }
     };
@@ -555,7 +582,7 @@ fn _unregister_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<(),
             "Failed to unregister shortcut '{}': {}",
             binding.current_binding, e
         );
-        eprintln!("_unregister_shortcut error: {}", error_msg);
+        error!("_unregister_shortcut error: {}", error_msg);
         error_msg
     })?;
 

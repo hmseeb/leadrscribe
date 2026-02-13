@@ -7,7 +7,7 @@ use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     Device, Sample, SizedSample,
 };
-use log::info;
+use log::{error, info};
 
 use crate::audio_toolkit::{
     audio::{AudioVisualiser, FrameResampler},
@@ -267,14 +267,14 @@ impl AudioRecorder {
             }
 
             if sample_tx.send(output_buffer.clone()).is_err() {
-                eprintln!("Failed to send samples");
+                error!("Failed to send samples");
             }
         };
 
         device.build_input_stream(
             &config.clone().into(),
             stream_cb,
-            |err| eprintln!("Stream error: {}", err),
+            |err| error!("Stream error: {}", err),
             None,
         )
     }

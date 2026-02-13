@@ -13,7 +13,6 @@ const overlayOptions = [
   { value: "none", label: "None" },
   { value: "bottom", label: "Bottom" },
   { value: "top", label: "Top" },
-  { value: "followcursor", label: "Follow Cursor" },
 ];
 
 export const ShowOverlay: React.FC<ShowOverlayProps> = React.memo(({

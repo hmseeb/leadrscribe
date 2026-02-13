@@ -36,31 +36,33 @@ function App() {
 
   // Listen for notification events from backend
   useEffect(() => {
-    const setupNotificationListener = async () => {
-      const unlisten = await listen<{
-        title: string;
-        message: string;
-        type: string;
-      }>("show-notification", (event) => {
-        const { title, message, type } = event.payload;
+    let unlisten: (() => void) | undefined;
 
-        if (type === "error") {
-          toast.error(message, {
-            duration: 10000, // Show for 10 seconds
-            description: title,
-          });
-        } else {
-          toast(message, {
-            duration: 5000,
-            description: title,
-          });
-        }
-      });
+    listen<{
+      title: string;
+      message: string;
+      type: string;
+    }>("show-notification", (event) => {
+      const { title, message, type } = event.payload;
 
-      return unlisten;
+      if (type === "error") {
+        toast.error(message, {
+          duration: 10000, // Show for 10 seconds
+          description: title,
+        });
+      } else {
+        toast(message, {
+          duration: 5000,
+          description: title,
+        });
+      }
+    }).then((fn) => {
+      unlisten = fn;
+    });
+
+    return () => {
+      unlisten?.();
     };
-
-    setupNotificationListener();
   }, []);
 
   // Handle keyboard shortcuts for debug mode toggle and command palette

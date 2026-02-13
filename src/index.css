@@ -408,7 +408,7 @@ html:not(.dark) .hover\:bg-accent:hover {
   box-shadow: 0 0 8px 0 rgb(139 92 246 / 0.15);
 }
 
-/* Overlay window needs transparent background */
+/* Overlay window needs transparent background and full height for flex-end positioning */
 body.overlay-window,
 html:has(body.overlay-window),
 body:has(.recording-overlay),
@@ -416,6 +416,12 @@ html:has(.recording-overlay),
 html:has(.recording-overlay) body {
   background: transparent !important;
   background-color: transparent !important;
+  height: 100%;
+  margin: 0;
+}
+
+html:has(.recording-overlay) #root {
+  height: 100%;
 }
 
 /* ===== SCROLLBAR STYLES ===== */
@@ -468,6 +474,11 @@ button {
   align-items: center;
   justify-content: flex-end;
   background: transparent !important;
+}
+
+/* Top position: anchor to top of window */
+.overlay-container.overlay-position-top {
+  justify-content: flex-start;
 }
 
 .recording-overlay {
@@ -611,6 +622,11 @@ button {
   line-height: 1.4;
   transition: max-height 180ms ease-out;
   scrollbar-width: none;
+}
+
+/* Top position: text is below controls, flip padding */
+.overlay-position-top .streaming-text-inline {
+  padding: 4px 12px 12px;
 }
 
 .streaming-text-inline::-webkit-scrollbar {

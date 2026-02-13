@@ -1,6 +1,7 @@
 use crate::managers::model::{ModelInfo, ModelManager};
 use crate::managers::transcription::TranscriptionManager;
 use crate::settings::{get_settings, write_settings};
+use log::error;
 use std::sync::Arc;
 use tauri::{AppHandle, State};
 
@@ -30,7 +31,7 @@ pub async fn download_model(
 
     tokio::spawn(async move {
         if let Err(e) = manager.download_model(&id).await {
-            eprintln!("Download failed for {}: {}", id, e);
+            error!("Download failed for {}: {}", id, e);
         }
     });
 

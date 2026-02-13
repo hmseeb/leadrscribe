@@ -375,10 +375,10 @@ impl ModelManager {
             }
         }
 
-        // Create HTTP client with timeout
+        // Create HTTP client with connect timeout only (no total timeout — large models
+        // like Whisper Turbo at 1.6GB can take much longer than 5 minutes on slow connections)
         let client = reqwest::Client::builder()
             .connect_timeout(Duration::from_secs(30))
-            .timeout(Duration::from_secs(300)) // 5 minute timeout for slow connections
             .build()?;
 
         let mut request = client.get(&url);

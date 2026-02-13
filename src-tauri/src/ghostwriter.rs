@@ -1,5 +1,5 @@
 use anyhow::Result;
-use log::{debug, error};
+use log::{debug, error, warn};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -84,7 +84,6 @@ pub async fn process_text(
         original_text.len()
     );
 
-    // Build structured system prompt with XML tags to prevent AI hallucinations
     let system_prompt = format!(
         r#"You are a transcription rewriter. Your ONLY job is to rewrite the transcribed speech provided to you.
 
@@ -105,32 +104,61 @@ Now rewrite the transcription found in the <transcription> tags below. Remember:
         custom_instructions
     );
 
-    // Build user message with XML-wrapped transcription (prevents prompt injection)
     let user_message = format!("<transcription>\n{}\n</transcription>", original_text);
-
-    // Calculate smart max_tokens: allow up to 2x the original length plus buffer
-    // This prevents unnecessary generation while allowing for expansions
     let max_tokens = (original_text.len() * 2 + 100).min(4000);
 
-    // Build the request
+    // Try with system message first, retry without if model doesn't support it
+    let response = send_openrouter_request(api_key, model, &system_prompt, &user_message, max_tokens).await?;
+
+    // Check if model doesn't support system messages — retry with instructions folded into user message
+    if !response.status().is_success() {
+        let status = response.status();
+        let error_text = response.text().await.unwrap_or_default();
+        error!("OpenRouter API error {}: {}", status, error_text);
+
+        if is_system_message_error(&error_text) {
+            warn!("Model '{}' doesn't support system messages, retrying with instructions in user message", model);
+            let combined_user = format!("{}\n\n{}", system_prompt, user_message);
+            let retry_response = send_openrouter_request(api_key, model, "", &combined_user, max_tokens).await?;
+
+            if !retry_response.status().is_success() {
+                let retry_status = retry_response.status();
+                let retry_error = retry_response.text().await.unwrap_or_default();
+                error!("OpenRouter retry failed {}: {}", retry_status, retry_error);
+                return Err(anyhow::anyhow!("{}", parse_openrouter_error(retry_status.as_u16(), &retry_error, model)));
+            }
+
+            return parse_openrouter_success(retry_response, original_text, start_time).await;
+        }
+
+        return Err(anyhow::anyhow!("{}", parse_openrouter_error(status.as_u16(), &error_text, model)));
+    }
+
+    parse_openrouter_success(response, original_text, start_time).await
+}
+
+/// Send a request to OpenRouter. If system_prompt is empty, only sends user message.
+async fn send_openrouter_request(
+    api_key: &str,
+    model: &str,
+    system_prompt: &str,
+    user_message: &str,
+    max_tokens: usize,
+) -> Result<reqwest::Response> {
+    let mut messages = Vec::new();
+    if !system_prompt.is_empty() {
+        messages.push(Message { role: "system".to_string(), content: system_prompt.to_string() });
+    }
+    messages.push(Message { role: "user".to_string(), content: user_message.to_string() });
+
     let request_body = OpenRouterRequest {
         model: model.to_string(),
-        messages: vec![
-            Message {
-                role: "system".to_string(),
-                content: system_prompt,
-            },
-            Message {
-                role: "user".to_string(),
-                content: user_message,
-            },
-        ],
+        messages,
         max_tokens: Some(max_tokens),
-        stream: None, // Non-streaming
+        stream: None,
     };
 
-    // Make the API call using the reusable client
-    let response = HTTP_CLIENT
+    HTTP_CLIENT
         .post("https://openrouter.ai/api/v1/chat/completions")
         .header("Authorization", format!("Bearer {}", api_key))
         .header("Content-Type", "application/json")
@@ -138,51 +166,33 @@ Now rewrite the transcription found in the <transcription> tags below. Remember:
         .header("X-Title", "LeadrScribe")
         .json(&request_body)
         .send()
-        .await?;
+        .await
+        .map_err(|e| anyhow::anyhow!("Network error: {}", e))
+}
 
-    // Check response status
-    if !response.status().is_success() {
-        let status = response.status();
-        let error_text = response.text().await.unwrap_or_default();
-        error!(
-            "OpenRouter API returned error status {}: {}",
-            status, error_text
-        );
-
-        // Provide user-friendly error messages based on status code
-        let user_message = match status.as_u16() {
-            401 => "Invalid OpenRouter API key. Please check your API key in Settings → OpenRouter API Key.".to_string(),
-            402 => "Insufficient OpenRouter credits. Please add credits to your account at openrouter.ai.".to_string(),
-            403 => "Access forbidden. Please check your OpenRouter API key permissions.".to_string(),
-            404 => format!("Model '{}' not found. Please select a valid model in settings.", model),
-            429 => "OpenRouter rate limit exceeded. Please wait a moment and try again.".to_string(),
-            500..=599 => "OpenRouter service error. Please try again later.".to_string(),
-            _ => "OpenRouter API request failed. Please check your settings and try again.".to_string(),
-        };
-
-        return Err(anyhow::anyhow!("{}", user_message));
-    }
-
-    // Parse response
+/// Parse a successful OpenRouter response into ghostwritten text.
+async fn parse_openrouter_success(
+    response: reqwest::Response,
+    original_text: &str,
+    start_time: std::time::Instant,
+) -> Result<String> {
     let response_body: OpenRouterResponse = response.json().await
         .map_err(|e| anyhow::anyhow!("Failed to parse API response: {}", e))?;
 
     let message = &response_body
         .choices
         .first()
-        .ok_or_else(|| anyhow::anyhow!("No choices in OpenRouter response"))?
+        .ok_or_else(|| anyhow::anyhow!("No response from model. Try a different model."))?
         .message;
 
-    // Try content first, then reasoning field (for reasoning models)
     let raw_text = if !message.content.trim().is_empty() {
         message.content.trim()
     } else if let Some(reasoning) = &message.reasoning {
         reasoning.trim()
     } else {
-        message.content.trim() // Fallback to content even if empty
+        message.content.trim()
     };
 
-    // Strip any preambles that might have slipped through
     let ghostwritten_text = strip_preambles(raw_text);
 
     let elapsed = start_time.elapsed();
@@ -194,6 +204,87 @@ Now rewrite the transcription found in the <transcription> tags below. Remember:
     );
 
     Ok(ghostwritten_text)
+}
+
+/// Check if an OpenRouter error indicates system/developer messages aren't supported.
+fn is_system_message_error(error_text: &str) -> bool {
+    let lower = error_text.to_lowercase();
+    lower.contains("developer instruction is not enabled")
+        || lower.contains("system message is not supported")
+        || lower.contains("does not support system")
+}
+
+/// Parse OpenRouter error JSON into a human-readable message.
+/// OpenRouter format: {"error":{"message":"...","code":400,"metadata":{"raw":"<json-string>","provider_name":"..."}}}
+fn parse_openrouter_error(status: u16, error_text: &str, model: &str) -> String {
+    if let Ok(json) = serde_json::from_str::<serde_json::Value>(error_text) {
+        if let Some(error_obj) = json.get("error") {
+            let provider = error_obj
+                .pointer("/metadata/provider_name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+
+            // Try to extract inner message from metadata.raw (can be a JSON string or object)
+            let inner_msg = error_obj.pointer("/metadata/raw").and_then(|raw_value| {
+                // If raw is a string containing JSON, parse it
+                let raw_json = if let Some(raw_str) = raw_value.as_str() {
+                    serde_json::from_str::<serde_json::Value>(raw_str).ok()
+                } else if raw_value.is_object() {
+                    Some(raw_value.clone())
+                } else {
+                    None
+                };
+
+                raw_json.and_then(|rj| {
+                    // Try common paths: /error/message, /message, /error
+                    rj.pointer("/error/message")
+                        .or_else(|| rj.get("message"))
+                        .or_else(|| rj.get("error").filter(|v| v.is_string()))
+                        .and_then(|v| v.as_str().map(String::from))
+                })
+            });
+
+            if let Some(msg) = inner_msg {
+                return if provider.is_empty() {
+                    msg
+                } else {
+                    format!("{}: {}", provider, msg)
+                };
+            }
+
+            // Fall back to top-level error.message (skip if it's just "Provider returned error")
+            if let Some(msg) = error_obj.get("message").and_then(|v| v.as_str()) {
+                if msg != "Provider returned error" {
+                    return if provider.is_empty() {
+                        msg.to_string()
+                    } else {
+                        format!("{}: {}", provider, msg)
+                    };
+                }
+            }
+
+            // If we have a provider but no useful message, say so
+            if !provider.is_empty() {
+                return match status {
+                    401 => format!("{} rejected the API key.", provider),
+                    402 => format!("{}: insufficient credits.", provider),
+                    429 => format!("{}: rate limit exceeded. Try again shortly.", provider),
+                    _ => format!("{} returned an error ({}). Try a different model.", provider, status),
+                };
+            }
+        }
+    }
+
+    // Fallback for non-JSON or unparseable errors
+    match status {
+        401 => "Invalid API key. Check your OpenRouter API key in Settings.".to_string(),
+        402 => "Insufficient credits. Add credits at openrouter.ai.".to_string(),
+        403 => "Access forbidden. Check your API key permissions.".to_string(),
+        404 => format!("Model '{}' not found on OpenRouter.", model),
+        429 => "Rate limit exceeded. Wait a moment and try again.".to_string(),
+        500..=599 => "OpenRouter service error. Try again later.".to_string(),
+        _ => format!("OpenRouter error ({}). Try a different model.", status),
+    }
 }
 
 /// Strip common preambles that AI models might add despite instructions

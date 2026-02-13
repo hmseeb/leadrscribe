@@ -8,29 +8,33 @@ use std::sync::atomic::{AtomicBool, Ordering};
 /// This prevents race conditions where a delayed hide() executes after a new show().
 static HIDE_PENDING: AtomicBool = AtomicBool::new(false);
 
-/// Tracks whether the overlay is in streaming (expanded) mode.
-/// When true, emit_levels skips repositioning to avoid fighting the expanded size.
+/// Tracks whether streaming text is active.
+/// When true, emit_levels skips repositioning to avoid jumping while user reads text.
 static STREAMING_ACTIVE: AtomicBool = AtomicBool::new(false);
 
-// Expanded overlay dimensions for streaming mode
-const STREAMING_WIDTH: f64 = 400.0;
-const STREAMING_HEIGHT: f64 = 180.0;
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewWindowBuilder};
 
-// Add padding for shadow (shadow extends ~32px)
-const OVERLAY_WIDTH: f64 = 280.0;  // 200 + 40 padding for shadow on each side
-const OVERLAY_HEIGHT: f64 = 90.0;  // 42 + 48 padding for shadow
+#[derive(serde::Serialize, Clone)]
+struct ShowOverlayPayload<'a> {
+    state: &'a str,
+    position: &'a str,
+}
+
+// Window is always the full streaming size. The transparent area above the pill
+// is invisible and click-through. CSS flex-end anchors the pill at the bottom.
+// When streaming text arrives, it grows upward within the existing window — no resize needed.
+const WINDOW_WIDTH: f64 = 400.0;
+const WINDOW_HEIGHT: f64 = 180.0;
 
 #[cfg(target_os = "macos")]
-const OVERLAY_TOP_OFFSET: f64 = 46.0;
+const PLATFORM_BOTTOM_MARGIN: f64 = 15.0;
 #[cfg(any(target_os = "windows", target_os = "linux"))]
-const OVERLAY_TOP_OFFSET: f64 = 4.0;
+const PLATFORM_BOTTOM_MARGIN: f64 = 96.0;
 
 #[cfg(target_os = "macos")]
-const OVERLAY_BOTTOM_OFFSET: f64 = 15.0;
-
+const PLATFORM_TOP_MARGIN: f64 = 46.0;
 #[cfg(any(target_os = "windows", target_os = "linux"))]
-const OVERLAY_BOTTOM_OFFSET: f64 = 60.0;
+const PLATFORM_TOP_MARGIN: f64 = 8.0;
 
 fn get_monitor_with_cursor(app_handle: &AppHandle) -> Option<tauri::Monitor> {
     let enigo = Enigo::new(&Default::default());
@@ -71,56 +75,39 @@ fn calculate_overlay_position(app_handle: &AppHandle) -> Option<(f64, f64)> {
 
     let work_area = monitor.work_area();
     let scale = monitor.scale_factor();
-    let work_area_width = work_area.size.width as f64 / scale;
-    let work_area_height = work_area.size.height as f64 / scale;
-    let work_area_x = work_area.position.x as f64 / scale;
-    let work_area_y = work_area.position.y as f64 / scale;
 
-    let (x, y) = match settings.overlay_position {
-        OverlayPosition::FollowCursor => {
-            // Get cursor position
-            let cursor_pos = Enigo::new(&Default::default())
-                .ok()
-                .and_then(|e| e.location().ok());
+    // Work area in physical pixels (raw from OS)
+    let wa_phys_x = work_area.position.x as f64;
+    let wa_phys_y = work_area.position.y as f64;
+    let wa_phys_w = work_area.size.width as f64;
+    let wa_phys_h = work_area.size.height as f64;
 
-            if let Some((cx, cy)) = cursor_pos {
-                // Position below cursor with 40px offset
-                let cursor_x = cx as f64 / scale;
-                let cursor_y = cy as f64 / scale;
+    // Convert to logical coordinates for positioning
+    let work_area_x = wa_phys_x / scale;
+    let work_area_y = wa_phys_y / scale;
+    let work_area_width = wa_phys_w / scale;
+    let work_area_height = wa_phys_h / scale;
 
-                // Center overlay horizontally on cursor, but clamp to screen bounds
-                let x = (cursor_x - OVERLAY_WIDTH / 2.0).clamp(
-                    work_area_x,
-                    work_area_x + work_area_width - OVERLAY_WIDTH
-                );
+    // Window bottom edge should be margin logical px above work area bottom.
+    // The pill (via CSS flex-end) sits at the window's bottom edge.
 
-                // Position below cursor with offset, clamp to screen bounds
-                let y = (cursor_y + 40.0).clamp(
-                    work_area_y,
-                    work_area_y + work_area_height - OVERLAY_HEIGHT
-                );
-
-                (x, y)
-            } else {
-                // Fallback to center-bottom if cursor position unavailable
-                let x = work_area_x + (work_area_width - OVERLAY_WIDTH) / 2.0;
-                let y = work_area_y + work_area_height - OVERLAY_BOTTOM_OFFSET;
-                (x, y)
-            }
-        },
+    let (window_x, window_y) = match settings.overlay_position {
         OverlayPosition::Top => {
-            let x = work_area_x + (work_area_width - OVERLAY_WIDTH) / 2.0;
-            let y = work_area_y + OVERLAY_TOP_OFFSET;
+            let x = work_area_x + (work_area_width - WINDOW_WIDTH) / 2.0;
+            // Place window top edge at margin from work area top.
+            // CSS flex-start anchors the pill at the window's top edge.
+            let y = work_area_y + PLATFORM_TOP_MARGIN;
             (x, y)
         },
         OverlayPosition::Bottom | OverlayPosition::None => {
-            let x = work_area_x + (work_area_width - OVERLAY_WIDTH) / 2.0;
-            let y = work_area_y + work_area_height - OVERLAY_BOTTOM_OFFSET;
+            // Place window so its bottom edge is PLATFORM_BOTTOM_MARGIN above work area bottom
+            let x = work_area_x + (work_area_width - WINDOW_WIDTH) / 2.0;
+            let y = work_area_y + work_area_height - WINDOW_HEIGHT - PLATFORM_BOTTOM_MARGIN;
             (x, y)
         }
     };
 
-    Some((x, y))
+    Some((window_x, window_y))
 }
 
 /// Creates the recording overlay window and keeps it hidden by default
@@ -134,7 +121,7 @@ pub fn create_recording_overlay(app_handle: &AppHandle) {
         .title("Recording")
         .position(x, y)
         .resizable(false)
-        .inner_size(OVERLAY_WIDTH, OVERLAY_HEIGHT)
+        .inner_size(WINDOW_WIDTH, WINDOW_HEIGHT)
         .shadow(false)
         .maximizable(false)
         .minimizable(false)
@@ -160,7 +147,7 @@ pub fn create_recording_overlay(app_handle: &AppHandle) {
 
 /// Attempts to show overlay window and verify it actually became visible.
 /// Returns true if show succeeded, false if window appears broken.
-fn try_show_overlay(window: &tauri::WebviewWindow) -> bool {
+fn try_show_overlay(window: &tauri::WebviewWindow, position: &str) -> bool {
     // First check if window handle is valid at all
     if window.is_visible().is_err() {
         debug!("Overlay window handle is stale (is_visible failed)");
@@ -179,7 +166,10 @@ fn try_show_overlay(window: &tauri::WebviewWindow) -> bool {
     // Verify the window is actually visible now
     match window.is_visible() {
         Ok(true) => {
-            let _ = window.emit("show-overlay", "recording");
+            let _ = window.emit("show-overlay", ShowOverlayPayload {
+                state: "recording",
+                position,
+            });
             true
         }
         Ok(false) => {
@@ -206,6 +196,11 @@ pub fn show_recording_overlay(app_handle: &AppHandle) {
         return;
     }
 
+    let position_str = match settings.overlay_position {
+        OverlayPosition::Top => "top",
+        _ => "bottom",
+    };
+
     // Ensure overlay exists before trying to show it
     ensure_overlay_exists(app_handle);
 
@@ -214,7 +209,7 @@ pub fn show_recording_overlay(app_handle: &AppHandle) {
     // Try to show existing window, with retry after recreation if it fails
     for attempt in 0..2 {
         if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
-            if try_show_overlay(&overlay_window) {
+            if try_show_overlay(&overlay_window, position_str) {
                 return; // Success!
             }
 
@@ -234,7 +229,7 @@ pub fn show_recording_overlay(app_handle: &AppHandle) {
 
     // Final attempt after recreation
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
-        if !try_show_overlay(&overlay_window) {
+        if !try_show_overlay(&overlay_window, position_str) {
             debug!("Overlay failed to show after recreation - giving up");
         }
     }
@@ -260,7 +255,6 @@ pub fn hide_recording_overlay(app_handle: &AppHandle) {
         // Mark that a hide operation is pending
         HIDE_PENDING.store(true, Ordering::SeqCst);
 
-        let app_clone = app_handle.clone();
         let window_clone = overlay_window.clone();
 
         std::thread::spawn(move || {
@@ -269,20 +263,8 @@ pub fn hide_recording_overlay(app_handle: &AppHandle) {
                 // Hide the window first (it's already faded out by now)
                 let _ = window_clone.hide();
 
-                // Reset streaming state and window size AFTER hiding (invisible to user)
-                if STREAMING_ACTIVE.load(Ordering::SeqCst) {
-                    STREAMING_ACTIVE.store(false, Ordering::SeqCst);
-                    // Reset to original size so next show starts correctly
-                    let _ = window_clone.set_size(tauri::Size::Logical(
-                        tauri::LogicalSize { width: OVERLAY_WIDTH, height: OVERLAY_HEIGHT },
-                    ));
-                    // Reset position for next show
-                    if let Some((x, y)) = calculate_overlay_position(&app_clone) {
-                        let _ = window_clone.set_position(tauri::Position::Logical(
-                            tauri::LogicalPosition { x, y },
-                        ));
-                    }
-                }
+                // Clear streaming state
+                STREAMING_ACTIVE.store(false, Ordering::SeqCst);
 
                 HIDE_PENDING.store(false, Ordering::SeqCst);
             }
@@ -290,35 +272,23 @@ pub fn hide_recording_overlay(app_handle: &AppHandle) {
     }
 }
 
-/// Expands the overlay window for streaming text display.
-/// Keeps the pill at the same screen position by shifting the window up.
-/// Uses atomic compare_exchange to ensure this only runs once per session.
-pub fn expand_overlay_for_streaming(app_handle: &AppHandle) {
-    // Atomically check and set - only the first caller proceeds
-    if STREAMING_ACTIVE.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_err() {
-        return;
-    }
-
+/// Emits a state change to the overlay window with the correct position.
+/// Use this instead of directly emitting "show-overlay" to ensure position is always included.
+pub fn emit_overlay_state(app_handle: &AppHandle, state: &str) {
     if let Some(window) = app_handle.get_webview_window("recording_overlay") {
-        if let (Ok(pos), Ok(scale)) = (window.outer_position(), window.scale_factor()) {
-            let old_x = pos.x as f64 / scale;
-            let old_y = pos.y as f64 / scale;
-
-            let width_diff = STREAMING_WIDTH - OVERLAY_WIDTH;
-            let height_diff = STREAMING_HEIGHT - OVERLAY_HEIGHT;
-
-            // Center horizontally, shift up so pill bottom stays at same screen position
-            let new_x = old_x - width_diff / 2.0;
-            let new_y = old_y - height_diff;
-
-            let _ = window.set_size(tauri::Size::Logical(
-                tauri::LogicalSize { width: STREAMING_WIDTH, height: STREAMING_HEIGHT },
-            ));
-            let _ = window.set_position(tauri::Position::Logical(
-                tauri::LogicalPosition { x: new_x, y: new_y },
-            ));
-        }
+        let s = settings::get_settings(app_handle);
+        let position = match s.overlay_position {
+            OverlayPosition::Top => "top",
+            _ => "bottom",
+        };
+        let _ = window.emit("show-overlay", ShowOverlayPayload { state, position });
     }
+}
+
+/// Marks streaming as active so emit_levels stops repositioning the overlay.
+/// This prevents the overlay from jumping around while the user reads streaming text.
+pub fn set_streaming_active(active: bool) {
+    STREAMING_ACTIVE.store(active, Ordering::SeqCst);
 }
 
 pub fn emit_levels(app_handle: &AppHandle, levels: &Vec<f32>) {
@@ -329,18 +299,15 @@ pub fn emit_levels(app_handle: &AppHandle, levels: &Vec<f32>) {
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
         let _ = overlay_window.emit("mic-level", levels);
 
-        // Skip repositioning during streaming - the window is expanded and
-        // repositioning with the original dimensions would push it off-screen
-        if STREAMING_ACTIVE.load(Ordering::SeqCst) {
-            return;
-        }
-
-        // Update overlay position dynamically to follow cursor across monitors
-        let current_settings = settings::get_settings(app_handle);
-        if current_settings.overlay_position != OverlayPosition::None {
-            if let Some((x, y)) = calculate_overlay_position(app_handle) {
-                let _ = overlay_window
-                    .set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
+        // Update overlay position dynamically to follow cursor across monitors,
+        // but skip repositioning when streaming text is active to avoid jumping
+        if !STREAMING_ACTIVE.load(Ordering::SeqCst) {
+            let current_settings = settings::get_settings(app_handle);
+            if current_settings.overlay_position != OverlayPosition::None {
+                if let Some((x, y)) = calculate_overlay_position(app_handle) {
+                    let _ = overlay_window
+                        .set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
+                }
             }
         }
     }

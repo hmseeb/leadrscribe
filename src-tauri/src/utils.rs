@@ -1,7 +1,7 @@
 use crate::actions::ACTION_MAP;
 use crate::managers::audio::AudioRecordingManager;
 use crate::ManagedToggleState;
-use log::debug;
+use log::{debug, warn};
 use std::sync::Arc;
 use tauri::{AppHandle, Manager};
 
@@ -42,7 +42,7 @@ pub fn cancel_current_operation(app: &AppHandle) {
             }
         }
     } else {
-        eprintln!("Warning: Failed to lock toggle state manager during cancellation");
+        warn!("Failed to lock toggle state manager during cancellation");
     }
 
     // Cancel any ongoing recording

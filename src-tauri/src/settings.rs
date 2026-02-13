@@ -1,5 +1,5 @@
 use keyring::Entry;
-use log::debug;
+use log::{debug, error};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tauri::AppHandle;
@@ -49,7 +49,6 @@ pub enum OverlayPosition {
     None,
     Top,
     Bottom,
-    FollowCursor,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
@@ -396,7 +395,7 @@ pub fn write_settings(app: &AppHandle, settings: AppSettings) {
 
     // Explicitly save the store to disk
     if let Err(e) = store.save() {
-        eprintln!("Failed to save settings store: {}", e);
+        error!("Failed to save settings store: {}", e);
     } else {
         debug!("Settings saved successfully");
     }
@@ -408,12 +407,9 @@ pub fn get_bindings(app: &AppHandle) -> HashMap<String, ShortcutBinding> {
     settings.bindings
 }
 
-pub fn get_stored_binding(app: &AppHandle, id: &str) -> ShortcutBinding {
+pub fn get_stored_binding(app: &AppHandle, id: &str) -> Option<ShortcutBinding> {
     let bindings = get_bindings(app);
-
-    let binding = bindings.get(id).unwrap().clone();
-
-    binding
+    bindings.get(id).cloned()
 }
 
 pub fn get_history_limit(app: &AppHandle) -> usize {

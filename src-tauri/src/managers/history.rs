@@ -171,162 +171,17 @@ impl HistoryManager {
         ]
     }
 
+    /// Post-migration initialization: seeds default data after tauri-plugin-sql
+    /// migrations have run and created all tables/columns/triggers.
+    /// Table creation and schema migrations are handled exclusively by
+    /// get_migrations() + tauri-plugin-sql to avoid duplicate DDL.
     fn init_database(&self) -> Result<()> {
         let conn = Connection::open(&self.db_path)?;
-
-        // Create transcription_history table with all columns
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS transcription_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                file_name TEXT NOT NULL,
-                timestamp INTEGER NOT NULL,
-                saved BOOLEAN NOT NULL DEFAULT 0,
-                title TEXT NOT NULL,
-                transcription_text TEXT NOT NULL,
-                ghostwritten_text TEXT,
-                profile_id INTEGER REFERENCES profiles(id),
-                notes TEXT,
-                duration_seconds REAL,
-                word_count INTEGER
-            )",
-            [],
-        )?;
-
-        // Create profiles table
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS profiles (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                description TEXT,
-                color TEXT NOT NULL DEFAULT '#3B82F6',
-                icon TEXT NOT NULL DEFAULT '📝',
-                custom_instructions TEXT,
-                created_at INTEGER NOT NULL,
-                updated_at INTEGER NOT NULL
-            )",
-            [],
-        )?;
-
-        // Create tags tables
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS tags (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL UNIQUE,
-                color TEXT NOT NULL DEFAULT '#3B82F6',
-                created_at INTEGER NOT NULL
-            )",
-            [],
-        )?;
-
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS transcription_tags (
-                transcription_id INTEGER NOT NULL,
-                tag_id INTEGER NOT NULL,
-                PRIMARY KEY (transcription_id, tag_id),
-                FOREIGN KEY (transcription_id) REFERENCES transcription_history(id) ON DELETE CASCADE,
-                FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
-            )",
-            [],
-        )?;
-
-        // Create FTS5 virtual table
-        conn.execute(
-            "CREATE VIRTUAL TABLE IF NOT EXISTS transcription_fts USING fts5(
-                transcription_text,
-                ghostwritten_text,
-                notes,
-                content='transcription_history',
-                content_rowid='id'
-            )",
-            [],
-        )?;
-
-        // Create triggers for FTS sync
-        conn.execute(
-            "CREATE TRIGGER IF NOT EXISTS transcription_ai AFTER INSERT ON transcription_history BEGIN
-                INSERT INTO transcription_fts(rowid, transcription_text, ghostwritten_text, notes)
-                VALUES (new.id, new.transcription_text, new.ghostwritten_text, new.notes);
-            END",
-            [],
-        )?;
-
-        conn.execute(
-            "CREATE TRIGGER IF NOT EXISTS transcription_au AFTER UPDATE ON transcription_history BEGIN
-                UPDATE transcription_fts SET
-                    transcription_text = new.transcription_text,
-                    ghostwritten_text = new.ghostwritten_text,
-                    notes = new.notes
-                WHERE rowid = new.id;
-            END",
-            [],
-        )?;
-
-        conn.execute(
-            "CREATE TRIGGER IF NOT EXISTS transcription_ad AFTER DELETE ON transcription_history BEGIN
-                DELETE FROM transcription_fts WHERE rowid = old.id;
-            END",
-            [],
-        )?;
-
-        // Check and add missing columns for existing databases
-        self.migrate_existing_columns(&conn)?;
 
         // Initialize default profiles if none exist
         self.init_default_profiles(&conn)?;
 
-        debug!("Database initialized at: {:?}", self.db_path);
-        Ok(())
-    }
-
-    fn migrate_existing_columns(&self, conn: &Connection) -> Result<()> {
-        // SAFETY: SQL injection prevention
-        // The `has_column` closure uses format!() to build SQL queries, which is normally
-        // a SQL injection risk. However, in this context it is safe because:
-        // 1. `table` parameter is hardcoded as "transcription_history" (line 292) - developer-controlled
-        // 2. `column` parameter is always a hardcoded string literal from migration logic - developer-controlled
-        // 3. No user input flows into these queries
-        // 4. This is migration-only code, not a general-purpose query function
-        //
-        // If this function is ever modified to accept user input, it MUST be refactored
-        // to use parameterized queries via rusqlite's `?` placeholders.
-        let has_column = |table: &str, column: &str| -> bool {
-            conn.query_row(
-                &format!("SELECT name FROM pragma_table_info('{}') WHERE name='{}'", table, column),
-                [],
-                |row| row.get::<_, String>(0),
-            ).is_ok()
-        };
-
-        // Add ghostwritten_text if missing
-        if !has_column("transcription_history", "ghostwritten_text") {
-            conn.execute("ALTER TABLE transcription_history ADD COLUMN ghostwritten_text TEXT", [])?;
-            debug!("Added ghostwritten_text column");
-        }
-
-        // Add profile_id if missing
-        if !has_column("transcription_history", "profile_id") {
-            conn.execute("ALTER TABLE transcription_history ADD COLUMN profile_id INTEGER REFERENCES profiles(id)", [])?;
-            debug!("Added profile_id column");
-        }
-
-        // Add notes if missing
-        if !has_column("transcription_history", "notes") {
-            conn.execute("ALTER TABLE transcription_history ADD COLUMN notes TEXT", [])?;
-            debug!("Added notes column");
-        }
-
-        // Add duration_seconds if missing
-        if !has_column("transcription_history", "duration_seconds") {
-            conn.execute("ALTER TABLE transcription_history ADD COLUMN duration_seconds REAL", [])?;
-            debug!("Added duration_seconds column");
-        }
-
-        // Add word_count if missing
-        if !has_column("transcription_history", "word_count") {
-            conn.execute("ALTER TABLE transcription_history ADD COLUMN word_count INTEGER", [])?;
-            debug!("Added word_count column");
-        }
-
+        debug!("Database post-migration init complete at: {:?}", self.db_path);
         Ok(())
     }
 

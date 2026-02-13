@@ -11,10 +11,17 @@ import {
 import { cn } from "../lib/utils";
 
 type OverlayState = "recording" | "transcribing" | "ghostwriting" | "error";
+type OverlayPositionType = "top" | "bottom";
+
+interface ShowOverlayPayload {
+  state: OverlayState;
+  position: OverlayPositionType;
+}
 
 const RecordingOverlay: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [state, setState] = useState<OverlayState>("recording");
+  const [overlayPosition, setOverlayPosition] = useState<OverlayPositionType>("bottom");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [levels, setLevels] = useState<number[]>(Array(9).fill(0));
   const smoothedLevelsRef = useRef<number[]>(Array(16).fill(0));
@@ -27,9 +34,15 @@ const RecordingOverlay: React.FC = () => {
 
   useEffect(() => {
     const setupEventListeners = async () => {
-      const unlistenShow = await listen("show-overlay", async (event) => {
-        const overlayState = event.payload as OverlayState;
-        setState(overlayState);
+      const unlistenShow = await listen<ShowOverlayPayload | string>("show-overlay", async (event) => {
+        const payload = event.payload;
+        if (typeof payload === "string") {
+          // Legacy format: just state string, keep existing position
+          setState(payload as OverlayState);
+        } else {
+          setState(payload.state);
+          if (payload.position) setOverlayPosition(payload.position);
+        }
         setIsVisible(true);
         // Focus window to receive keyboard events
         try {
@@ -53,10 +66,6 @@ const RecordingOverlay: React.FC = () => {
         setLevels(smoothed.slice(0, 9));
       });
 
-      const unlistenChunk = await listen<string>("ghostwriter-chunk", () => {});
-
-      const unlistenComplete = await listen("ghostwriter-complete", () => {});
-
       const unlistenError = await listen<string>("ghostwriter-error", (event) => {
         const error = event.payload as string;
         setErrorMessage(error);
@@ -71,8 +80,6 @@ const RecordingOverlay: React.FC = () => {
         unlistenShow();
         unlistenHide();
         unlistenLevel();
-        unlistenChunk();
-        unlistenComplete();
         unlistenError();
       };
     };
@@ -176,7 +183,7 @@ const RecordingOverlay: React.FC = () => {
   };
 
   return (
-    <div className="overlay-container">
+    <div className={cn("overlay-container", `overlay-position-${overlayPosition}`)}>
       <AnimatePresence>
         {isVisible && (
           <motion.div
@@ -196,24 +203,26 @@ const RecordingOverlay: React.FC = () => {
               duration: 0.25,
             }}
           >
-            {/* Streaming text - above controls */}
-            <AnimatePresence>
-              {hasWords && (
-                <motion.div
-                  className="streaming-text-inline"
-                  ref={scrollRef}
-                  onScroll={handleScroll}
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <span className="transcription-word">
-                    {words.join(" ")}
-                  </span>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Streaming text - above controls (bottom position) */}
+            {overlayPosition === "bottom" && (
+              <AnimatePresence>
+                {hasWords && (
+                  <motion.div
+                    className="streaming-text-inline"
+                    ref={scrollRef}
+                    onScroll={handleScroll}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <span className="transcription-word">
+                      {words.join(" ")}
+                    </span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            )}
 
             {/* Pill controls row */}
             <div className="overlay-controls">
@@ -293,6 +302,27 @@ const RecordingOverlay: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {/* Streaming text - below controls (top position) */}
+            {overlayPosition === "top" && (
+              <AnimatePresence>
+                {hasWords && (
+                  <motion.div
+                    className="streaming-text-inline"
+                    ref={scrollRef}
+                    onScroll={handleScroll}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <span className="transcription-word">
+                      {words.join(" ")}
+                    </span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

@@ -19,7 +19,7 @@ export const AudioDeviceSchema = z.object({
   is_default: z.boolean(),
 });
 
-export const OverlayPositionSchema = z.enum(["none", "top", "bottom", "followcursor"]);
+export const OverlayPositionSchema = z.enum(["none", "top", "bottom"]);
 export type OverlayPosition = z.infer<typeof OverlayPositionSchema>;
 
 export const ModelUnloadTimeoutSchema = z.enum([
@@ -68,7 +68,7 @@ export const SettingsSchema = z.object({
   custom_words: z.array(z.string()).optional().default([]),
   model_unload_timeout: ModelUnloadTimeoutSchema.optional().default("immediately"),
   word_correction_threshold: z.number().optional().default(0.18),
-  history_limit: z.number().optional().default(5),
+  history_limit: z.number().optional().default(10000),
   paste_method: PasteMethodSchema.optional().default("ctrl_v"),
   clipboard_handling: ClipboardHandlingSchema.optional().default("dont_modify"),
   mute_while_recording: z.boolean().optional().default(false),
