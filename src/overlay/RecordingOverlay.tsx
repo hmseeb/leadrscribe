@@ -87,11 +87,14 @@ const RecordingOverlay: React.FC = () => {
         console.log("[RecordingOverlay] td-show");
         setIsStreaming(true);
         setWords([]);
+        setShouldAutoScroll(true);
       });
 
       const unlistenHide = await listen("td-hide", () => {
         console.log("[RecordingOverlay] td-hide");
         setIsStreaming(false);
+        setWords([]);
+        setShouldAutoScroll(true);
       });
 
       const unlistenPartial = await listen<string>("td-partial", (event) => {
@@ -146,10 +149,10 @@ const RecordingOverlay: React.FC = () => {
   const handleScroll = () => {
     if (!scrollRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-    setShouldAutoScroll(scrollHeight - scrollTop - clientHeight < 50);
+    setShouldAutoScroll(scrollHeight - scrollTop - clientHeight < 10);
   };
 
-  const hasStreamingContent = isStreaming || words.length > 0;
+  const hasWords = words.length > 0;
 
   const getIcon = () => {
     switch (state) {
@@ -181,7 +184,7 @@ const RecordingOverlay: React.FC = () => {
               "recording-overlay",
               "fade-in",
               `overlay-state-${state}`,
-              hasStreamingContent && "overlay-streaming"
+              hasWords && "overlay-streaming"
             )}
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -193,9 +196,9 @@ const RecordingOverlay: React.FC = () => {
               duration: 0.25,
             }}
           >
-            {/* Streaming text - inside the pill, above the controls */}
+            {/* Streaming text - above controls */}
             <AnimatePresence>
-              {hasStreamingContent && (
+              {hasWords && (
                 <motion.div
                   className="streaming-text-inline"
                   ref={scrollRef}
@@ -205,14 +208,9 @@ const RecordingOverlay: React.FC = () => {
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.2 }}
                 >
-                  {words.length === 0 && (
-                    <span className="transcription-placeholder">Listening...</span>
-                  )}
-                  {words.length > 0 && (
-                    <span className="transcription-word">
-                      {words.join(" ")}
-                    </span>
-                  )}
+                  <span className="transcription-word">
+                    {words.join(" ")}
+                  </span>
                 </motion.div>
               )}
             </AnimatePresence>

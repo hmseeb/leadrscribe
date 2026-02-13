@@ -14,7 +14,7 @@ static STREAMING_ACTIVE: AtomicBool = AtomicBool::new(false);
 
 // Expanded overlay dimensions for streaming mode
 const STREAMING_WIDTH: f64 = 400.0;
-const STREAMING_HEIGHT: f64 = 160.0;
+const STREAMING_HEIGHT: f64 = 180.0;
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewWindowBuilder};
 
 // Add padding for shadow (shadow extends ~32px)
@@ -260,22 +260,30 @@ pub fn hide_recording_overlay(app_handle: &AppHandle) {
         // Mark that a hide operation is pending
         HIDE_PENDING.store(true, Ordering::SeqCst);
 
-        // Clone app handle and window for the delayed operations
         let app_clone = app_handle.clone();
         let window_clone = overlay_window.clone();
 
         std::thread::spawn(move || {
             std::thread::sleep(std::time::Duration::from_millis(300));
-            // Only hide if no show() was called since we started hiding
-            // This prevents the race condition where hide() fires after a new show()
             if HIDE_PENDING.load(Ordering::SeqCst) {
-                // Reset streaming state - shrink window back to normal size
-                // Do this AFTER the animation completes so the window doesn't jump during fade-out
+                // Hide the window first (it's already faded out by now)
+                let _ = window_clone.hide();
+
+                // Reset streaming state and window size AFTER hiding (invisible to user)
                 if STREAMING_ACTIVE.load(Ordering::SeqCst) {
-                    shrink_overlay_from_streaming(&app_clone);
+                    STREAMING_ACTIVE.store(false, Ordering::SeqCst);
+                    // Reset to original size so next show starts correctly
+                    let _ = window_clone.set_size(tauri::Size::Logical(
+                        tauri::LogicalSize { width: OVERLAY_WIDTH, height: OVERLAY_HEIGHT },
+                    ));
+                    // Reset position for next show
+                    if let Some((x, y)) = calculate_overlay_position(&app_clone) {
+                        let _ = window_clone.set_position(tauri::Position::Logical(
+                            tauri::LogicalPosition { x, y },
+                        ));
+                    }
                 }
 
-                let _ = window_clone.hide();
                 HIDE_PENDING.store(false, Ordering::SeqCst);
             }
         });
@@ -291,11 +299,10 @@ pub fn expand_overlay_for_streaming(app_handle: &AppHandle) {
             let old_y = pos.y as f64 / scale;
 
             let width_diff = STREAMING_WIDTH - OVERLAY_WIDTH;
-            let height_diff = STREAMING_HEIGHT - OVERLAY_HEIGHT;
 
-            // Center horizontally, shift up to keep pill at bottom
+            // Center horizontally, keep Y (pill anchored at top, grows downward)
             let new_x = old_x - width_diff / 2.0;
-            let new_y = old_y - height_diff;
+            let new_y = old_y;
 
             let _ = window.set_position(tauri::Position::Logical(
                 tauri::LogicalPosition { x: new_x, y: new_y },
@@ -305,31 +312,6 @@ pub fn expand_overlay_for_streaming(app_handle: &AppHandle) {
             ));
         }
         STREAMING_ACTIVE.store(true, Ordering::SeqCst);
-    }
-}
-
-/// Shrinks the overlay window back to normal size after streaming ends.
-pub fn shrink_overlay_from_streaming(app_handle: &AppHandle) {
-    STREAMING_ACTIVE.store(false, Ordering::SeqCst);
-    if let Some(window) = app_handle.get_webview_window("recording_overlay") {
-        if let (Ok(pos), Ok(scale)) = (window.outer_position(), window.scale_factor()) {
-            let old_x = pos.x as f64 / scale;
-            let old_y = pos.y as f64 / scale;
-
-            let width_diff = STREAMING_WIDTH - OVERLAY_WIDTH;
-            let height_diff = STREAMING_HEIGHT - OVERLAY_HEIGHT;
-
-            // Reverse: center back, shift down
-            let new_x = old_x + width_diff / 2.0;
-            let new_y = old_y + height_diff;
-
-            let _ = window.set_size(tauri::Size::Logical(
-                tauri::LogicalSize { width: OVERLAY_WIDTH, height: OVERLAY_HEIGHT },
-            ));
-            let _ = window.set_position(tauri::Position::Logical(
-                tauri::LogicalPosition { x: new_x, y: new_y },
-            ));
-        }
     }
 }
 

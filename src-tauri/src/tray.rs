@@ -7,7 +7,6 @@ use tauri::{AppHandle, Manager, Theme};
 pub enum TrayIconState {
     Idle,
     Recording,
-    Transcribing,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -42,15 +41,12 @@ pub fn get_icon_path(theme: AppTheme, state: TrayIconState) -> &'static str {
         // Dark theme uses light icons
         (AppTheme::Dark, TrayIconState::Idle) => "resources/tray_idle.png",
         (AppTheme::Dark, TrayIconState::Recording) => "resources/tray_recording.png",
-        (AppTheme::Dark, TrayIconState::Transcribing) => "resources/tray_transcribing.png",
         // Light theme uses dark icons
         (AppTheme::Light, TrayIconState::Idle) => "resources/tray_idle_dark.png",
         (AppTheme::Light, TrayIconState::Recording) => "resources/tray_recording_dark.png",
-        (AppTheme::Light, TrayIconState::Transcribing) => "resources/tray_transcribing_dark.png",
         // Colored theme uses pink icons (for Linux)
         (AppTheme::Colored, TrayIconState::Idle) => "resources/leadrscribe.png",
         (AppTheme::Colored, TrayIconState::Recording) => "resources/recording.png",
-        (AppTheme::Colored, TrayIconState::Transcribing) => "resources/transcribing.png",
     }
 }
 
@@ -99,7 +95,7 @@ pub fn update_tray_menu(app: &AppHandle, state: &TrayIconState) {
     let separator = || PredefinedMenuItem::separator(app).expect("failed to create separator");
 
     let menu = match state {
-        TrayIconState::Recording | TrayIconState::Transcribing => {
+        TrayIconState::Recording => {
             let cancel_i = MenuItem::with_id(app, "cancel", "Cancel", true, None::<&str>)
                 .expect("failed to create cancel item");
             Menu::with_items(

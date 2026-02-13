@@ -15,6 +15,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
   const [isInstalling, setIsInstalling] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [showUpToDate, setShowUpToDate] = useState(false);
+  const [updateError, setUpdateError] = useState<string>("");
 
   const upToDateTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const isManualCheckRef = useRef(false);
@@ -80,6 +81,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
   const installUpdate = async () => {
     try {
       setIsInstalling(true);
+      setUpdateError("");
       setDownloadProgress(0);
       downloadedBytesRef.current = 0;
       contentLengthRef.current = 0;
@@ -112,6 +114,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
       await relaunch();
     } catch (error) {
       console.error("Failed to install update:", error);
+      setUpdateError(error instanceof Error ? error.message : String(error));
     } finally {
       setIsInstalling(false);
       setDownloadProgress(0);
@@ -131,6 +134,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
     }
     if (isChecking) return "Checking...";
     if (showUpToDate) return "Up to date";
+    if (updateError) return "Update failed - Retry";
     if (updateAvailable) return "Update available";
     return "Check for updates";
   };
@@ -163,6 +167,12 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
       ) : (
         <span className="text-muted-foreground tabular-nums">
           {getUpdateStatusText()}
+        </span>
+      )}
+
+      {updateError && (
+        <span className="text-destructive text-xs max-w-[300px] truncate" title={updateError}>
+          {updateError}
         </span>
       )}
 

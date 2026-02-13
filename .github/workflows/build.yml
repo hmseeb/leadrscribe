@@ -186,6 +186,9 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Use short target dir on Windows to avoid MAX_PATH issues with deeply nested
+          # whisper-rs-sys Vulkan shader build paths
+          CARGO_TARGET_DIR: ${{ contains(inputs.platform, 'windows') && 'C:\t' || '' }}
           APPLE_ID: ${{ inputs.sign-binaries && secrets.APPLE_ID || '' }}
           APPLE_ID_PASSWORD: ${{ inputs.sign-binaries && secrets.APPLE_ID_PASSWORD || '' }}
           APPLE_PASSWORD: ${{ inputs.sign-binaries && secrets.APPLE_PASSWORD || '' }}
@@ -286,6 +289,6 @@ jobs:
         with:
           name: ${{ inputs.asset-prefix }}-${{ inputs.target }}
           path: |
-            src-tauri/target/${{ steps.build-profile.outputs.profile }}/bundle/msi/*.msi
-            src-tauri/target/${{ steps.build-profile.outputs.profile }}/bundle/nsis/*.exe
+            C:\t\${{ steps.build-profile.outputs.profile }}\bundle\msi\*.msi
+            C:\t\${{ steps.build-profile.outputs.profile }}\bundle\nsis\*.exe
           retention-days: 30
