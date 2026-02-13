@@ -177,11 +177,7 @@ pub fn setup_segment_listener(app: &AppHandle) {
                                 *STREAMING_STATE.latest_text.lock().unwrap() = display_text.clone();
 
                                 if let Some(window) = app_for_display.get_webview_window("recording_overlay") {
-                                    let escaped = display_text.replace('\\', "\\\\").replace('\'', "\\'").replace('\n', "\\n");
-                                    let _ = window.eval(&format!(
-                                        "document.dispatchEvent(new CustomEvent('td-partial', {{ detail: {{ text: '{}' }} }}))",
-                                        escaped
-                                    ));
+                                    let _ = window.emit("td-partial", &display_text);
                                 }
                             } else {
                                 debug!("[Streaming] Gen {} stale (current {}), discarding", gen, current_gen);
@@ -224,7 +220,7 @@ impl ShortcutAction for TranscribeAction {
 
         // Show streaming text in recording overlay and expand window
         if let Some(window) = app.get_webview_window("recording_overlay") {
-            let _ = window.eval("document.dispatchEvent(new CustomEvent('td-show'))");
+            let _ = window.emit("td-show", ());
         }
         crate::overlay::expand_overlay_for_streaming(app);
 
@@ -326,7 +322,7 @@ impl ShortcutAction for TranscribeAction {
                         Err(err) => {
                             debug!("Fallback transcription error: {}", err);
                             if let Some(window) = ah.get_webview_window("recording_overlay") {
-                                let _ = window.eval("document.dispatchEvent(new CustomEvent('td-hide'))");
+                                let _ = window.emit("td-hide", ());
                             }
                             utils::hide_recording_overlay(&ah);
                             change_tray_icon(&ah, TrayIconState::Idle);
@@ -468,13 +464,9 @@ impl ShortcutAction for TranscribeAction {
                         }
                     });
 
-                    // Send final result to recording overlay via eval
+                    // Send final result to recording overlay
                     if let Some(window) = ah.get_webview_window("recording_overlay") {
-                        let escaped = final_text.replace('\\', "\\\\").replace('\'', "\\'").replace('\n', "\\n");
-                        let _ = window.eval(&format!(
-                            "document.dispatchEvent(new CustomEvent('td-final', {{ detail: {{ text: '{}' }} }}))",
-                            escaped
-                        ));
+                        let _ = window.emit("td-final", &final_text);
                     }
 
                     let transcription_clone = final_text.clone();
@@ -483,7 +475,7 @@ impl ShortcutAction for TranscribeAction {
                     ah.run_on_main_thread(move || {
                         // Hide the overlay BEFORE pasting to prevent it from stealing focus
                         if let Some(window) = ah_clone.get_webview_window("recording_overlay") {
-                            let _ = window.eval("document.dispatchEvent(new CustomEvent('td-hide'))");
+                            let _ = window.emit("td-hide", ());
                         }
                         utils::hide_recording_overlay(&ah_clone);
 
@@ -502,14 +494,14 @@ impl ShortcutAction for TranscribeAction {
                     .unwrap_or_else(|e| {
                         error!("Failed to run paste on main thread: {:?}", e);
                         if let Some(window) = ah.get_webview_window("recording_overlay") {
-                            let _ = window.eval("document.dispatchEvent(new CustomEvent('td-hide'))");
+                            let _ = window.emit("td-hide", ());
                         }
                         utils::hide_recording_overlay(&ah);
                         change_tray_icon(&ah, TrayIconState::Idle);
                     });
                 } else {
                     if let Some(window) = ah.get_webview_window("recording_overlay") {
-                        let _ = window.eval("document.dispatchEvent(new CustomEvent('td-hide'))");
+                        let _ = window.emit("td-hide", ());
                     }
                     utils::hide_recording_overlay(&ah);
                     change_tray_icon(&ah, TrayIconState::Idle);
@@ -517,7 +509,7 @@ impl ShortcutAction for TranscribeAction {
             } else {
                 debug!("No samples retrieved from recording stop");
                 if let Some(window) = ah.get_webview_window("recording_overlay") {
-                    let _ = window.eval("document.dispatchEvent(new CustomEvent('td-hide'))");
+                    let _ = window.emit("td-hide", ());
                 }
                 utils::hide_recording_overlay(&ah);
                 change_tray_icon(&ah, TrayIconState::Idle);

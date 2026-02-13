@@ -1,7 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { LogicalSize, LogicalPosition } from "@tauri-apps/api/dpi";
 import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -13,19 +12,6 @@ import { cn } from "../lib/utils";
 
 type OverlayState = "recording" | "transcribing" | "ghostwriting" | "error";
 
-const wordVariants = {
-  hidden: { opacity: 0, y: 8 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: "spring" as const,
-      stiffness: 500,
-      damping: 30,
-    },
-  },
-};
-
 const RecordingOverlay: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [state, setState] = useState<OverlayState>("recording");
@@ -36,7 +22,6 @@ const RecordingOverlay: React.FC = () => {
   // Streaming transcription state
   const [words, setWords] = useState<string[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const prevWordCountRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
@@ -95,54 +80,44 @@ const RecordingOverlay: React.FC = () => {
     setupEventListeners();
   }, []);
 
-  // DOM CustomEvent listeners for streaming transcription
+  // Streaming transcription listeners (via Tauri events)
   useEffect(() => {
-    const handleShow = () => {
-      console.log("[RecordingOverlay] DOM event: td-show");
-      setIsStreaming(true);
-      setWords([]);
-      prevWordCountRef.current = 0;
+    const setupStreamingListeners = async () => {
+      const unlistenShow = await listen("td-show", () => {
+        console.log("[RecordingOverlay] td-show");
+        setIsStreaming(true);
+        setWords([]);
+      });
+
+      const unlistenHide = await listen("td-hide", () => {
+        console.log("[RecordingOverlay] td-hide");
+        setIsStreaming(false);
+      });
+
+      const unlistenPartial = await listen<string>("td-partial", (event) => {
+        const text = event.payload as string;
+        console.log("[RecordingOverlay] td-partial", text);
+        const newWords = text.split(/\s+/).filter((w: string) => w.length > 0);
+        setWords(newWords);
+      });
+
+      const unlistenFinal = await listen<string>("td-final", (event) => {
+        const text = event.payload as string;
+        console.log("[RecordingOverlay] td-final");
+        const finalWords = text.split(/\s+/).filter((w: string) => w.length > 0);
+        setWords(finalWords);
+        setIsStreaming(false);
+      });
+
+      return () => {
+        unlistenShow();
+        unlistenHide();
+        unlistenPartial();
+        unlistenFinal();
+      };
     };
 
-    const handleHide = () => {
-      console.log("[RecordingOverlay] DOM event: td-hide");
-      setIsStreaming(false);
-    };
-
-    const handlePartial = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      console.log("[RecordingOverlay] DOM event: td-partial", detail);
-      const newWords = detail.text.split(/\s+/).filter((w: string) => w.length > 0);
-      setWords((prev) => [...prev, ...newWords]);
-    };
-
-    const handleFinal = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      console.log("[RecordingOverlay] DOM event: td-final");
-      const finalWords = detail.text.split(/\s+/).filter((w: string) => w.length > 0);
-      setWords(finalWords);
-      setIsStreaming(false);
-    };
-
-    const handleClear = () => {
-      console.log("[RecordingOverlay] DOM event: td-clear");
-      setWords([]);
-      prevWordCountRef.current = 0;
-    };
-
-    document.addEventListener("td-show", handleShow);
-    document.addEventListener("td-hide", handleHide);
-    document.addEventListener("td-partial", handlePartial);
-    document.addEventListener("td-final", handleFinal);
-    document.addEventListener("td-clear", handleClear);
-
-    return () => {
-      document.removeEventListener("td-show", handleShow);
-      document.removeEventListener("td-hide", handleHide);
-      document.removeEventListener("td-partial", handlePartial);
-      document.removeEventListener("td-final", handleFinal);
-      document.removeEventListener("td-clear", handleClear);
-    };
+    setupStreamingListeners();
   }, []);
 
   useEffect(() => {
@@ -166,7 +141,6 @@ const RecordingOverlay: React.FC = () => {
         });
       });
     }
-    prevWordCountRef.current = words.length;
   }, [words, shouldAutoScroll]);
 
   const handleScroll = () => {
@@ -175,41 +149,7 @@ const RecordingOverlay: React.FC = () => {
     setShouldAutoScroll(scrollHeight - scrollTop - clientHeight < 50);
   };
 
-  // Dynamic window resizing based on streaming state
-  useEffect(() => {
-    const hasContent = isStreaming || words.length > 0;
-    const currentWindow = getCurrentWindow();
-
-    const updateSize = async () => {
-      try {
-        if (hasContent) {
-          // Expanded size for streaming text
-          await currentWindow.setSize(new LogicalSize(360, 230));
-
-          // Shift window up to keep pill in same position
-          const currentPos = await currentWindow.outerPosition();
-          const heightDiff = 230 - 90; // New height - original height
-          await currentWindow.setPosition(
-            new LogicalPosition(currentPos.x, currentPos.y - heightDiff)
-          );
-        } else {
-          // Original size when no streaming
-          const currentPos = await currentWindow.outerPosition();
-          const heightDiff = 230 - 90;
-
-          // Move back down before resizing
-          await currentWindow.setPosition(
-            new LogicalPosition(currentPos.x, currentPos.y + heightDiff)
-          );
-          await currentWindow.setSize(new LogicalSize(280, 90));
-        }
-      } catch (e) {
-        console.error("Failed to resize/reposition overlay:", e);
-      }
-    };
-
-    updateSize();
-  }, [isStreaming, words.length]);
+  const hasStreamingContent = isStreaming || words.length > 0;
 
   const getIcon = () => {
     switch (state) {
@@ -236,56 +176,49 @@ const RecordingOverlay: React.FC = () => {
     <div className="overlay-container">
       <AnimatePresence>
         {isVisible && (
-          <>
-            {/* Streaming text area above the pill */}
-            {(isStreaming || words.length > 0) && (
-              <motion.div
-                className="streaming-text-area"
-                ref={scrollRef}
-                onScroll={handleScroll}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                transition={{
-                  type: "spring" as const,
-                  stiffness: 300,
-                  damping: 25,
-                }}
-              >
-                {words.length === 0 && (
-                  <span className="transcription-placeholder">Listening...</span>
-                )}
-                {words.map((word, i) => (
-                  <motion.span
-                    key={`${i}-${word}`}
-                    initial={i >= prevWordCountRef.current ? "hidden" : false}
-                    animate="visible"
-                    variants={wordVariants}
-                    className="transcription-word"
-                  >
-                    {word}{" "}
-                  </motion.span>
-                ))}
-              </motion.div>
+          <motion.div
+            className={cn(
+              "recording-overlay",
+              "fade-in",
+              `overlay-state-${state}`,
+              hasStreamingContent && "overlay-streaming"
             )}
-
-            {/* Recording overlay pill */}
-            <motion.div
-              className={cn(
-                "recording-overlay",
-                "fade-in",
-                `overlay-state-${state}`
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{
+              type: "spring",
+              stiffness: 400,
+              damping: 30,
+              duration: 0.25,
+            }}
+          >
+            {/* Streaming text - inside the pill, above the controls */}
+            <AnimatePresence>
+              {hasStreamingContent && (
+                <motion.div
+                  className="streaming-text-inline"
+                  ref={scrollRef}
+                  onScroll={handleScroll}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {words.length === 0 && (
+                    <span className="transcription-placeholder">Listening...</span>
+                  )}
+                  {words.length > 0 && (
+                    <span className="transcription-word">
+                      {words.join(" ")}
+                    </span>
+                  )}
+                </motion.div>
               )}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{
-                type: "spring",
-                stiffness: 400,
-                damping: 30,
-                duration: 0.25,
-              }}
-            >
+            </AnimatePresence>
+
+            {/* Pill controls row */}
+            <div className="overlay-controls">
               <div className="overlay-left">
                 <div className="flex items-center justify-center w-7 h-7 rounded-md bg-primary/10">
                   {getIcon()}
@@ -361,8 +294,8 @@ const RecordingOverlay: React.FC = () => {
                   <CancelIcon />
                 </button>
               </div>
-            </motion.div>
-          </>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
