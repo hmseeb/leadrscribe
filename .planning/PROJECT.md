@@ -33,17 +33,25 @@ A complete UI/UX redesign of LeadrScribe, transforming it from a traditional set
 
 ### Active
 
-<!-- New requirements for the redesign -->
+<!-- v0.6.0 Audit Fix milestone -->
 
-- [ ] Floating pill/bar overlay design (replaces current overlay)
-- [ ] Dark minimal visual theme (WisprFlow-inspired)
+- [ ] Fix unit mismatch in `last_activity` (millis vs secs) causing premature model unload
+- [ ] Fix broken ghostwriter unit tests (`process_text` error handling)
+- [ ] Fix `has_any_models_or_downloads` ignoring active downloads
+- [ ] Add `FollowCursor` to TypeScript types and settings UI
+- [ ] Fix `is_model_loading` returning wrong semantics
+- [ ] Move OpenRouter API key to OS keychain (secure storage)
+- [ ] Remove dead `StreamingBuffer`/`StreamingSession` code
+- [ ] Remove dead ghostwriter streaming types (`#[allow(dead_code)]`)
+- [ ] Replace `println!` debugging with proper `log` macros
+- [ ] Set restrictive CSP and narrow asset protocol scope
+- [ ] Fix SQL format string injection risk in history migration
+
+<!-- Deferred from v1.0 UI Redesign (phases 2-7) -->
+
 - [ ] Command palette for settings access (Ctrl+K)
 - [ ] Tray menu with full settings access
-- [ ] Simplified onboarding flow
 - [ ] Minimal main window (or no main window at all)
-- [ ] Smooth animations and transitions (GSAP or Framer Motion)
-- [ ] Recording state indicator in floating pill
-- [ ] Transcription preview in floating pill
 - [ ] Quick access to history from command palette
 - [ ] Quick access to profiles from command palette
 - [ ] Model status/switching from command palette
@@ -51,9 +59,9 @@ A complete UI/UX redesign of LeadrScribe, transforming it from a traditional set
 ### Out of Scope
 
 - Mobile version — desktop-first, mobile deferred
-- Real-time streaming transcription UI — current batch mode sufficient
 - Multi-language UI — English only for v1 redesign
 - Onboarding wizard redesign — keep minimal, improve later
+- v1.0 UI Redesign phases 2-7 — deferred until after audit fixes
 
 ## Context
 
@@ -81,15 +89,25 @@ A complete UI/UX redesign of LeadrScribe, transforming it from a traditional set
 - **Compatibility**: Must work on Windows, macOS, Linux
 - **Performance**: Overlay must be lightweight (<50MB memory impact)
 
+## Current Milestone: v0.6.0 Audit Fixes
+
+**Goal:** Fix all 11 codebase audit findings — 2 critical, 4 high, 5 medium — before continuing UI redesign.
+
+**Target fixes:**
+- Critical: Model unload timing bug, broken ghostwriter tests
+- High: Download detection, FollowCursor UI gap, model loading semantics, API key security
+- Medium: Dead code cleanup, println→log, CSP hardening, SQL safety
+
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | WisprFlow-style minimal | User prefers invisible interface over settings-heavy app | — Pending |
-| Floating pill overlay | Better UX than corner indicator or center modal | — Pending |
+| Floating pill overlay | Better UX than corner indicator or center modal | ✓ Good |
 | Both tray + command palette | Power users want keyboard access, casual users want click | — Pending |
-| Dark minimal theme | Matches WisprFlow aesthetic, modern look | — Pending |
+| Dark minimal theme | Matches WisprFlow aesthetic, modern look | ✓ Good |
 | Keep all features | No functionality loss, just better access patterns | — Pending |
+| Pause UI redesign for audit fixes | Critical bugs and security issues take priority | — Pending |
 
 ---
-*Last updated: 2026-02-04 after initialization*
+*Last updated: 2026-02-13 after v0.6.0 milestone start*
