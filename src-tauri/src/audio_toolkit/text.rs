@@ -1,12 +1,10 @@
-use natural::phonetics::soundex;
-use strsim::levenshtein;
+use strsim::jaro_winkler;
 
 /// Applies custom word corrections to transcribed text using fuzzy matching
 ///
 /// This function corrects words in the input text by finding the best matches
-/// from a list of custom words using a combination of:
-/// - Levenshtein distance for string similarity
-/// - Soundex phonetic matching for pronunciation similarity
+/// from a list of custom words using Jaro-Winkler similarity, which handles
+/// transpositions and similar characters well.
 ///
 /// # Arguments
 /// * `text` - The input text to correct
@@ -52,29 +50,14 @@ pub fn apply_custom_words(text: &str, custom_words: &[String], threshold: f64) -
                 continue;
             }
 
-            // Calculate Levenshtein distance (normalized by length)
-            let levenshtein_dist = levenshtein(&cleaned_word, custom_word_lower);
-            let max_len = cleaned_word.len().max(custom_word_lower.len()) as f64;
-            let levenshtein_score = if max_len > 0.0 {
-                levenshtein_dist as f64 / max_len
-            } else {
-                1.0
-            };
+            // Jaro-Winkler: 0.0 = no similarity, 1.0 = exact match
+            // Convert to distance: 0.0 = exact match, 1.0 = no similarity
+            let jw_similarity = jaro_winkler(&cleaned_word, custom_word_lower);
+            let distance = 1.0 - jw_similarity;
 
-            // Calculate phonetic similarity using Soundex
-            let phonetic_match = soundex(&cleaned_word, custom_word_lower);
-
-            // Combine scores: favor phonetic matches, but also consider string similarity
-            let combined_score = if phonetic_match {
-                levenshtein_score * 0.3 // Give significant boost to phonetic matches
-            } else {
-                levenshtein_score
-            };
-
-            // Accept if the score is good enough (configurable threshold)
-            if combined_score < threshold && combined_score < best_score {
+            if distance < threshold && distance < best_score {
                 best_match = Some(&custom_words[i]);
-                best_score = combined_score;
+                best_score = distance;
             }
         }
 
@@ -172,5 +155,21 @@ mod tests {
         let custom_words = vec![];
         let result = apply_custom_words(text, &custom_words, 0.5);
         assert_eq!(result, "hello world");
+    }
+
+    #[test]
+    fn test_apply_custom_words_transposition() {
+        let text = "recieve the mesage";
+        let custom_words = vec!["receive".to_string(), "message".to_string()];
+        let result = apply_custom_words(text, &custom_words, 0.3);
+        assert_eq!(result, "receive the message");
+    }
+
+    #[test]
+    fn test_apply_custom_words_no_false_positive() {
+        let text = "the cat sat";
+        let custom_words = vec!["concatenate".to_string()];
+        let result = apply_custom_words(text, &custom_words, 0.3);
+        assert_eq!(result, "the cat sat");
     }
 }
