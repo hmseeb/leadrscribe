@@ -127,6 +127,27 @@ impl StreamingState {
             (buf.clone(), false)
         }
     }
+
+    /// Trims the audio buffer to keep only recent audio, preventing unbounded growth.
+    /// Adjusts `last_transcribed_len` to account for removed samples.
+    fn trim_buffer(&self, max_seconds: f64) {
+        let max_samples = (max_seconds * 16000.0) as usize;
+        let margin = (2.0 * 16000.0) as usize; // 2s margin to avoid boundary issues
+        let limit = max_samples + margin;
+
+        let mut buf = self.audio_buffer.lock().unwrap();
+        if buf.len() > limit {
+            let trim_amount = buf.len() - limit;
+            buf.drain(..trim_amount);
+
+            // Adjust last_transcribed_len to stay consistent with trimmed buffer
+            let old_len = self.last_transcribed_len.load(Ordering::Acquire);
+            self.last_transcribed_len.store(
+                old_len.saturating_sub(trim_amount),
+                Ordering::Release,
+            );
+        }
+    }
 }
 
 // Global streaming state
@@ -173,6 +194,9 @@ pub fn setup_segment_listener(app: &AppHandle) {
                 // Mark current buffer length as "transcribed up to here"
                 let buf_len = STREAMING_STATE.audio_buffer.lock().unwrap().len();
                 STREAMING_STATE.last_transcribed_len.store(buf_len, Ordering::Release);
+
+                // Trim buffer to prevent unbounded memory growth
+                STREAMING_STATE.trim_buffer(MAX_WINDOW_SECONDS);
 
                 // Clone a window of accumulated audio (up to MAX_WINDOW_SECONDS)
                 let (window_samples, is_windowed) = STREAMING_STATE.clone_audio_window(MAX_WINDOW_SECONDS);
