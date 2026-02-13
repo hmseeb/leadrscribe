@@ -206,6 +206,7 @@ pub fn change_overlay_position_setting(app: AppHandle, position: String) -> Resu
         "none" => OverlayPosition::None,
         "top" => OverlayPosition::Top,
         "bottom" => OverlayPosition::Bottom,
+        "followcursor" => OverlayPosition::FollowCursor,
         other => {
             eprintln!("Invalid overlay position '{}', defaulting to bottom", other);
             OverlayPosition::Bottom
