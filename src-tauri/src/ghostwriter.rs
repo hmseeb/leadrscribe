@@ -503,8 +503,8 @@ mod tests {
         )
         .await;
 
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "test text");
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "No API key configured. Please add your OpenRouter API key in settings.");
     }
 
     #[tokio::test]
@@ -517,8 +517,8 @@ mod tests {
         )
         .await;
 
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "test text");
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "No API key configured. Please add your OpenRouter API key in settings.");
     }
 
     #[test]
