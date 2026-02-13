@@ -15,6 +15,52 @@ use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use tauri::{AppHandle, Emitter, Listener, Manager};
 
+/// Merges two overlapping text segments by detecting shared suffix/prefix.
+/// Requires at least 2 matching words to trigger dedup (avoids false positives
+/// on common single words like "the", "a", "and").
+fn merge_overlapping_text(committed: &str, new_text: &str) -> String {
+    if committed.is_empty() {
+        return new_text.to_string();
+    }
+    if new_text.is_empty() {
+        return committed.to_string();
+    }
+
+    let committed_words: Vec<&str> = committed.split_whitespace().collect();
+    let new_words: Vec<&str> = new_text.split_whitespace().collect();
+
+    let max_overlap = committed_words.len().min(new_words.len());
+    let mut best_overlap = 0;
+
+    // Find longest suffix of committed that matches prefix of new (case-insensitive)
+    // Require at least 2 words to avoid false positives on common words
+    for overlap_len in (2..=max_overlap).rev() {
+        let committed_suffix = &committed_words[committed_words.len() - overlap_len..];
+        let new_prefix = &new_words[..overlap_len];
+
+        let matches = committed_suffix
+            .iter()
+            .zip(new_prefix.iter())
+            .all(|(a, b)| a.to_lowercase() == b.to_lowercase());
+
+        if matches {
+            best_overlap = overlap_len;
+            break; // Longest match found (iterating from largest to smallest)
+        }
+    }
+
+    if best_overlap > 0 {
+        let remaining = &new_words[best_overlap..];
+        if remaining.is_empty() {
+            committed.to_string()
+        } else {
+            format!("{} {}", committed, remaining.join(" "))
+        }
+    } else {
+        format!("{} {}", committed, new_text)
+    }
+}
+
 // Shortcut Action Trait
 pub trait ShortcutAction: Send + Sync {
     fn start(&self, app: &AppHandle, binding_id: &str, shortcut_str: &str);
@@ -165,11 +211,7 @@ pub fn setup_segment_listener(app: &AppHandle) {
                                     if !prev_latest.is_empty() {
                                         *STREAMING_STATE.committed_text.lock().unwrap() = prev_latest;
                                     }
-                                    if committed.is_empty() {
-                                        text.clone()
-                                    } else {
-                                        format!("{} {}", committed, text)
-                                    }
+                                    merge_overlapping_text(&committed, &text)
                                 } else {
                                     text.clone()
                                 };
@@ -559,3 +601,57 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
     );
     map
 });
+
+#[cfg(test)]
+mod tests {
+    use super::merge_overlapping_text;
+
+    #[test]
+    fn test_merge_no_overlap() {
+        let result = merge_overlapping_text("hello world", "foo bar");
+        assert_eq!(result, "hello world foo bar");
+    }
+
+    #[test]
+    fn test_merge_with_overlap() {
+        let result = merge_overlapping_text(
+            "the quick brown fox jumps",
+            "brown fox jumps over the lazy dog",
+        );
+        assert_eq!(result, "the quick brown fox jumps over the lazy dog");
+    }
+
+    #[test]
+    fn test_merge_full_overlap() {
+        let result = merge_overlapping_text("hello world foo", "hello world foo");
+        assert_eq!(result, "hello world foo");
+    }
+
+    #[test]
+    fn test_merge_empty_committed() {
+        let result = merge_overlapping_text("", "hello world");
+        assert_eq!(result, "hello world");
+    }
+
+    #[test]
+    fn test_merge_empty_new() {
+        let result = merge_overlapping_text("hello world", "");
+        assert_eq!(result, "hello world");
+    }
+
+    #[test]
+    fn test_merge_single_word_overlap_ignored() {
+        // Single common words like "the" should not trigger dedup
+        let result = merge_overlapping_text("I saw the", "the cat");
+        assert_eq!(result, "I saw the the cat");
+    }
+
+    #[test]
+    fn test_merge_case_insensitive() {
+        let result = merge_overlapping_text(
+            "Hello World Foo",
+            "hello world foo bar baz",
+        );
+        assert_eq!(result, "Hello World Foo bar baz");
+    }
+}
