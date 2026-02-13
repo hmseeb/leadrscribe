@@ -1,194 +1,85 @@
-# Roadmap: LeadrScribe UI Redesign
+# Roadmap: LeadrScribe
 
-**Milestone:** v1.0 - Complete UI Redesign
-**Created:** 2026-02-04
-**Status:** Planning
+## Milestones
 
-## Milestone Overview
-
-Transform LeadrScribe from settings-heavy desktop app to WisprFlow-style minimal interface with floating overlay, command palette, and tray-only presence.
+- ✅ **v1.0 UI Redesign** - Phases 1-8 (partial - phases 1 & 8 shipped 2026-02-06)
+- 🚧 **v0.6.0 Audit Fixes** - Phases 9-10 (in progress)
 
 ## Phases
 
-### Phase 1: Foundation - Overlay Redesign ✓ COMPLETE
-**Goal:** Replace current overlay with minimal floating pill design
-**Plans:** 3 plans
+<details>
+<summary>✅ v1.0 UI Redesign (Phases 1-8) - PARTIAL SHIP 2026-02-06</summary>
 
-**Deliverables:**
-- [x] New floating pill component with WisprFlow-style design
-- [x] Recording state visualization (pulsing mic, audio bars)
-- [x] Configurable position (top/bottom/follow cursor)
-- [x] Dark minimal theme applied
-- [x] ESC cancellation working
-- [x] Smooth show/hide animations
-
-**Entry Criteria:** None (first phase)
-**Exit Criteria:** Overlay looks and feels like WisprFlow, replaces old overlay ✓
+### Phase 1: Overlay Redesign
+**Goal**: Transform overlay from basic indicator to polished minimal interface
+**Requirements**: OVL-01, OVL-02, OVL-03
+**Plans**: 5 plans
 
 Plans:
-- [x] 01-01-PLAN.md - Frontend UI redesign (React + CSS dark pill styling)
-- [x] 01-02-PLAN.md - Backend FollowCursor positioning (Rust settings + overlay)
-- [x] 01-03-PLAN.md - Visual verification checkpoint
-
----
-
-### Phase 2: Command Palette Core
-**Goal:** Build command palette as primary settings interface
-
-**Deliverables:**
-- [ ] Command palette component (cmdk integration)
-- [ ] Global Ctrl+K activation
-- [ ] Fuzzy search implementation
-- [ ] Keyboard navigation (arrows, enter, esc)
-- [ ] Command index with all settings
-- [ ] Slide-in animation
-
-**Entry Criteria:** Phase 1 complete (overlay working)
-**Exit Criteria:** All settings accessible via command palette
-
----
-
-### Phase 3: Tray Integration
-**Goal:** Move app to tray-only presence, eliminate main window
-
-**Deliverables:**
-- [ ] Redesigned tray menu (3-5 items max)
-- [ ] Remove main window entirely
-- [ ] Tray icon shows recording status
-- [ ] Single-instance brings command palette (not window)
-- [ ] Quit and basic actions in tray
-
-**Entry Criteria:** Phase 2 complete (command palette working)
-**Exit Criteria:** App has no main window, tray + overlay + palette only
-
----
-
-### Phase 4: History & Profiles in Palette
-**Goal:** Integrate history and profile management into command palette
-
-**Deliverables:**
-- [ ] History search command
-- [ ] History list view in palette
-- [ ] Copy transcription action
-- [ ] Profile switching command
-- [ ] Profile quick-switch (cycling)
-- [ ] Create/edit profile flow
-
-**Entry Criteria:** Phase 3 complete (no main window)
-**Exit Criteria:** History and profiles fully accessible via command palette
-
----
-
-### Phase 5: Settings Migration
-**Goal:** All settings editable through command palette
-
-**Deliverables:**
-- [ ] Shortcut customization commands
-- [ ] Microphone selection command
-- [ ] Model selection command
-- [ ] Language selection command
-- [ ] Overlay position command
-- [ ] All toggles (autostart, audio feedback, theme)
-- [ ] Inline editing for simple values
-
-**Entry Criteria:** Phase 4 complete
-**Exit Criteria:** Every setting that existed before is accessible
-
----
-
-### Phase 6: Polish & Power Features
-**Goal:** Learning/ranking, full keyboard customization, animations
-
-**Deliverables:**
-- [ ] Command frequency tracking
-- [ ] Auto-rank frequent commands
-- [ ] Full keyboard mapper
-- [ ] Micro-interaction animations
-- [ ] Performance optimization (<200ms activation)
-- [ ] Error handling as toasts (not modals)
-
-**Entry Criteria:** Phase 5 complete
-**Exit Criteria:** App feels polished, fast, professional
-
----
-
-### Phase 7: Cleanup & Migration
-**Goal:** Remove old components, ensure feature parity
-
-**Deliverables:**
-- [ ] Remove old settings components
-- [ ] Remove old main window code
-- [ ] Update any remaining references
-- [ ] Document new architecture
-- [ ] Final testing all features work
-
-**Entry Criteria:** Phase 6 complete
-**Exit Criteria:** Codebase clean, all features working, ready for release
-
----
+- [x] 01-01: Frontend UI redesign (React + CSS dark pill styling)
+- [x] 01-02: Backend FollowCursor positioning (Rust settings + overlay)
+- [x] 01-03: Visual verification checkpoint
+- [x] 01-04: Fix overlay flicker and improve drag behavior
+- [x] 01-05: Visual and functional verification
 
 ### Phase 8: Real-Time Transcription Display
-**Goal:** Show live speech-to-text feedback during dictation — WisprFlow-style confidence display
-**Plans:** 4 plans
-
-**Deliverables:**
-- [ ] Dark translucent bar (85% opacity black, rounded corners) pinned above overlay
-- [ ] Chunked Whisper inference (every ~2-3s) for streaming partial results
-- [ ] Text appearing word/chunk-by-word with subtle fade-in animation
-- [ ] Auto-scroll as new text flows in
-- [ ] Pulse/waveform indicator on left showing active listening
-- [ ] Click to dismiss
-- [ ] Backend streaming pipeline with StreamingBuffer and StreamingSession
-- [ ] Window-targeted events for partial transcription results
-
-**Entry Criteria:** Phase 7 complete (clean codebase)
-**Exit Criteria:** Users see real-time text during dictation, partial results replace with final output
+**Goal**: Show streaming transcription text in overlay during recording
+**Requirements**: STREAM-01, STREAM-02
+**Plans**: 2 plans
 
 Plans:
-- [ ] 08-01-PLAN.md — Backend streaming buffer and streaming session state
-- [ ] 08-02-PLAN.md — Frontend transcription display overlay component and styles
-- [ ] 08-03-PLAN.md — Wire backend to frontend, integrate into recording flow
-- [ ] 08-04-PLAN.md — Visual and functional verification checkpoint
+- [x] 08-01: Backend streaming + Frontend overlay component
+- [x] 08-02: Visual and functional verification
 
----
+**Note:** Phases 2-7 (Command Palette, Tray Integration, History/Profiles, Settings Migration, Polish, Cleanup) deferred until after v0.6.0 audit fixes.
 
-## Phase Dependencies
+</details>
 
-```
-Phase 1 (Overlay)
-    ↓
-Phase 2 (Command Palette)
-    ↓
-Phase 3 (Tray Integration)
-    ↓
-Phase 4 (History & Profiles)
-    ↓
-Phase 5 (Settings Migration)
-    ↓
-Phase 6 (Polish)
-    ↓
-Phase 7 (Cleanup)
-    ↓
-Phase 8 (Real-Time Transcription Display)
-```
+### 🚧 v0.6.0 Audit Fixes (In Progress)
 
-All phases are sequential - each builds on the previous.
+**Milestone Goal:** Fix all 13 codebase audit findings (2 critical, 4 high, 5 medium, 2 low) before continuing UI redesign.
 
-## Risk Assessment
+#### Phase 9: Critical Correctness Fixes
+**Goal**: Fix timing bugs, broken tests, and missing UI features that affect core functionality
+**Depends on**: Nothing (first phase of milestone)
+**Requirements**: CORR-01, CORR-02, CORR-03, CORR-04, FEAT-01
+**Success Criteria** (what must be TRUE):
+  1. Model unloading waits the configured timeout (not unloading prematurely due to millis/secs mismatch)
+  2. Ghostwriter unit tests pass and correctly validate error handling for missing/empty API keys
+  3. Model manager accurately reports download status (onboarding doesn't say "no models" when downloads are in progress)
+  4. FollowCursor overlay position is selectable in settings UI and works when chosen
+  5. Model loading status command returns accurate state for UI feedback (not inverted semantics)
+**Plans**: TBD
 
-| Risk | Mitigation |
-|------|------------|
-| Feature discovery collapse | Command palette must have excellent search; document keyboard shortcuts |
-| Performance regression | Profile overlay rendering; <200ms target |
-| User confusion (no window) | Clear tray tooltips; Ctrl+K visible in tray menu |
-| Settings too hidden | Top 3 settings in tray menu; rest via palette |
+Plans:
+- [ ] 09-01: TBD
 
-## Success Metrics
+#### Phase 10: Security & Code Health
+**Goal**: Secure API key storage, harden app permissions, and remove technical debt
+**Depends on**: Phase 9
+**Requirements**: SEC-01, SEC-02, SEC-03, SEC-04, HLTH-01, HLTH-02, HLTH-03
+**Success Criteria** (what must be TRUE):
+  1. OpenRouter API key stored in OS keychain (auto-migrated from settings file on first launch)
+  2. Asset protocol can only access required directories (not entire filesystem via `**` glob)
+  3. Content Security Policy blocks inline scripts and restricts external resources (not null/permissive)
+  4. All dead streaming code removed (StreamingBuffer, StreamingSession, ghostwriter streaming types with `#[allow(dead_code)]`)
+  5. No debug println statements remain in codebase (all replaced with proper log macros: debug!, info!, warn!, error!)
+**Plans**: TBD
 
-1. **Zero main window usage** - All interactions via overlay/palette/tray
-2. **<200ms activation** - Shortcut to recording indicator
-3. **Feature parity** - Every existing feature accessible
-4. **User preference** - Subjective "feels better than before"
+Plans:
+- [ ] 10-01: TBD
+
+## Progress
+
+**Execution Order:** 9 → 10
+
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Overlay Redesign | v1.0 UI Redesign | 5/5 | Complete | 2026-01-28 |
+| 8. Real-Time Transcription Display | v1.0 UI Redesign | 2/2 | Complete | 2026-02-06 |
+| 9. Critical Correctness Fixes | v0.6.0 Audit Fixes | 0/? | Not started | - |
+| 10. Security & Code Health | v0.6.0 Audit Fixes | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-02-04*
+*Updated for v0.6.0 milestone: 2026-02-13*

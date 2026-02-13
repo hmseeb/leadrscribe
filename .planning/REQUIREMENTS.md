@@ -51,24 +51,25 @@ Deferred from v1.0 UI Redesign (phases 2-7):
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CORR-01 | — | Pending |
-| CORR-02 | — | Pending |
-| CORR-03 | — | Pending |
-| CORR-04 | — | Pending |
-| FEAT-01 | — | Pending |
-| SEC-01 | — | Pending |
-| SEC-02 | — | Pending |
-| SEC-03 | — | Pending |
-| SEC-04 | — | Pending |
-| HLTH-01 | — | Pending |
-| HLTH-02 | — | Pending |
-| HLTH-03 | — | Pending |
+| CORR-01 | Phase 9 | Pending |
+| CORR-02 | Phase 9 | Pending |
+| CORR-03 | Phase 9 | Pending |
+| CORR-04 | Phase 9 | Pending |
+| FEAT-01 | Phase 9 | Pending |
+| SEC-01 | Phase 10 | Pending |
+| SEC-02 | Phase 10 | Pending |
+| SEC-03 | Phase 10 | Pending |
+| SEC-04 | Phase 10 | Pending |
+| HLTH-01 | Phase 10 | Pending |
+| HLTH-02 | Phase 10 | Pending |
+| HLTH-03 | Phase 10 | Pending |
 
 **Coverage:**
 - v0.6.0 requirements: 13 total
-- Mapped to phases: 0
-- Unmapped: 13 (pending roadmap)
+- Mapped to phases: 13/13 (100%)
+- Phase 9 (Critical Correctness Fixes): 5 requirements
+- Phase 10 (Security & Code Health): 8 requirements
 
 ---
 *Requirements defined: 2026-02-13*
-*Last updated: 2026-02-13 after initial definition*
+*Traceability updated: 2026-02-13 after roadmap creation*
