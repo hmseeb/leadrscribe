@@ -66,10 +66,12 @@ Plans:
   3. Content Security Policy blocks inline scripts and restricts external resources (not null/permissive)
   4. All dead streaming code removed (StreamingBuffer, StreamingSession, ghostwriter streaming types with `#[allow(dead_code)]`)
   5. No debug println statements remain in codebase (all replaced with proper log macros: debug!, info!, warn!, error!)
-**Plans**: TBD
+**Plans**: 3 plans in 1 wave
 
 Plans:
-- [ ] 10-01: TBD
+- [ ] 10-01-PLAN.md — Security hardening (SEC-01 through SEC-04)
+- [ ] 10-02-PLAN.md — Remove dead streaming code (HLTH-01, HLTH-02)
+- [ ] 10-03-PLAN.md — Replace println! with log macros (HLTH-03)
 
 ## Progress
 
@@ -80,7 +82,7 @@ Plans:
 | 1. Overlay Redesign | v1.0 UI Redesign | 5/5 | Complete | 2026-01-28 |
 | 8. Real-Time Transcription Display | v1.0 UI Redesign | 2/2 | Complete | 2026-02-06 |
 | 9. Critical Correctness Fixes | v0.6.0 Audit Fixes | 3/3 | Complete | 2026-02-13 |
-| 10. Security & Code Health | v0.6.0 Audit Fixes | 0/? | Not started | - |
+| 10. Security & Code Health | v0.6.0 Audit Fixes | 0/3 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-04*
