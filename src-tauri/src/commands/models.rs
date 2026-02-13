@@ -79,7 +79,6 @@ pub async fn set_active_model(
 #[tauri::command]
 pub async fn get_current_model(app_handle: AppHandle) -> Result<String, String> {
     let settings = get_settings(&app_handle);
-    println!("DEBUG: get_current_model returning: {:?}", settings.selected_model);
     Ok(settings.selected_model)
 }
 
@@ -88,7 +87,6 @@ pub async fn get_transcription_model_status(
     transcription_manager: State<'_, Arc<TranscriptionManager>>,
 ) -> Result<Option<String>, String> {
     let result = transcription_manager.get_current_model();
-    println!("DEBUG: get_transcription_model_status returning: {:?}", result);
     Ok(result)
 }
 
@@ -115,7 +113,7 @@ pub async fn has_any_models_or_downloads(
 ) -> Result<bool, String> {
     let models = model_manager.get_available_models();
     // Return true if any models are downloaded OR if any downloads are in progress
-    Ok(models.iter().any(|m| m.is_downloaded))
+    Ok(models.iter().any(|m| m.is_downloaded || m.is_downloading))
 }
 
 #[tauri::command]
