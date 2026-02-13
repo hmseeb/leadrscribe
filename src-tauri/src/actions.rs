@@ -25,6 +25,8 @@ pub trait ShortcutAction: Send + Sync {
 struct StreamingState {
     /// Latest cumulative transcription text
     latest_text: Arc<Mutex<String>>,
+    /// Text from audio before the current streaming window (context for initial_prompt)
+    committed_text: Arc<Mutex<String>>,
     /// Generation counter - increments with each transcription request
     generation: Arc<AtomicUsize>,
     /// Whether a transcription is currently running
@@ -40,6 +42,7 @@ impl StreamingState {
     fn new() -> Self {
         Self {
             latest_text: Arc::new(Mutex::new(String::new())),
+            committed_text: Arc::new(Mutex::new(String::new())),
             generation: Arc::new(AtomicUsize::new(0)),
             is_transcribing: Arc::new(AtomicBool::new(false)),
             is_recording: Arc::new(Mutex::new(false)),
@@ -51,6 +54,7 @@ impl StreamingState {
     fn start_recording(&self) {
         *self.is_recording.lock().unwrap() = true;
         *self.latest_text.lock().unwrap() = String::new();
+        *self.committed_text.lock().unwrap() = String::new();
         self.generation.store(0, Ordering::Release);
         self.is_transcribing.store(false, Ordering::Release);
         self.audio_buffer.lock().unwrap().clear();
@@ -66,14 +70,15 @@ impl StreamingState {
         self.latest_text.lock().unwrap().clone()
     }
 
-    /// Clone a window of accumulated audio for transcription (up to max_seconds)
-    fn clone_audio_window(&self, max_seconds: f64) -> Vec<f32> {
+    /// Clone a window of accumulated audio for transcription (up to max_seconds).
+    /// Returns (samples, is_windowed) — is_windowed is true when audio exceeds the window.
+    fn clone_audio_window(&self, max_seconds: f64) -> (Vec<f32>, bool) {
         let buf = self.audio_buffer.lock().unwrap();
         let max_samples = (max_seconds * 16000.0) as usize;
         if buf.len() > max_samples {
-            buf[buf.len() - max_samples..].to_vec()
+            (buf[buf.len() - max_samples..].to_vec(), true)
         } else {
-            buf.clone()
+            (buf.clone(), false)
         }
     }
 }
@@ -124,28 +129,55 @@ pub fn setup_segment_listener(app: &AppHandle) {
                 STREAMING_STATE.last_transcribed_len.store(buf_len, Ordering::Release);
 
                 // Clone a window of accumulated audio (up to MAX_WINDOW_SECONDS)
-                let window_samples = STREAMING_STATE.clone_audio_window(MAX_WINDOW_SECONDS);
+                let (window_samples, is_windowed) = STREAMING_STATE.clone_audio_window(MAX_WINDOW_SECONDS);
                 let gen = STREAMING_STATE.generation.fetch_add(1, Ordering::AcqRel);
 
+                // When windowed, use committed text as initial_prompt for context
+                let prompt = if is_windowed {
+                    let ct = STREAMING_STATE.committed_text.lock().unwrap();
+                    if ct.is_empty() { None } else { Some(ct.clone()) }
+                } else {
+                    None
+                };
+
                 debug!(
-                    "[Streaming] Transcribing {:.1}s window (gen {})...",
-                    window_samples.len() as f64 / 16000.0, gen
+                    "[Streaming] Transcribing {:.1}s window (gen {}, windowed={}, prompt={}chars)...",
+                    window_samples.len() as f64 / 16000.0, gen, is_windowed,
+                    prompt.as_ref().map_or(0, |p| p.len())
                 );
 
                 let tm = tm_clone.clone();
                 let app_for_display = app_clone.clone();
 
                 std::thread::spawn(move || {
-                    match tm.transcribe(window_samples) {
+                    match tm.transcribe_with_prompt(window_samples, prompt) {
                         Ok(text) if !text.is_empty() => {
                             // Only apply if this is still the latest generation
                             let current_gen = STREAMING_STATE.generation.load(Ordering::Acquire);
                             if gen + 1 >= current_gen {
                                 debug!("[Streaming] Gen {} result: '{}'", gen, text);
-                                *STREAMING_STATE.latest_text.lock().unwrap() = text.clone();
+
+                                // Build display text: committed prefix + window result
+                                let display_text = if is_windowed {
+                                    let committed = STREAMING_STATE.committed_text.lock().unwrap().clone();
+                                    // Update committed_text to the prior full result for next window
+                                    let prev_latest = STREAMING_STATE.latest_text.lock().unwrap().clone();
+                                    if !prev_latest.is_empty() {
+                                        *STREAMING_STATE.committed_text.lock().unwrap() = prev_latest;
+                                    }
+                                    if committed.is_empty() {
+                                        text.clone()
+                                    } else {
+                                        format!("{} {}", committed, text)
+                                    }
+                                } else {
+                                    text.clone()
+                                };
+
+                                *STREAMING_STATE.latest_text.lock().unwrap() = display_text.clone();
 
                                 if let Some(window) = app_for_display.get_webview_window("recording_overlay") {
-                                    let escaped = text.replace('\\', "\\\\").replace('\'', "\\'").replace('\n', "\\n");
+                                    let escaped = display_text.replace('\\', "\\\\").replace('\'', "\\'").replace('\n', "\\n");
                                     let _ = window.eval(&format!(
                                         "document.dispatchEvent(new CustomEvent('td-partial', {{ detail: {{ text: '{}' }} }}))",
                                         escaped
@@ -250,12 +282,7 @@ impl ShortcutAction for TranscribeAction {
         let tm = Arc::clone(&app.state::<Arc<TranscriptionManager>>());
         let hm = Arc::clone(&app.state::<Arc<HistoryManager>>());
 
-        change_tray_icon(app, TrayIconState::Transcribing);
-        // Update overlay to show "Transcribing..." - don't call show_recording_overlay
-        // as that would reposition the window using small dimensions while it's expanded for streaming
-        if let Some(overlay_window) = app.get_webview_window("recording_overlay") {
-            let _ = overlay_window.emit("show-overlay", "transcribing");
-        }
+        change_tray_icon(app, TrayIconState::Idle);
 
         // Play audio feedback for recording stop
         play_feedback_sound(app, SoundType::Stop);
@@ -284,33 +311,27 @@ impl ShortcutAction for TranscribeAction {
 
                 let samples_clone = samples.clone(); // Clone for history saving
 
-                // Transcribe full audio directly (faster than streaming mode which
-                // processes segments sequentially due to engine mutex lock)
-                let mut transcription = match tm.transcribe(samples) {
-                    Ok(t) => {
-                        info!("[Final] Transcription ({}chars): '{}'", t.len(), t);
-                        t
-                    }
-                    Err(err) => {
-                        debug!("Transcription error: {}", err);
-                        if let Some(window) = ah.get_webview_window("recording_overlay") {
-                            let _ = window.eval("document.dispatchEvent(new CustomEvent('td-hide'))");
-                        }
-                        utils::hide_recording_overlay(&ah);
-                        change_tray_icon(&ah, TrayIconState::Idle);
-                        return;
-                    }
-                };
+                // Use streaming result directly — no re-transcription needed
+                let mut transcription = STREAMING_STATE.get_latest_text();
+                info!("[Final] Using streaming text ({}chars): '{}'", transcription.len(), transcription);
 
-                // If final transcription is empty, fall back to latest streaming text
+                // Fallback: if streaming text is empty (very short recording), do one quick transcription
                 if transcription.is_empty() {
-                    let streaming_text = STREAMING_STATE.get_latest_text();
-                    if !streaming_text.is_empty() {
-                        transcription = streaming_text;
-                        debug!(
-                            "Final transcription empty, using streaming text: '{}'",
-                            transcription
-                        );
+                    debug!("Streaming text empty, falling back to full transcription");
+                    match tm.transcribe(samples) {
+                        Ok(t) => {
+                            info!("[Final] Fallback transcription ({}chars): '{}'", t.len(), t);
+                            transcription = t;
+                        }
+                        Err(err) => {
+                            debug!("Fallback transcription error: {}", err);
+                            if let Some(window) = ah.get_webview_window("recording_overlay") {
+                                let _ = window.eval("document.dispatchEvent(new CustomEvent('td-hide'))");
+                            }
+                            utils::hide_recording_overlay(&ah);
+                            change_tray_icon(&ah, TrayIconState::Idle);
+                            return;
+                        }
                     }
                 }
 
@@ -474,12 +495,12 @@ impl ShortcutAction for TranscribeAction {
                             Ok(()) => {
                                 debug!("Text pasted successfully in {:?}", paste_time.elapsed())
                             }
-                            Err(e) => eprintln!("Failed to paste transcription: {}", e),
+                            Err(e) => error!("Failed to paste transcription: {}", e),
                         }
                         change_tray_icon(&ah_clone, TrayIconState::Idle);
                     })
                     .unwrap_or_else(|e| {
-                        eprintln!("Failed to run paste on main thread: {:?}", e);
+                        error!("Failed to run paste on main thread: {:?}", e);
                         if let Some(window) = ah.get_webview_window("recording_overlay") {
                             let _ = window.eval("document.dispatchEvent(new CustomEvent('td-hide'))");
                         }

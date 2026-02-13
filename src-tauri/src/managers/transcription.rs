@@ -3,7 +3,7 @@ use crate::cpu_features;
 use crate::managers::model::{EngineType, ModelManager};
 use crate::settings::{get_settings, ModelUnloadTimeout};
 use anyhow::Result;
-use log::{debug, info};
+use log::{debug, error, info};
 use serde::Serialize;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
@@ -335,7 +335,7 @@ impl TranscriptionManager {
         thread::spawn(move || {
             let settings = get_settings(&self_clone.app_handle);
             if let Err(e) = self_clone.load_model(&settings.selected_model) {
-                eprintln!("Failed to load model: {}", e);
+                error!("Failed to load model: {}", e);
             }
             let mut is_loading = self_clone.is_loading.lock().unwrap();
             *is_loading = false;
@@ -349,6 +349,10 @@ impl TranscriptionManager {
     }
 
     pub fn transcribe(&self, audio: Vec<f32>) -> Result<String> {
+        self.transcribe_with_prompt(audio, None)
+    }
+
+    pub fn transcribe_with_prompt(&self, audio: Vec<f32>, prompt: Option<String>) -> Result<String> {
         // Update last activity timestamp
         self.last_activity.store(
             SystemTime::now()
@@ -384,6 +388,10 @@ impl TranscriptionManager {
         // Get current settings for configuration
         let settings = get_settings(&self.app_handle);
 
+        if prompt.is_some() {
+            debug!("Using initial_prompt for context ({} chars)", prompt.as_ref().unwrap().len());
+        }
+
         // Perform transcription with the appropriate engine
         let result = {
             let mut engine_guard = self.engine.lock().unwrap();
@@ -403,6 +411,7 @@ impl TranscriptionManager {
                             Some(settings.selected_language.clone())
                         },
                         translate: settings.translate_to_english,
+                        initial_prompt: prompt,
                         // Speed optimizations
                         suppress_blank: true,              // Skip blank segments for speed
                         suppress_non_speech_tokens: true,  // Skip non-speech tokens
@@ -418,6 +427,7 @@ impl TranscriptionManager {
                         .map_err(|e| anyhow::anyhow!("Whisper transcription failed: {}", e))?
                 }
                 LoadedEngine::Parakeet(parakeet_engine) => {
+                    // Parakeet doesn't support initial_prompt — ignore it
                     let params = ParakeetInferenceParams {
                         timestamp_granularity: TimestampGranularity::Segment,
                         ..Default::default()
@@ -456,32 +466,13 @@ impl TranscriptionManager {
         {
             info!("Immediately unloading model after transcription");
             if let Err(e) = self.unload_model() {
-                eprintln!("Failed to immediately unload model: {}", e);
+                error!("Failed to immediately unload model: {}", e);
             }
         }
 
         Ok(corrected_result.trim().to_string())
     }
 
-    /// Transcribe an audio segment and invoke callback with result
-    /// This method is designed for streaming transcription where segments
-    /// are processed as they become available during recording
-    pub fn transcribe_segment_async<F>(
-        &self,
-        audio: Vec<f32>,
-        segment_index: usize,
-        callback: F,
-    ) where
-        F: FnOnce(usize, Result<String>) + Send + 'static,
-    {
-        let manager_clone = self.clone();
-
-        // Spawn a background thread to transcribe the segment
-        thread::spawn(move || {
-            let result = manager_clone.transcribe(audio);
-            callback(segment_index, result);
-        });
-    }
 }
 
 impl Drop for TranscriptionManager {
@@ -494,7 +485,7 @@ impl Drop for TranscriptionManager {
         // Wait for the thread to finish gracefully
         if let Some(handle) = self.watcher_handle.lock().unwrap().take() {
             if let Err(e) = handle.join() {
-                eprintln!("Failed to join idle watcher thread: {:?}", e);
+                error!("Failed to join idle watcher thread: {:?}", e);
             } else {
                 debug!("Idle watcher thread joined successfully");
             }
