@@ -279,7 +279,16 @@ impl HistoryManager {
     }
 
     fn migrate_existing_columns(&self, conn: &Connection) -> Result<()> {
-        // Helper to check if column exists
+        // SAFETY: SQL injection prevention
+        // The `has_column` closure uses format!() to build SQL queries, which is normally
+        // a SQL injection risk. However, in this context it is safe because:
+        // 1. `table` parameter is hardcoded as "transcription_history" (line 292) - developer-controlled
+        // 2. `column` parameter is always a hardcoded string literal from migration logic - developer-controlled
+        // 3. No user input flows into these queries
+        // 4. This is migration-only code, not a general-purpose query function
+        //
+        // If this function is ever modified to accept user input, it MUST be refactored
+        // to use parameterized queries via rusqlite's `?` placeholders.
         let has_column = |table: &str, column: &str| -> bool {
             conn.query_row(
                 &format!("SELECT name FROM pragma_table_info('{}') WHERE name='{}'", table, column),
