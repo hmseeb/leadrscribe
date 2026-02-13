@@ -7,6 +7,7 @@ use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     Device, Sample, SizedSample,
 };
+use log::info;
 
 use crate::audio_toolkit::{
     audio::{AudioVisualiser, FrameResampler},
@@ -126,7 +127,7 @@ impl AudioRecorder {
             let sample_rate = config.sample_rate().0;
             let channels = config.channels() as usize;
 
-            println!(
+            info!(
                 "Using device: {:?}\nSample rate: {}\nChannels: {}\nFormat: {:?}",
                 thread_device.name(),
                 sample_rate,
@@ -318,6 +319,9 @@ fn run_consumer(
     let mut segment_buffer = Vec::<f32>::new(); // Buffer for current segment
     let mut recording = false;
 
+    // Periodic streaming: emit chunks every ~1s of speech audio for real-time display
+    const STREAMING_CHUNK_SAMPLES: usize = 16000; // 1 second at 16kHz
+
     // ---------- spectrum visualisation setup ---------------------------- //
     const BUCKETS: usize = 16;
     const WINDOW_SIZE: usize = 512;
@@ -393,6 +397,14 @@ fn run_consumer(
 
             // Emit segment if boundary detected and we have data
             if should_emit && !segment_buffer.is_empty() {
+                if let Some(cb) = &segment_cb {
+                    cb(std::mem::take(&mut segment_buffer));
+                }
+            }
+
+            // Periodic streaming: emit a chunk when enough speech audio accumulates
+            // This enables real-time transcription display during continuous speech
+            if !should_emit && segment_buffer.len() >= STREAMING_CHUNK_SAMPLES {
                 if let Some(cb) = &segment_cb {
                     cb(std::mem::take(&mut segment_buffer));
                 }

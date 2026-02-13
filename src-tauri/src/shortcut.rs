@@ -1,3 +1,4 @@
+use log::warn;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_autostart::ManagerExt;
@@ -513,8 +514,8 @@ fn _register_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<(), S
                         }
                     }
                 } else {
-                    println!(
-                        "Warning: No action defined in ACTION_MAP for shortcut ID '{}'. Shortcut: '{}', State: {:?}",
+                    warn!(
+                        "No action defined in ACTION_MAP for shortcut ID '{}'. Shortcut: '{}', State: {:?}",
                         binding_id_for_closure, shortcut_string, event.state
                     );
                 }

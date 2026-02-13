@@ -13,6 +13,7 @@ mod shortcut;
 mod tray;
 mod utils;
 
+use log::{debug, info};
 use managers::audio::AudioRecordingManager;
 use managers::history::HistoryManager;
 use managers::model::ModelManager;
@@ -250,13 +251,13 @@ pub fn run() {
                             if let Err(e) = transcription_manager_clone.load_model(&selected_model) {
                                 eprintln!("Failed to auto-load model on startup: {}", e);
                             } else {
-                                println!("Successfully auto-loaded model: {}", selected_model);
+                                info!("Successfully auto-loaded model: {}", selected_model);
                             }
                         } else {
-                            println!("Selected model '{}' is not downloaded, skipping auto-load", selected_model);
+                            info!("Selected model '{}' is not downloaded, skipping auto-load", selected_model);
                         }
                     } else {
-                        println!("Selected model '{}' not found in available models", selected_model);
+                        info!("Selected model '{}' not found in available models", selected_model);
                     }
                 });
             }
@@ -281,12 +282,12 @@ pub fn run() {
                         .app_handle()
                         .set_activation_policy(tauri::ActivationPolicy::Accessory);
                     if let Err(e) = res {
-                        println!("Failed to set activation policy: {}", e);
+                        debug!("Failed to set activation policy: {}", e);
                     }
                 }
             }
             tauri::WindowEvent::ThemeChanged(theme) => {
-                println!("Theme changed to: {:?}", theme);
+                debug!("Theme changed to: {:?}", theme);
                 // Update tray icon to match new theme, maintaining idle state
                 utils::change_tray_icon(&window.app_handle(), utils::TrayIconState::Idle);
             }

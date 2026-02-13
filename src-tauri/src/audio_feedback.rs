@@ -1,5 +1,6 @@
 use crate::settings;
 use cpal::traits::{DeviceTrait, HostTrait};
+use log::debug;
 use rodio::OutputStreamBuilder;
 use std::fs::File;
 use std::io::BufReader;
@@ -87,7 +88,7 @@ fn play_audio_file(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let stream_builder = if let Some(device_name) = selected_device {
         if device_name == "Default" {
-            println!("Using default device");
+            debug!("Using default device");
             OutputStreamBuilder::from_default_device()?
         } else {
             let host = crate::audio_toolkit::get_cpal_host();
@@ -110,7 +111,7 @@ fn play_audio_file(
             }
         }
     } else {
-        println!("Using default device");
+        debug!("Using default device");
         OutputStreamBuilder::from_default_device()?
     };
 
