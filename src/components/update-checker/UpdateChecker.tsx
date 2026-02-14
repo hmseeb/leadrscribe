@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { check } from "@tauri-apps/plugin-updater";
+import { check, Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { listen } from "@tauri-apps/api/event";
 import { ProgressBar } from "../shared";
@@ -17,6 +17,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
   const [showUpToDate, setShowUpToDate] = useState(false);
   const [updateError, setUpdateError] = useState<string>("");
 
+  const pendingUpdateRef = useRef<Update | null>(null);
   const upToDateTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const isManualCheckRef = useRef(false);
   const downloadedBytesRef = useRef(0);
@@ -50,9 +51,11 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
       const update = await check();
 
       if (update) {
+        pendingUpdateRef.current = update;
         setUpdateAvailable(true);
         setShowUpToDate(false);
       } else {
+        pendingUpdateRef.current = null;
         setUpdateAvailable(false);
 
         if (isManualCheckRef.current) {
@@ -85,13 +88,13 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
       setDownloadProgress(0);
       downloadedBytesRef.current = 0;
       contentLengthRef.current = 0;
-      const update = await check();
 
+      const update = pendingUpdateRef.current ?? (await check());
       if (!update) {
-        console.log("No update available during install attempt");
-        setUpdateError("Update check failed. Please try again.");
+        setUpdateError("No update found. Please try again later.");
         return;
       }
+      pendingUpdateRef.current = update;
 
       await update.downloadAndInstall((event) => {
         switch (event.event) {
@@ -141,7 +144,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
   };
 
   const getUpdateStatusAction = () => {
-    if (updateAvailable && !isInstalling) return installUpdate;
+    if ((updateAvailable || updateError) && !isInstalling) return installUpdate;
     if (!isChecking && !isInstalling && !updateAvailable)
       return handleManualUpdateCheck;
     return undefined;
@@ -149,7 +152,8 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
 
   const isUpdateDisabled = isChecking || isInstalling;
   const isUpdateClickable =
-    !isUpdateDisabled && (updateAvailable || (!isChecking && !showUpToDate));
+    !isUpdateDisabled &&
+    (updateAvailable || updateError || (!isChecking && !showUpToDate));
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
