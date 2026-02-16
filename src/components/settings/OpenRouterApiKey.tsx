@@ -15,12 +15,14 @@ export const OpenRouterApiKey: React.FC<OpenRouterApiKeyProps> = React.memo(
     const [localValue, setLocalValue] = useState("");
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Load initial value only once on mount
+    // Subscribe to the settings store to get reactive updates
+    const apiKeyFromStore = useSettingsStore((state) => state.settings?.openrouter_api_key);
+
+    // Update local value when store value changes (including after initial load from keychain)
     useEffect(() => {
-      const settings = useSettingsStore.getState().settings;
-      const value = (settings?.openrouter_api_key || "") as string;
+      const value = (apiKeyFromStore || "") as string;
       setLocalValue(value);
-    }, []);
+    }, [apiKeyFromStore]);
 
     // Cleanup timeout on unmount
     useEffect(() => {
