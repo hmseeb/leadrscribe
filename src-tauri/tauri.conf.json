@@ -72,7 +72,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQyRUI4ODg5MjhCM0NGOUQKUldTZHo3TW9pWWpyUXZlOC9YbGZxOXJEMEY5bXZDTG1DTWUxcEs0cUNFNmJqVVVycllnSzhiK3IK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM0RDQ5REE3RkRGRjQ4NzEKUldSeFNQLzlwNTNVeEJ3VnNwOGQ5TlFFQlJBRzBlQnNHZjVuajNISFlvcjIwT1Nma3JIaDJURW4K",
       "endpoints": [
         "https://github.com/hmseeb/leadrscribe/releases/latest/download/latest.json"
       ],
