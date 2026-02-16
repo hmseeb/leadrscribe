@@ -389,16 +389,17 @@ pub fn change_openrouter_api_key_setting(app: AppHandle, api_key: Option<String>
     let mut s = settings::get_settings(&app);
 
     if let Some(ref key) = api_key {
-        match settings::set_openrouter_api_key(key) {
-            Ok(()) => {
-                // Keychain succeeded: clear plaintext from settings file
-                s.openrouter_api_key = None;
-            }
-            Err(e) => {
-                // Keychain failed: store in settings file as last resort
-                warn!("Keychain storage failed, falling back to settings file: {}", e);
-                s.openrouter_api_key = api_key;
-            }
+        // Try to save to keyring and verify it can be read back
+        let keyring_works = settings::set_openrouter_api_key(key).is_ok()
+            && settings::get_openrouter_api_key().as_deref() == Some(key.as_str());
+
+        if keyring_works {
+            // Keychain verified: clear plaintext from settings file
+            s.openrouter_api_key = None;
+        } else {
+            // Keychain unreliable: store in settings file as fallback
+            warn!("Keychain storage failed or unverifiable, falling back to settings file");
+            s.openrouter_api_key = api_key;
         }
     } else {
         let _ = settings::delete_openrouter_api_key();

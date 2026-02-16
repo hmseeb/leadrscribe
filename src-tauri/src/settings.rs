@@ -17,8 +17,17 @@ fn get_keyring_entry() -> Result<Entry, String> {
 
 pub fn get_openrouter_api_key() -> Option<String> {
     match get_keyring_entry() {
-        Ok(entry) => entry.get_password().ok(),
-        Err(_) => None,
+        Ok(entry) => match entry.get_password() {
+            Ok(key) => Some(key),
+            Err(e) => {
+                debug!("Keyring get_password failed: {}", e);
+                None
+            }
+        },
+        Err(e) => {
+            debug!("Keyring entry access failed: {}", e);
+            None
+        }
     }
 }
 
