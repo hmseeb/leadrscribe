@@ -36,10 +36,11 @@ pub fn cancel_current_operation(app: &AppHandle) {
                 action.stop(app, &binding_id, "cancelled");
             }
 
-            // Reset the toggle state
+            // Reset the toggle and key-held state
             if let Some(is_active) = states.active_toggles.get_mut(&binding_id) {
                 *is_active = false;
             }
+            states.key_held.insert(binding_id, false);
         }
     } else {
         warn!("Failed to lock toggle state manager during cancellation");

@@ -189,6 +189,8 @@ pub fn show_recording_overlay(app_handle: &AppHandle) {
     // Cancel any pending hide operation to prevent race condition
     // where a delayed hide() from a previous call would hide this new show()
     HIDE_PENDING.store(false, Ordering::SeqCst);
+    // Reset streaming state for new recording session
+    STREAMING_ACTIVE.store(false, Ordering::SeqCst);
 
     // Check if overlay should be shown based on position setting
     let settings = settings::get_settings(app_handle);

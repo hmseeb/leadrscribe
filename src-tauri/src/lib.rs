@@ -33,6 +33,8 @@ use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 struct ShortcutToggleStates {
     // Map: shortcut_binding_id -> is_active
     active_toggles: HashMap<String, bool>,
+    // Map: shortcut_binding_id -> is_key_held (guards against auto-repeat)
+    key_held: HashMap<String, bool>,
 }
 
 type ManagedToggleState = Mutex<ShortcutToggleStates>;

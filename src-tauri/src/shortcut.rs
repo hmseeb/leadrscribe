@@ -394,8 +394,10 @@ pub fn change_openrouter_api_key_setting(app: AppHandle, api_key: Option<String>
             && settings::get_openrouter_api_key().as_deref() == Some(key.as_str());
 
         if keyring_works {
-            // Keychain verified: clear plaintext from settings file
-            s.openrouter_api_key = None;
+            debug!("API key saved to keychain successfully");
+            // CHANGED: Always keep fallback in settings file even if keyring works
+            // This ensures ghostwriting works even if keyring becomes unreliable later
+            s.openrouter_api_key = api_key.clone();
         } else {
             // Keychain unreliable: store in settings file as fallback
             warn!("Keychain storage failed or unverifiable, falling back to settings file");
@@ -518,22 +520,45 @@ fn _register_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<(), S
                 let shortcut_string = scut.into_string();
                 let settings = get_settings(ah);
 
+                debug!(
+                    "[HOTKEY DEBUG] Shortcut '{}' triggered - ID: '{}', State: {:?}, PTT: {}",
+                    shortcut_string, binding_id_for_closure, event.state, settings.push_to_talk
+                );
+
                 if let Some(action) = ACTION_MAP.get(&binding_id_for_closure) {
                     if settings.push_to_talk {
                         if event.state == ShortcutState::Pressed {
+                            debug!("[HOTKEY DEBUG] PTT mode - calling start()");
                             action.start(ah, &binding_id_for_closure, &shortcut_string);
                         } else if event.state == ShortcutState::Released {
+                            debug!("[HOTKEY DEBUG] PTT mode - calling stop()");
                             action.stop(ah, &binding_id_for_closure, &shortcut_string);
                         }
                     } else {
-                        if event.state == ShortcutState::Pressed {
-                            let toggle_state_manager = ah.state::<ManagedToggleState>();
+                        let toggle_state_manager = ah.state::<ManagedToggleState>();
+                        let mut states = toggle_state_manager.lock().expect("Failed to lock toggle state manager");
 
-                            let mut states = toggle_state_manager.lock().expect("Failed to lock toggle state manager");
+                        if event.state == ShortcutState::Pressed {
+                            // Guard against keyboard auto-repeat: ignore repeated Pressed
+                            // events while the key is already held down
+                            let is_held = states.key_held
+                                .entry(binding_id_for_closure.clone())
+                                .or_insert(false);
+                            if *is_held {
+                                debug!("[HOTKEY DEBUG] Toggle mode - ignoring auto-repeat Pressed event");
+                                return;
+                            }
+                            *is_held = true;
 
                             let is_currently_active = states.active_toggles
                                 .entry(binding_id_for_closure.clone())
                                 .or_insert(false);
+
+                            debug!(
+                                "[HOTKEY DEBUG] Toggle mode - current state: {}, will call: {}",
+                                is_currently_active,
+                                if *is_currently_active { "stop()" } else { "start()" }
+                            );
 
                             if *is_currently_active {
                                 action.stop(
@@ -541,11 +566,17 @@ fn _register_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<(), S
                                     &binding_id_for_closure,
                                     &shortcut_string,
                                 );
-                                *is_currently_active = false; // Update state to inactive
+                                *is_currently_active = false;
+                                debug!("[HOTKEY DEBUG] Toggle state now: false (inactive)");
                             } else {
                                 action.start(ah, &binding_id_for_closure, &shortcut_string);
-                                *is_currently_active = true; // Update state to active
+                                *is_currently_active = true;
+                                debug!("[HOTKEY DEBUG] Toggle state now: true (active)");
                             }
+                        } else if event.state == ShortcutState::Released {
+                            // Clear the key-held guard so next press is recognized
+                            states.key_held.insert(binding_id_for_closure.clone(), false);
+                            debug!("[HOTKEY DEBUG] Toggle mode - key released, cleared held guard");
                         }
                     }
                 } else {
