@@ -42,6 +42,7 @@ Progress: [█████████░] 95% (11/11 phases, plan 3/4)
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 11 P03 | 4 min | 2 tasks | 4 files |
+| Phase 11 P02 | 6 min | 2 tasks | 3 files |
 | Phase 11 P01 | 3 min | 2 tasks | 4 files |
 | Phase 10 P03 | 8 min | 2 tasks | 8 files |
 | Phase 10 P02 | 4 min | 2 tasks | 4 files |
@@ -70,6 +71,9 @@ Recent decisions affecting current work:
 - [Phase 11-01]: theme_mode persistence: Add field to Rust AppSettings to prevent serde dropping frontend values
 - [Phase 11-03]: DRY pattern: Extract duplicated mapping closures to standalone helper functions
 - [Phase 11-03]: Profile wiring: Capture settings values before async spawn to avoid closure capture issues
+- [Phase 11-02]: Use Tauri store plugin directly in overlay instead of non-existent invoke command
+- [Phase 11-02]: Cache overlay position in AtomicU8 to avoid hot-path I/O (Ordering::Relaxed sufficient)
+- [Phase 11-02]: Pass settings values through function parameters instead of repeated disk reads
 
 ### Roadmap Evolution
 
@@ -86,10 +90,10 @@ None identified.
 ## Session Continuity
 
 Last session: 2026-02-17
-Stopped at: Completed 11-03-PLAN.md
+Stopped at: Completed 11-02-PLAN.md
 Resume file: None
 
-Next step: Continue with plan 11-04 (final plan in phase 11)
+Next step: Continue with plan 11-03 or 11-04
 
 ---
-*State updated: 2026-02-17 after plan 11-03 completion*
+*State updated: 2026-02-17 after plan 11-02 completion*
