@@ -1,0 +1,3 @@
+[env]
+VULKAN_SDK = "C:\\VulkanSDK\\1.4.341.0"
+BINDGEN_EXTRA_CLANG_ARGS = "-fno-record-command-line"
