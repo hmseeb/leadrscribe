@@ -32,7 +32,7 @@ export async function getLatestRelease(): Promise<DownloadLinks | null> {
         headers: {
           Accept: "application/vnd.github.v3+json",
         },
-        next: { revalidate: 300 }, // Cache for 5 minutes
+        cache: "no-store",
       }
     );
 
