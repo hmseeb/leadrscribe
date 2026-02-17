@@ -380,6 +380,11 @@ pub fn run() {
             commands::tag::get_transcriptions_by_tag,
             commands::tag::get_tag_stats
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app, event| {
+            if let tauri::RunEvent::Exit = event {
+                shortcut::shutdown_health_check();
+            }
+        });
 }
