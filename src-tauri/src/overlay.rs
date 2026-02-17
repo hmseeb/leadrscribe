@@ -2,7 +2,7 @@ use crate::settings;
 use crate::settings::OverlayPosition;
 use log::debug;
 use enigo::{Enigo, Mouse};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
 /// Atomic flag to track if a hide operation is pending.
 /// This prevents race conditions where a delayed hide() executes after a new show().
@@ -12,7 +12,29 @@ static HIDE_PENDING: AtomicBool = AtomicBool::new(false);
 /// When true, emit_levels skips repositioning to avoid jumping while user reads text.
 static STREAMING_ACTIVE: AtomicBool = AtomicBool::new(false);
 
+/// Cached overlay position to avoid reading settings on every audio level callback.
+/// Values: 0 = None, 1 = Top, 2 = Bottom
+static CACHED_OVERLAY_POSITION: AtomicU8 = AtomicU8::new(2); // Default: Bottom
+
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewWindowBuilder};
+
+/// Updates the cached overlay position. Call this when the setting changes.
+pub fn update_cached_overlay_position(position: OverlayPosition) {
+    let val = match position {
+        OverlayPosition::None => 0,
+        OverlayPosition::Top => 1,
+        OverlayPosition::Bottom => 2,
+    };
+    CACHED_OVERLAY_POSITION.store(val, Ordering::Relaxed);
+}
+
+fn get_cached_overlay_position() -> OverlayPosition {
+    match CACHED_OVERLAY_POSITION.load(Ordering::Relaxed) {
+        0 => OverlayPosition::None,
+        1 => OverlayPosition::Top,
+        _ => OverlayPosition::Bottom,
+    }
+}
 
 #[derive(serde::Serialize, Clone)]
 struct ShowOverlayPayload<'a> {
@@ -112,6 +134,9 @@ fn calculate_overlay_position(app_handle: &AppHandle) -> Option<(f64, f64)> {
 
 /// Creates the recording overlay window and keeps it hidden by default
 pub fn create_recording_overlay(app_handle: &AppHandle) {
+    let settings = settings::get_settings(app_handle);
+    update_cached_overlay_position(settings.overlay_position);
+
     if let Some((x, y)) = calculate_overlay_position(app_handle) {
         match WebviewWindowBuilder::new(
             app_handle,
@@ -194,6 +219,7 @@ pub fn show_recording_overlay(app_handle: &AppHandle) {
 
     // Check if overlay should be shown based on position setting
     let settings = settings::get_settings(app_handle);
+    update_cached_overlay_position(settings.overlay_position);
     if settings.overlay_position == OverlayPosition::None {
         return;
     }
@@ -239,6 +265,9 @@ pub fn show_recording_overlay(app_handle: &AppHandle) {
 
 /// Updates the overlay window position based on current settings
 pub fn update_overlay_position(app_handle: &AppHandle) {
+    let settings = settings::get_settings(app_handle);
+    update_cached_overlay_position(settings.overlay_position);
+
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
         if let Some((x, y)) = calculate_overlay_position(app_handle) {
             let _ = overlay_window
@@ -304,8 +333,7 @@ pub fn emit_levels(app_handle: &AppHandle, levels: &Vec<f32>) {
         // Update overlay position dynamically to follow cursor across monitors,
         // but skip repositioning when streaming text is active to avoid jumping
         if !STREAMING_ACTIVE.load(Ordering::SeqCst) {
-            let current_settings = settings::get_settings(app_handle);
-            if current_settings.overlay_position != OverlayPosition::None {
+            if get_cached_overlay_position() != OverlayPosition::None {
                 if let Some((x, y)) = calculate_overlay_position(app_handle) {
                     let _ = overlay_window
                         .set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));

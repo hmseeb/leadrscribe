@@ -366,7 +366,7 @@ impl TranscriptionManager {
 
         debug!("Audio vector length: {}", audio.len());
 
-        if audio.len() == 0 {
+        if audio.is_empty() {
             debug!("Empty audio vector");
             return Ok(String::new());
         }

@@ -510,13 +510,14 @@ impl ShortcutAction for TranscribeAction {
                     // Save to history with both original and ghostwritten text
                     let hm_clone = Arc::clone(&hm);
                     let transcription_for_history = transcription.clone();
+                    let active_profile_id = settings.active_profile_id;
                     tauri::async_runtime::spawn(async move {
                         if let Err(e) = hm_clone
                             .save_transcription(
                                 samples_clone,
                                 transcription_for_history,
                                 ghostwritten_text,
-                                None, // TODO: Get active profile_id from settings
+                                active_profile_id,
                                 Some(duration_seconds),
                             )
                             .await
