@@ -32,7 +32,9 @@ function applyTheme(theme: EffectiveTheme) {
 // Initialize theme from settings
 async function initializeTheme() {
   try {
-    const settings = await invoke<{ theme_mode?: ThemeMode }>("get_settings");
+    const { load } = await import("@tauri-apps/plugin-store");
+    const store = await load("settings_store.json", { autoSave: false, defaults: {} });
+    const settings = await store.get("settings") as { theme_mode?: ThemeMode } | null;
     const themeMode = settings?.theme_mode || "system";
     applyTheme(getEffectiveTheme(themeMode));
   } catch {
@@ -51,7 +53,9 @@ async function setupThemeListener() {
   const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
   mediaQuery.addEventListener("change", async () => {
     try {
-      const settings = await invoke<{ theme_mode?: ThemeMode }>("get_settings");
+      const { load } = await import("@tauri-apps/plugin-store");
+      const store = await load("settings_store.json", { autoSave: false, defaults: {} });
+      const settings = await store.get("settings") as { theme_mode?: ThemeMode } | null;
       if (settings?.theme_mode === "system") {
         applyTheme(getSystemTheme());
       }
