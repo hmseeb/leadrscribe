@@ -6,7 +6,7 @@ import { Download } from "@/components/Download";
 import { Footer } from "@/components/Footer";
 import { getLatestRelease } from "@/lib/github";
 
-export const revalidate = 3600; // Revalidate every hour
+export const revalidate = 300; // Revalidate every 5 minutes
 
 export default async function Home() {
   let downloadLinks = null;
