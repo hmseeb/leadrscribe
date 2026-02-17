@@ -3,7 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 UI Redesign** - Phases 1-8 (partial - phases 1 & 8 shipped 2026-02-06)
-- 🚧 **v0.6.0 Audit Fixes** - Phases 9-10 (in progress)
+- 🚧 **v0.6.0 Audit Fixes** - Phases 9-11 (in progress)
 
 ## Phases
 
@@ -75,7 +75,7 @@ Plans:
 
 ## Progress
 
-**Execution Order:** 9 → 10
+**Execution Order:** 9 → 10 → 11
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -83,6 +83,7 @@ Plans:
 | 8. Real-Time Transcription Display | v1.0 UI Redesign | 2/2 | Complete | 2026-02-06 |
 | 9. Critical Correctness Fixes | v0.6.0 Audit Fixes | 3/3 | Complete | 2026-02-13 |
 | 10. Security & Code Health | v0.6.0 Audit Fixes | 3/3 | Complete | 2026-02-13 |
+| 11. Fix all audit findings | v0.6.0 Audit Fixes | 4/4 | Complete | 2026-02-17 |
 
 ### Phase 11: Fix all audit findings
 **Goal**: Fix all 13 remaining audit findings: security, correctness, performance, and code health
@@ -101,10 +102,10 @@ Plans:
 **Plans**: 4 plans in 2 waves
 
 Plans:
-- [ ] 11-01-PLAN.md — Settings correctness and security (findings 1, 3, 9, 13)
-- [ ] 11-02-PLAN.md — Overlay theme fix and audio performance (findings 2, 7, 8)
-- [ ] 11-03-PLAN.md — Code health: DRY history, clippy, dead code, profile ID (findings 5, 11, 12)
-- [ ] 11-04-PLAN.md — Deadlock prevention, thread shutdown, settings refactor (findings 4, 6, 10)
+- [x] 11-01-PLAN.md — Settings correctness and security (findings 1, 3, 9, 13)
+- [x] 11-02-PLAN.md — Overlay theme fix and audio performance (findings 2, 7, 8)
+- [x] 11-03-PLAN.md — Code health: DRY history, clippy, dead code, profile ID (findings 5, 11, 12)
+- [x] 11-04-PLAN.md — Deadlock prevention, thread shutdown, settings refactor (findings 4, 6, 10)
 
 ---
 *Roadmap created: 2026-02-04*
