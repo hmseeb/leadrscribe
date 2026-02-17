@@ -25,6 +25,24 @@ pub struct HistoryEntry {
     pub word_count: Option<i32>,
 }
 
+/// Shared mapping function to convert a database row to a HistoryEntry.
+/// Used by all query methods to avoid duplicating the 11-field mapping.
+fn row_to_history_entry(row: &rusqlite::Row) -> rusqlite::Result<HistoryEntry> {
+    Ok(HistoryEntry {
+        id: row.get("id")?,
+        file_name: row.get("file_name")?,
+        timestamp: row.get("timestamp")?,
+        saved: row.get("saved")?,
+        title: row.get("title")?,
+        transcription_text: row.get("transcription_text")?,
+        ghostwritten_text: row.get("ghostwritten_text")?,
+        profile_id: row.get("profile_id")?,
+        notes: row.get("notes")?,
+        duration_seconds: row.get("duration_seconds")?,
+        word_count: row.get("word_count")?,
+    })
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Profile {
     pub id: i64,
@@ -345,21 +363,7 @@ impl HistoryManager {
              FROM transcription_history ORDER BY timestamp DESC"
         )?;
 
-        let rows = stmt.query_map([], |row| {
-            Ok(HistoryEntry {
-                id: row.get("id")?,
-                file_name: row.get("file_name")?,
-                timestamp: row.get("timestamp")?,
-                saved: row.get("saved")?,
-                title: row.get("title")?,
-                transcription_text: row.get("transcription_text")?,
-                ghostwritten_text: row.get("ghostwritten_text")?,
-                profile_id: row.get("profile_id")?,
-                notes: row.get("notes")?,
-                duration_seconds: row.get("duration_seconds")?,
-                word_count: row.get("word_count")?,
-            })
-        })?;
+        let rows = stmt.query_map([], row_to_history_entry)?;
 
         let mut entries = Vec::new();
         for row in rows {
@@ -409,21 +413,7 @@ impl HistoryManager {
         )?;
 
         let entry = stmt
-            .query_row([id], |row| {
-                Ok(HistoryEntry {
-                    id: row.get("id")?,
-                    file_name: row.get("file_name")?,
-                    timestamp: row.get("timestamp")?,
-                    saved: row.get("saved")?,
-                    title: row.get("title")?,
-                    transcription_text: row.get("transcription_text")?,
-                    ghostwritten_text: row.get("ghostwritten_text")?,
-                    profile_id: row.get("profile_id")?,
-                    notes: row.get("notes")?,
-                    duration_seconds: row.get("duration_seconds")?,
-                    word_count: row.get("word_count")?,
-                })
-            })
+            .query_row([id], row_to_history_entry)
             .optional()?;
 
         Ok(entry)
@@ -497,21 +487,7 @@ impl HistoryManager {
              LIMIT ?2"
         )?;
 
-        let entries = stmt.query_map(params![query, limit as i64], |row| {
-            Ok(HistoryEntry {
-                id: row.get("id")?,
-                file_name: row.get("file_name")?,
-                timestamp: row.get("timestamp")?,
-                saved: row.get("saved")?,
-                title: row.get("title")?,
-                transcription_text: row.get("transcription_text")?,
-                ghostwritten_text: row.get("ghostwritten_text")?,
-                profile_id: row.get("profile_id")?,
-                notes: row.get("notes")?,
-                duration_seconds: row.get("duration_seconds")?,
-                word_count: row.get("word_count")?,
-            })
-        })?;
+        let entries = stmt.query_map(params![query, limit as i64], row_to_history_entry)?;
 
         let mut result = Vec::new();
         for entry in entries {
@@ -534,21 +510,7 @@ impl HistoryManager {
              LIMIT ?2"
         )?;
 
-        let entries = stmt.query_map(params![profile_id, limit as i64], |row| {
-            Ok(HistoryEntry {
-                id: row.get("id")?,
-                file_name: row.get("file_name")?,
-                timestamp: row.get("timestamp")?,
-                saved: row.get("saved")?,
-                title: row.get("title")?,
-                transcription_text: row.get("transcription_text")?,
-                ghostwritten_text: row.get("ghostwritten_text")?,
-                profile_id: row.get("profile_id")?,
-                notes: row.get("notes")?,
-                duration_seconds: row.get("duration_seconds")?,
-                word_count: row.get("word_count")?,
-            })
-        })?;
+        let entries = stmt.query_map(params![profile_id, limit as i64], row_to_history_entry)?;
 
         let mut result = Vec::new();
         for entry in entries {
@@ -576,21 +538,7 @@ impl HistoryManager {
              LIMIT ?3"
         )?;
 
-        let entries = stmt.query_map(params![start_timestamp, end_timestamp, limit as i64], |row| {
-            Ok(HistoryEntry {
-                id: row.get("id")?,
-                file_name: row.get("file_name")?,
-                timestamp: row.get("timestamp")?,
-                saved: row.get("saved")?,
-                title: row.get("title")?,
-                transcription_text: row.get("transcription_text")?,
-                ghostwritten_text: row.get("ghostwritten_text")?,
-                profile_id: row.get("profile_id")?,
-                notes: row.get("notes")?,
-                duration_seconds: row.get("duration_seconds")?,
-                word_count: row.get("word_count")?,
-            })
-        })?;
+        let entries = stmt.query_map(params![start_timestamp, end_timestamp, limit as i64], row_to_history_entry)?;
 
         let mut result = Vec::new();
         for entry in entries {
@@ -613,21 +561,7 @@ impl HistoryManager {
              LIMIT ?1"
         )?;
 
-        let entries = stmt.query_map(params![limit as i64], |row| {
-            Ok(HistoryEntry {
-                id: row.get("id")?,
-                file_name: row.get("file_name")?,
-                timestamp: row.get("timestamp")?,
-                saved: row.get("saved")?,
-                title: row.get("title")?,
-                transcription_text: row.get("transcription_text")?,
-                ghostwritten_text: row.get("ghostwritten_text")?,
-                profile_id: row.get("profile_id")?,
-                notes: row.get("notes")?,
-                duration_seconds: row.get("duration_seconds")?,
-                word_count: row.get("word_count")?,
-            })
-        })?;
+        let entries = stmt.query_map(params![limit as i64], row_to_history_entry)?;
 
         let mut result = Vec::new();
         for entry in entries {
