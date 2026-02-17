@@ -52,7 +52,7 @@ const DEFAULT_SETTINGS: Partial<Settings> = {
   overlay_position: "bottom",
   debug_mode: false,
   custom_words: [],
-  history_limit: 5,
+  history_limit: 10000,
   mute_while_recording: false,
   theme_mode: "system",
 };

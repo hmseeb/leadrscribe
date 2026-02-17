@@ -226,8 +226,8 @@ pub fn run() {
                             selected_model
                         );
 
-                        // Switch to whisper-small as a safe default
-                        selected_model = "whisper-small".to_string();
+                        // Switch to small as a safe default
+                        selected_model = "small".to_string();
 
                         // Update settings to reflect the change
                         let mut updated_settings = settings.clone();
@@ -240,7 +240,7 @@ pub fn run() {
                             serde_json::json!({
                                 "message": "Your CPU does not support Parakeet models (requires AVX2). Switched to Whisper Small.",
                                 "original_model": model_info.id,
-                                "fallback_model": "whisper-small"
+                                "fallback_model": "small"
                             })
                         );
                     }
