@@ -226,6 +226,8 @@ pub struct AppSettings {
     pub custom_instructions: String,
     #[serde(default)]
     pub active_profile_id: Option<i64>,
+    #[serde(default = "default_theme_mode")]
+    pub theme_mode: String,
 }
 
 fn default_model() -> String {
@@ -287,6 +289,10 @@ fn default_custom_instructions() -> String {
     "Improve grammar, spelling, clarity, and flow while preserving the original meaning and tone.".to_string()
 }
 
+fn default_theme_mode() -> String {
+    "system".to_string()
+}
+
 pub const SETTINGS_STORE_PATH: &str = "settings_store.json";
 
 pub fn get_default_settings() -> AppSettings {
@@ -339,6 +345,7 @@ pub fn get_default_settings() -> AppSettings {
         openrouter_model: default_openrouter_model(),
         custom_instructions: default_custom_instructions(),
         active_profile_id: None,
+        theme_mode: default_theme_mode(),
     }
 }
 

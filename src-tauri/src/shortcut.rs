@@ -395,9 +395,9 @@ pub fn change_openrouter_api_key_setting(app: AppHandle, api_key: Option<String>
 
         if keyring_works {
             debug!("API key saved to keychain successfully");
-            // CHANGED: Always keep fallback in settings file even if keyring works
-            // This ensures ghostwriting works even if keyring becomes unreliable later
-            s.openrouter_api_key = api_key.clone();
+            // Keyring works — clear plaintext from settings file for security.
+            // get_openrouter_api_key_setting already handles keyring → settings fallback on read.
+            s.openrouter_api_key = None;
         } else {
             // Keychain unreliable: store in settings file as fallback
             warn!("Keychain storage failed or unverifiable, falling back to settings file");
