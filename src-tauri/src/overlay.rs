@@ -12,6 +12,9 @@ static HIDE_PENDING: AtomicBool = AtomicBool::new(false);
 /// When true, emit_levels skips repositioning to avoid jumping while user reads text.
 static STREAMING_ACTIVE: AtomicBool = AtomicBool::new(false);
 
+/// Counter for throttling periodic always-on-top re-assertion in emit_levels.
+static TOPMOST_REFRESH_COUNTER: AtomicU8 = AtomicU8::new(0);
+
 /// Cached overlay position to avoid reading settings on every audio level callback.
 /// Values: 0 = None, 1 = Top, 2 = Bottom
 static CACHED_OVERLAY_POSITION: AtomicU8 = AtomicU8::new(2); // Default: Bottom
@@ -216,6 +219,10 @@ fn try_show_overlay_with_timeout(
         return false;
     }
 
+    // Re-assert always-on-top after show(). On Windows the WS_EX_TOPMOST flag
+    // can be lost after hide/show cycles, sleep/wake, or focus changes.
+    let _ = window.set_always_on_top(true);
+
     // Poll is_visible() until the window becomes visible or we time out.
     // This handles two cases:
     //   1. WebView2 waking from Windows sleep/idle suspension (can take 200-600ms)
@@ -392,6 +399,15 @@ pub fn emit_levels(app_handle: &AppHandle, levels: &Vec<f32>) {
                         .set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
                 }
             }
+        }
+
+        // Periodically re-assert always-on-top to recover from Windows stealing
+        // the TOPMOST flag (e.g. another app activating, fullscreen transitions).
+        // Fires roughly every ~2 seconds assuming ~30 emit_levels calls/sec.
+        let count = TOPMOST_REFRESH_COUNTER.fetch_add(1, Ordering::Relaxed);
+        if count >= 60 {
+            TOPMOST_REFRESH_COUNTER.store(0, Ordering::Relaxed);
+            let _ = overlay_window.set_always_on_top(true);
         }
     }
 }
