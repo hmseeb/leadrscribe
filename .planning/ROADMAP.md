@@ -107,6 +107,20 @@ Plans:
 - [x] 11-03-PLAN.md — Code health: DRY history, clippy, dead code, profile ID (findings 5, 11, 12)
 - [x] 11-04-PLAN.md — Deadlock prevention, thread shutdown, settings refactor (findings 4, 6, 10)
 
+### Phase 12: Setup code signing
+
+**Goal:** Configure Windows code signing with Azure Trusted Signing so binaries are not blocked by AV software
+**Depends on:** Phase 11
+**Success Criteria** (what must be TRUE):
+  1. tauri.conf.json has signCommand configured for trusted-signing-cli
+  2. CI build workflow passes all Azure Trusted Signing env vars from GitHub secrets
+  3. Windows .exe/.msi are signed in CI and show valid digital signature
+  4. Signed binaries pass AV (ESET) checks and are not silently blocked
+**Plans:** 1 plan in 1 wave
+
+Plans:
+- [ ] 12-01-PLAN.md — Configure signCommand and CI env vars, human sets up Azure resources
+
 ---
 *Roadmap created: 2026-02-04*
 *Updated for v0.6.0 milestone: 2026-02-13*
