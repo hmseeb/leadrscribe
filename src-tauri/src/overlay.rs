@@ -172,7 +172,23 @@ pub fn create_recording_overlay(app_handle: &AppHandle) {
 
 /// Attempts to show overlay window and verify it actually became visible.
 /// Returns true if show succeeded, false if window appears broken.
+///
+/// After Windows sleep/idle, WebView2 renderer processes are suspended. The window handle
+/// remains valid but show() may succeed while is_visible() still returns false because the
+/// WebView2 process hasn't finished waking up. This function polls is_visible() for up to
+/// SHOW_POLL_TIMEOUT_MS to give the WebView sufficient time to initialize or wake up.
 fn try_show_overlay(window: &tauri::WebviewWindow, position: &str) -> bool {
+    try_show_overlay_with_timeout(window, position, 800)
+}
+
+/// Same as try_show_overlay but allows specifying the poll timeout in milliseconds.
+/// Use a longer timeout for freshly created windows (WebView2 initialization takes longer
+/// than just waking a suspended renderer).
+fn try_show_overlay_with_timeout(
+    window: &tauri::WebviewWindow,
+    position: &str,
+    poll_timeout_ms: u64,
+) -> bool {
     // First check if window handle is valid at all
     if window.is_visible().is_err() {
         debug!("Overlay window handle is stale (is_visible failed)");
@@ -185,28 +201,41 @@ fn try_show_overlay(window: &tauri::WebviewWindow, position: &str) -> bool {
         return false;
     }
 
-    // Give the window a moment to actually become visible
-    std::thread::sleep(std::time::Duration::from_millis(10));
+    // Poll is_visible() until the window becomes visible or we time out.
+    // This handles two cases:
+    //   1. WebView2 waking from Windows sleep/idle suspension (can take 200-600ms)
+    //   2. Freshly created windows where WebView2 is still initializing
+    const POLL_INTERVAL_MS: u64 = 30;
+    let max_polls = (poll_timeout_ms / POLL_INTERVAL_MS).max(1);
 
-    // Verify the window is actually visible now
-    match window.is_visible() {
-        Ok(true) => {
-            let _ = window.emit("show-overlay", ShowOverlayPayload {
-                state: "recording",
-                position,
-            });
-            true
-        }
-        Ok(false) => {
-            // show() succeeded but window isn't visible - broken state (common after Windows sleep)
-            debug!("Overlay window show() succeeded but is_visible() returns false - window is broken");
-            false
-        }
-        Err(_) => {
-            debug!("Overlay window became invalid after show()");
-            false
+    for poll in 0..max_polls {
+        std::thread::sleep(std::time::Duration::from_millis(POLL_INTERVAL_MS));
+        match window.is_visible() {
+            Ok(true) => {
+                debug!("Overlay became visible after {}ms", (poll + 1) * POLL_INTERVAL_MS);
+                let _ = window.emit("show-overlay", ShowOverlayPayload {
+                    state: "recording",
+                    position,
+                });
+                return true;
+            }
+            Ok(false) => {
+                // Not visible yet - keep polling
+                continue;
+            }
+            Err(_) => {
+                debug!("Overlay window became invalid after show()");
+                return false;
+            }
         }
     }
+
+    // Timed out: show() succeeded but window never became visible
+    debug!(
+        "Overlay window show() succeeded but is_visible() returned false after {}ms - window is broken",
+        poll_timeout_ms
+    );
+    false
 }
 
 /// Shows the recording overlay window with fade-in animation
@@ -234,32 +263,41 @@ pub fn show_recording_overlay(app_handle: &AppHandle) {
 
     update_overlay_position(app_handle);
 
-    // Try to show existing window, with retry after recreation if it fails
-    for attempt in 0..2 {
-        if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
-            if try_show_overlay(&overlay_window, position_str) {
-                return; // Success!
-            }
-
-            // Show failed - destroy and recreate
-            debug!(
-                "Overlay show attempt {} failed, recreating window...",
-                attempt + 1
-            );
-            let _ = overlay_window.destroy();
-            create_recording_overlay(app_handle);
-        } else {
-            // Window doesn't exist, create it
-            debug!("Overlay window not found, creating...");
-            create_recording_overlay(app_handle);
+    // First attempt: try to show the existing window.
+    // Uses a generous poll timeout to handle WebView2 waking from Windows sleep/idle.
+    if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
+        if try_show_overlay(&overlay_window, position_str) {
+            return; // Success on first attempt
         }
+
+        // First attempt failed - the window is in a broken state.
+        // Destroy it and create a fresh one.
+        debug!("Overlay show attempt 1 failed, destroying and recreating window...");
+        let _ = overlay_window.destroy();
+    } else {
+        debug!("Overlay window not found before first attempt, creating...");
     }
 
-    // Final attempt after recreation
+    // Create a fresh overlay window
+    create_recording_overlay(app_handle);
+
+    // Second attempt: show the freshly created window.
+    // Use a longer timeout because WebView2 initialization (loading web content from scratch)
+    // takes significantly longer than waking a suspended renderer.
+    // On slower systems or after long idle, this can take 1-2 seconds.
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
-        if !try_show_overlay(&overlay_window, position_str) {
-            debug!("Overlay failed to show after recreation - giving up");
+        if try_show_overlay_with_timeout(&overlay_window, position_str, 2000) {
+            return; // Success after recreation
         }
+
+        // Still failing after creation with a 2s wait - destroy and give up cleanly.
+        // This is an extremely rare edge case (e.g. system resource exhaustion).
+        debug!("Overlay failed to show after recreation with 2s wait - giving up");
+        let _ = overlay_window.destroy();
+        // Schedule a fresh window creation for next time
+        create_recording_overlay(app_handle);
+    } else {
+        debug!("Overlay window not found even after creation - giving up");
     }
 }
 
@@ -343,8 +381,12 @@ pub fn emit_levels(app_handle: &AppHandle, levels: &Vec<f32>) {
     }
 }
 
-/// Ensures the overlay window exists, recreating it if it was destroyed.
-/// This is used by the health check system to recover from system sleep/idle.
+/// Ensures the overlay window exists, recreating it if it was destroyed or its handle is stale.
+/// This is used by the health check system and by show_recording_overlay before attempting to show.
+///
+/// Note: This function only checks handle validity. The broken-show case (handle valid but
+/// show() doesn't make the window visible - common after Windows sleep/idle) is handled by
+/// show_recording_overlay's retry logic with proper polling timeouts.
 pub fn ensure_overlay_exists(app_handle: &AppHandle) {
     let needs_recreation = if let Some(window) = app_handle.get_webview_window("recording_overlay") {
         // Check if window is actually valid by trying to query its state
