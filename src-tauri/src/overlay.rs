@@ -64,7 +64,8 @@ fn get_monitor_with_cursor(app_handle: &AppHandle) -> Option<tauri::Monitor> {
         if let Ok(mouse_location) = enigo.location() {
             if let Ok(monitors) = app_handle.available_monitors() {
                 for monitor in monitors {
-                    let is_within = is_mouse_within_monitor(mouse_location, monitor.position(), monitor.size());
+                    let scale = monitor.scale_factor();
+                    let is_within = is_mouse_within_monitor(mouse_location, monitor.position(), monitor.size(), scale);
                     if is_within {
                         return Some(monitor);
                     }
@@ -80,15 +81,29 @@ fn is_mouse_within_monitor(
     mouse_pos: (i32, i32),
     monitor_pos: &PhysicalPosition<i32>,
     monitor_size: &PhysicalSize<u32>,
+    scale: f64,
 ) -> bool {
+    // enigo.location() calls GetCursorPos() on Windows, which returns logical pixel coordinates
+    // (i.e. DPI-scaled, where 1920x1080 at 200% DPI still reads as ~1920px wide).
+    // Tauri's monitor.position() and monitor.size() return physical pixel coordinates.
+    // Comparing them directly fails on multi-monitor setups with different scale factors.
+    //
+    // Fix: convert the monitor's physical bounds to logical coordinates using the monitor's
+    // own scale factor before comparing with the logical mouse position from enigo.
     let (mouse_x, mouse_y) = mouse_pos;
-    let PhysicalPosition { x: monitor_x, y: monitor_y } = *monitor_pos;
-    let PhysicalSize { width: monitor_width, height: monitor_height } = *monitor_size;
+    let PhysicalPosition { x: phys_x, y: phys_y } = *monitor_pos;
+    let PhysicalSize { width: phys_w, height: phys_h } = *monitor_size;
+
+    // Convert monitor bounds to logical pixels
+    let monitor_x = (phys_x as f64 / scale).round() as i32;
+    let monitor_y = (phys_y as f64 / scale).round() as i32;
+    let monitor_width = (phys_w as f64 / scale).round() as i32;
+    let monitor_height = (phys_h as f64 / scale).round() as i32;
 
     mouse_x >= monitor_x
-        && mouse_x < (monitor_x + monitor_width as i32)
+        && mouse_x < (monitor_x + monitor_width)
         && mouse_y >= monitor_y
-        && mouse_y < (monitor_y + monitor_height as i32)
+        && mouse_y < (monitor_y + monitor_height)
 }
 
 fn calculate_overlay_position(app_handle: &AppHandle) -> Option<(f64, f64)> {
