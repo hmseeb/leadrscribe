@@ -15,9 +15,19 @@ use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use tauri::{AppHandle, Emitter, Listener, Manager};
 
+/// Strips punctuation from a word for fuzzy comparison.
+/// Keeps alphanumeric chars and apostrophes (for contractions like "don't").
+fn normalize_word(word: &str) -> String {
+    word.chars()
+        .filter(|c| c.is_alphanumeric() || *c == '\'')
+        .collect::<String>()
+        .to_lowercase()
+}
+
 /// Merges two overlapping text segments by detecting shared suffix/prefix.
 /// Requires at least 2 matching words to trigger dedup (avoids false positives
 /// on common single words like "the", "a", "and").
+/// Uses punctuation-stripped comparison so "all," matches "all".
 fn merge_overlapping_text(committed: &str, new_text: &str) -> String {
     if committed.is_empty() {
         return new_text.to_string();
@@ -32,7 +42,8 @@ fn merge_overlapping_text(committed: &str, new_text: &str) -> String {
     let max_overlap = committed_words.len().min(new_words.len());
     let mut best_overlap = 0;
 
-    // Find longest suffix of committed that matches prefix of new (case-insensitive)
+    // Find longest suffix of committed that matches prefix of new
+    // Uses normalize_word() to strip punctuation (e.g. "all," == "all")
     // Require at least 2 words to avoid false positives on common words
     for overlap_len in (2..=max_overlap).rev() {
         let committed_suffix = &committed_words[committed_words.len() - overlap_len..];
@@ -41,7 +52,7 @@ fn merge_overlapping_text(committed: &str, new_text: &str) -> String {
         let matches = committed_suffix
             .iter()
             .zip(new_prefix.iter())
-            .all(|(a, b)| a.to_lowercase() == b.to_lowercase());
+            .all(|(a, b)| normalize_word(a) == normalize_word(b));
 
         if matches {
             best_overlap = overlap_len;
@@ -229,13 +240,25 @@ pub fn setup_segment_listener(app: &AppHandle) {
 
                                 // Build display text: committed prefix + window result
                                 let display_text = if is_windowed {
-                                    let committed = STREAMING_STATE.committed_text.lock().unwrap().clone();
-                                    // Update committed_text to the prior full result for next window
-                                    let prev_latest = STREAMING_STATE.latest_text.lock().unwrap().clone();
-                                    if !prev_latest.is_empty() {
-                                        *STREAMING_STATE.committed_text.lock().unwrap() = prev_latest;
+                                    let mut committed = STREAMING_STATE.committed_text.lock().unwrap().clone();
+
+                                    // On first windowed transition, committed is empty but
+                                    // prev_latest has the full non-windowed text. Use it to
+                                    // avoid losing text that precedes the window.
+                                    if committed.is_empty() {
+                                        let prev_latest = STREAMING_STATE.latest_text.lock().unwrap().clone();
+                                        if !prev_latest.is_empty() {
+                                            committed = prev_latest;
+                                        }
                                     }
-                                    merge_overlapping_text(&committed, &text)
+
+                                    let merged = merge_overlapping_text(&committed, &text);
+
+                                    // Update committed_text to the merged result so that the
+                                    // next generation always has the best available full text.
+                                    *STREAMING_STATE.committed_text.lock().unwrap() = merged.clone();
+
+                                    merged
                                 } else {
                                     text.clone()
                                 };
@@ -624,7 +647,16 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
 
 #[cfg(test)]
 mod tests {
-    use super::merge_overlapping_text;
+    use super::{merge_overlapping_text, normalize_word};
+
+    #[test]
+    fn test_normalize_word() {
+        assert_eq!(normalize_word("all,"), "all");
+        assert_eq!(normalize_word("glitchy."), "glitchy");
+        assert_eq!(normalize_word("don't"), "don't");
+        assert_eq!(normalize_word("Hello!"), "hello");
+        assert_eq!(normalize_word("(test)"), "test");
+    }
 
     #[test]
     fn test_merge_no_overlap() {
@@ -673,5 +705,43 @@ mod tests {
             "hello world foo bar baz",
         );
         assert_eq!(result, "Hello World Foo bar baz");
+    }
+
+    #[test]
+    fn test_merge_punctuation_mismatch() {
+        // Whisper often adds/removes punctuation between windows
+        // "all," vs "all" should still match
+        let result = merge_overlapping_text(
+            "First of all, the voice seems",
+            "the voice seems to be slightly glitchy",
+        );
+        assert_eq!(
+            result,
+            "First of all, the voice seems to be slightly glitchy"
+        );
+    }
+
+    #[test]
+    fn test_merge_trailing_period_mismatch() {
+        let result = merge_overlapping_text(
+            "I still notice a delay.",
+            "a delay between when I finish speaking",
+        );
+        assert_eq!(
+            result,
+            "I still notice a delay. between when I finish speaking"
+        );
+    }
+
+    #[test]
+    fn test_merge_comma_vs_no_comma() {
+        let result = merge_overlapping_text(
+            "do some testing. First of all,",
+            "First of all the voice seems slightly glitchy",
+        );
+        assert_eq!(
+            result,
+            "do some testing. First of all, the voice seems slightly glitchy"
+        );
     }
 }

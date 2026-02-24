@@ -2,7 +2,7 @@ use crate::settings;
 use crate::settings::OverlayPosition;
 use log::debug;
 use enigo::{Enigo, Mouse};
-use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI64, AtomicU8, Ordering};
 
 /// Atomic flag to track if a hide operation is pending.
 /// This prevents race conditions where a delayed hide() executes after a new show().
@@ -18,6 +18,11 @@ static TOPMOST_REFRESH_COUNTER: AtomicU8 = AtomicU8::new(0);
 /// Cached overlay position to avoid reading settings on every audio level callback.
 /// Values: 0 = None, 1 = Top, 2 = Bottom
 static CACHED_OVERLAY_POSITION: AtomicU8 = AtomicU8::new(2); // Default: Bottom
+
+/// Tracks which monitor the overlay is currently on (by physical origin position).
+/// Two i32 values packed into one i64: upper 32 bits = x, lower 32 bits = y.
+/// Value of i64::MIN means "no monitor cached yet".
+static LAST_OVERLAY_MONITOR: AtomicI64 = AtomicI64::new(i64::MIN);
 
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewWindowBuilder};
 
@@ -109,9 +114,9 @@ fn is_mouse_within_monitor(
         && mouse_y < (monitor_y + monitor_height)
 }
 
-fn calculate_overlay_position(app_handle: &AppHandle) -> Option<(f64, f64)> {
+/// Calculate overlay position for a specific monitor.
+fn calculate_overlay_position_for_monitor(monitor: &tauri::Monitor, app_handle: &AppHandle) -> Option<(f64, f64)> {
     let settings = settings::get_settings(app_handle);
-    let monitor = get_monitor_with_cursor(app_handle)?;
 
     let work_area = monitor.work_area();
     let scale = monitor.scale_factor();
@@ -148,6 +153,11 @@ fn calculate_overlay_position(app_handle: &AppHandle) -> Option<(f64, f64)> {
     };
 
     Some((window_x, window_y))
+}
+
+fn calculate_overlay_position(app_handle: &AppHandle) -> Option<(f64, f64)> {
+    let monitor = get_monitor_with_cursor(app_handle)?;
+    calculate_overlay_position_for_monitor(&monitor, app_handle)
 }
 
 /// Creates the recording overlay window and keeps it hidden by default
@@ -267,6 +277,8 @@ pub fn show_recording_overlay(app_handle: &AppHandle) {
     HIDE_PENDING.store(false, Ordering::SeqCst);
     // Reset streaming state for new recording session
     STREAMING_ACTIVE.store(false, Ordering::SeqCst);
+    // Reset monitor tracking so the overlay is positioned on first level callback
+    LAST_OVERLAY_MONITOR.store(i64::MIN, Ordering::Relaxed);
 
     // Check if overlay should be shown based on position setting
     let settings = settings::get_settings(app_handle);
@@ -390,13 +402,25 @@ pub fn emit_levels(app_handle: &AppHandle, levels: &Vec<f32>) {
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
         let _ = overlay_window.emit("mic-level", levels);
 
-        // Update overlay position dynamically to follow cursor across monitors,
-        // but skip repositioning when streaming text is active to avoid jumping
-        if !STREAMING_ACTIVE.load(Ordering::SeqCst) {
-            if get_cached_overlay_position() != OverlayPosition::None {
-                if let Some((x, y)) = calculate_overlay_position(app_handle) {
-                    let _ = overlay_window
-                        .set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
+        // Update overlay position dynamically to follow cursor across monitors.
+        // When streaming text is active, only reposition if the cursor moved to a
+        // DIFFERENT monitor (avoids jumping within the same screen while user reads).
+        if get_cached_overlay_position() != OverlayPosition::None {
+            if let Some(monitor) = get_monitor_with_cursor(app_handle) {
+                let mon_pos = monitor.position();
+                let mon_key = ((mon_pos.x as i64) << 32) | (mon_pos.y as u32 as i64);
+                let prev_mon = LAST_OVERLAY_MONITOR.load(Ordering::Relaxed);
+                let monitor_changed = prev_mon != mon_key;
+
+                // Reposition when:
+                //   - streaming is NOT active (normal tracking), OR
+                //   - the cursor moved to a different monitor during streaming
+                if !STREAMING_ACTIVE.load(Ordering::SeqCst) || monitor_changed {
+                    if let Some((x, y)) = calculate_overlay_position_for_monitor(&monitor, app_handle) {
+                        let _ = overlay_window
+                            .set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
+                        LAST_OVERLAY_MONITOR.store(mon_key, Ordering::Relaxed);
+                    }
                 }
             }
         }
